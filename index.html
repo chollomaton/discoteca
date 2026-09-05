@@ -8,7 +8,8 @@
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="description" content="Catálogo personal de vinilos y CDs">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon-v2.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192-v2.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -178,8 +179,10 @@ button{font-family:inherit}
 .badge{position:absolute;top:8px;left:8px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
   background:rgba(255,255,255,.94);backdrop-filter:blur(12px) saturate(180%);-webkit-backdrop-filter:blur(12px) saturate(180%);
   box-shadow:0 1px 5px rgba(0,0,0,.26)}
-.badge.vin .ic{width:23px;height:23px}
-.badge.cd .ic{width:17px;height:17px}
+.badge.vin .ic{width:25px;height:25px}
+.badge.cd .ic{width:19px;height:19px}
+.badge.vin{background:rgba(255,255,255,.96)}
+.badge.cd{background:rgba(255,255,255,.96)}
 .badge .vinilo-out{stroke:#15151a}
 .badge .vinilo-lab{fill:#15151a}
 .badge .cd-out{stroke:#8b98a8}
@@ -601,15 +604,28 @@ svg.chart .axis{stroke:var(--sep);stroke-width:1}
     display:flex;flex-direction:column}
   .sheet.wide{max-width:none}
   .sheet-bd{flex:1}
-  .grabber{display:block;width:38px;height:5px;border-radius:99px;background:var(--sep2);margin:8px auto 2px;flex-shrink:0}
-  .sheet-hd{padding:6px 16px 12px}
-  .sheet-hd h2{font-size:17px}
+  /* la cabecera vive por debajo de la barra de estado del sistema */
+  .sheet-hd{padding:calc(8px + var(--sat)) 12px 10px;min-height:calc(52px + var(--sat));
+    background:color-mix(in srgb, var(--elev) 88%, transparent);
+    backdrop-filter:saturate(180%) blur(22px);-webkit-backdrop-filter:saturate(180%) blur(22px)}
+  .sheet-hd h2{opacity:0;transition:opacity .22s;font-size:16px;text-align:center;padding:0 4px}
+  .sheet-hd.visto h2{opacity:1}
+  .atras{display:inline-flex;align-items:center;gap:2px;border:none;background:transparent;color:var(--blue);
+    font-size:16.5px;font-weight:500;cursor:pointer;padding:8px 10px 8px 2px;margin:-8px 0;flex-shrink:0;
+    min-height:44px;letter-spacing:-.01em}
+  .atras:active{opacity:.5}
+  .atras .ic{width:21px;height:21px;stroke-width:2.6}
+  .grabber{display:none}
   .sheet-bd{padding:16px 16px calc(20px + var(--sab))}
   .sheet-ft{padding:12px 16px calc(12px + var(--sab));position:sticky;bottom:0;gap:8px}
-  .sheet-ft .btn{min-height:44px;font-size:15px;padding:10px 16px}
+  .sheet-ft{gap:7px;flex-wrap:nowrap}
+  .sheet-ft .btn{min-height:44px;font-size:15px;padding:10px 15px}
+  .sheet-ft .btn .txt{display:none}
+  .sheet-ft .btn.pri .txt{display:inline}
+  .sheet-ft .rowb{gap:7px;flex-wrap:nowrap}
   .xbtn{width:36px;height:36px}
 
-  .dhero{padding:8px 18px 20px}
+  .dhero{padding:14px 18px 20px}
   .dhero .cov{width:min(74vw,320px);height:min(74vw,320px);border-radius:18px;margin-bottom:20px}
   .dhero h3{font-size:26px;line-height:1.16}
   .dhero .art2{font-size:17px;margin-top:6px}
@@ -619,11 +635,11 @@ svg.chart .axis{stroke:var(--sep);stroke-width:1}
   .lnk{font-size:14px;padding:12px 16px;min-height:44px}
 
   .specs{grid-template-columns:1fr}
+  .spec.vacio{display:none}
   .spec{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:13px 15px;border-right:none}
   .spec .k{font-size:13.5px;text-transform:none;letter-spacing:0;color:var(--txt2);font-weight:450;flex-shrink:0}
   .spec .v{font-size:15px;margin-top:0;text-align:right;font-weight:550}
 
-  .btncerrar{display:flex}
   .tl-hd h4{font-size:17px}
   .lyr{width:34px;height:34px}
   .lyr .ic{width:17px;height:17px}
@@ -709,6 +725,23 @@ svg.chart .axis{stroke:var(--sep);stroke-width:1}
 </style>
 </head>
 <body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <radialGradient id="gVin" cx="34%" cy="28%" r="78%">
+    <stop offset="0%" stop-color="#3c3c44"/><stop offset="42%" stop-color="#1b1b21"/><stop offset="100%" stop-color="#08080b"/>
+  </radialGradient>
+  <linearGradient id="gVinLab" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#e0343f"/><stop offset="100%" stop-color="#ad1d29"/>
+  </linearGradient>
+  <linearGradient id="gCd" x1="12%" y1="4%" x2="88%" y2="96%">
+    <stop offset="0%" stop-color="#ffffff"/><stop offset="22%" stop-color="#dfe7ef"/>
+    <stop offset="42%" stop-color="#c3d0de"/><stop offset="58%" stop-color="#e8edf3"/>
+    <stop offset="78%" stop-color="#b9c6d5"/><stop offset="100%" stop-color="#dde5ee"/>
+  </linearGradient>
+  <linearGradient id="gCdHole" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#dfe6ee"/>
+  </linearGradient>
+</defs></svg>
 
 <div class="ptr" id="ptr"><svg class="ic" viewBox="0 0 24 24"><polyline points="21 4 21 10 15 10"/><polyline points="3 20 3 14 9 14"/><path d="M19.4 9a8 8 0 0 0-13.1-3L3 9m18 6l-3.3 3A8 8 0 0 1 4.6 15"/></svg></div>
 
@@ -932,15 +965,23 @@ var I = {
   cdIc:'<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.2"/><path d="M12 3a9 9 0 0 1 7.8 4.5" opacity=".55"/></svg>',
   playF:'<svg class="ic" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M7 4.5v15l12-7.5z"/></svg>',
   oreja:'<svg class="ic" viewBox="0 0 24 24"><path d="M6 8.5a6 6 0 1 1 12 0c0 3-2 4-2.6 5.6-.5 1.3-.3 2.4-1.2 3.4-.8.9-2 1.2-3 .8"/><path d="M9.5 9a2.6 2.6 0 1 1 5 .5"/></svg>',
-  vinBadge:'<svg class="ic" viewBox="0 0 24 24"><circle class="vinilo-out" cx="12" cy="12" r="10" fill="#15151a" stroke="none"/>'
-    + '<circle cx="12" cy="12" r="7.4" fill="none" stroke="#4a4a52" stroke-width="1"/>'
-    + '<circle cx="12" cy="12" r="5.4" fill="none" stroke="#4a4a52" stroke-width="1"/>'
-    + '<circle class="vinilo-lab" cx="12" cy="12" r="3.4" fill="#c62b36" stroke="none"/>'
-    + '<circle cx="12" cy="12" r=".9" fill="#15151a" stroke="none"/></svg>',
-  cdBadge:'<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.6" fill="#cfd6de" stroke="#9aa6b4" stroke-width="1"/>'
-    + '<path d="M12 3.6a8.4 8.4 0 0 1 7.3 4.2" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/>'
-    + '<circle cx="12" cy="12" r="3.1" fill="#eef2f6" stroke="#9aa6b4" stroke-width="1"/>'
-    + '<circle cx="12" cy="12" r="1.2" fill="#8f9bab" stroke="none"/></svg>',
+  vinBadge:'<svg class="ic" viewBox="0 0 32 32">'
+    + '<circle cx="16" cy="16" r="15.2" fill="url(#gVin)"/>'
+    + '<g fill="none" stroke="#ffffff" stroke-opacity=".14" stroke-width=".7">'
+    + '<circle cx="16" cy="16" r="12.6"/><circle cx="16" cy="16" r="11.2"/><circle cx="16" cy="16" r="9.8"/>'
+    + '<circle cx="16" cy="16" r="8.4"/><circle cx="16" cy="16" r="7"/></g>'
+    + '<path d="M5.6 6.4A14.6 14.6 0 0 1 16 .9" stroke="#ffffff" stroke-opacity=".5" stroke-width="1.5" fill="none" stroke-linecap="round"/>'
+    + '<circle cx="16" cy="16" r="5.6" fill="url(#gVinLab)"/>'
+    + '<circle cx="16" cy="16" r="5.6" fill="none" stroke="#000" stroke-opacity=".22" stroke-width=".6"/>'
+    + '<circle cx="16" cy="16" r="1.15" fill="#141418"/></svg>',
+  cdBadge:'<svg class="ic" viewBox="0 0 32 32">'
+    + '<circle cx="16" cy="16" r="15.2" fill="url(#gCd)"/>'
+    + '<circle cx="16" cy="16" r="15.2" fill="none" stroke="#93a2b3" stroke-width=".8"/>'
+    + '<circle cx="16" cy="16" r="11.6" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width=".7"/>'
+    + '<path d="M6.9 7.3A13 13 0 0 1 16 3.4" stroke="#fff" stroke-opacity=".85" stroke-width="2" fill="none" stroke-linecap="round"/>'
+    + '<circle cx="16" cy="16" r="6.4" fill="#f4f7fa"/>'
+    + '<circle cx="16" cy="16" r="6.4" fill="none" stroke="#a8b5c4" stroke-width=".7"/>'
+    + '<circle cx="16" cy="16" r="3.1" fill="url(#gCdHole)" stroke="#a8b5c4" stroke-width=".7"/></svg>',
   bombilla:'<svg class="ic" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 2a6.5 6.5 0 0 0-3.7 11.9c.6.4 1 1.1 1.1 1.8l.1.8h5l.1-.8c.1-.7.5-1.4 1.1-1.8A6.5 6.5 0 0 0 12 2z"/></svg>',
   estrella:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z"/></svg>',
   letra:'<svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16M4 10h16M4 15h10M4 20h7"/></svg>',
@@ -2752,21 +2793,24 @@ function filtrados(base){
     if(fPais && d.pais !== fPais) return false;
     if(fSello && d.sello !== fSello) return false;
     if(q){
-      var hay = [d.titulo, d.artista, d.sello, d.genero, d.numeroCatalogo, d.pais, d.notas, d.etiquetas.join(' ')].join(' ').toLowerCase()
-        + ' ' + d.tracklist.map(function(t){ return t.titulo; }).join(' ').toLowerCase();
-      if(hay.indexOf(q) < 0) return false;
+      var hay = plain([d.titulo, d.artista, d.sello, d.genero, d.numeroCatalogo, d.pais, d.notas, d.etiquetas.join(' ')].join(' ')
+        + ' ' + d.tracklist.map(function(t){ return t.titulo; }).join(' '));
+      if(hay.indexOf(plain(q)) < 0) return false;
     }
     return true;
   });
+}
+function claveOrden(s){
+  return String(s || '').replace(/^(el|la|los|las|the|a|an|le|les)\s+/i, '').trim();
 }
 function ordenar(list){
   var l = list.slice();
   if(sortBy === 'random') return rngShuffle(l, randomSeed);
   l.sort(function(a, b){
-    if(sortBy === 'artist') return (a.artista || '').localeCompare(b.artista || '', 'es')
+    if(sortBy === 'artist') return claveOrden(a.artista).localeCompare(claveOrden(b.artista), 'es')
       || String(a['año'] || '').localeCompare(String(b['año'] || ''))
       || (a.titulo || '').localeCompare(b.titulo || '', 'es');
-    if(sortBy === 'title') return (a.titulo || '').localeCompare(b.titulo || '', 'es');
+    if(sortBy === 'title') return claveOrden(a.titulo).localeCompare(claveOrden(b.titulo), 'es');
     if(sortBy === 'year-desc') return (parseInt(b['año']) || 0) - (parseInt(a['año']) || 0);
     if(sortBy === 'year-asc') return (parseInt(a['año']) || 9999) - (parseInt(b['año']) || 9999);
     if(sortBy === 'plays') return totalEscuchas(b) - totalEscuchas(a) || (a.artista || '').localeCompare(b.artista || '', 'es');
@@ -2897,7 +2941,9 @@ function paintCol(){
       if(!mapa[k]){ mapa[k] = []; orden.push(k); }
       mapa[k].push(d);
     });
-    if(grupo === 'artista' || grupo === 'sello' || grupo === 'pais' || grupo === 'genero') orden.sort(function(a, b){ return a.localeCompare(b, 'es'); });
+    if(grupo === 'artista' || grupo === 'sello' || grupo === 'pais' || grupo === 'genero'){
+      orden.sort(function(a, b){ return claveOrden(a).localeCompare(claveOrden(b), 'es'); });
+    }
     if(grupo === 'decada') orden.sort();
     board.innerHTML = orden.map(function(k, i){
       var items = mapa[k];
@@ -3055,8 +3101,8 @@ function abrirPaleta(){
       var vistos = 0;
       DB.discos.forEach(function(d){
         if(vistos >= 8) return;
-        var enFicha = (d.titulo + ' ' + d.artista + ' ' + d.sello).toLowerCase().indexOf(q) >= 0;
-        var cancion = enFicha ? null : d.tracklist.filter(function(t){ return t.titulo.toLowerCase().indexOf(q) >= 0; })[0];
+        var enFicha = plain(d.titulo + ' ' + d.artista + ' ' + d.sello).indexOf(plain(q)) >= 0;
+        var cancion = enFicha ? null : d.tracklist.filter(function(t){ return plain(t.titulo).indexOf(plain(q)) >= 0; })[0];
         if(enFicha || cancion){
           items.push({
             t: d.titulo,
@@ -3072,7 +3118,7 @@ function abrirPaleta(){
         }
       });
       var arts = [];
-      DB.discos.forEach(function(d){ if(d.artista && arts.indexOf(d.artista) < 0 && d.artista.toLowerCase().indexOf(q) >= 0) arts.push(d.artista); });
+      DB.discos.forEach(function(d){ if(d.artista && arts.indexOf(d.artista) < 0 && plain(d.artista).indexOf(plain(q)) >= 0) arts.push(d.artista); });
       arts.slice(0, 3).forEach(function(a){
         items.push({t:a, s:'Ver todos sus discos', k:'Artista', run:function(){ fArt = a; grupo = 'none'; document.getElementById('selGroup').value = 'none'; setView('col'); paintCol(); }});
       });
@@ -3129,46 +3175,62 @@ function discoAlAzar(){
 function sheet(title, bodyHtml, footHtml, ancho){
   var s = document.createElement('div');
   s.className = 'scrim';
-  s.innerHTML = '<div class="sheet' + (ancho ? ' wide' : '') + '"><div class="grabber"></div><div class="sheet-hd"><h2>' + esc(title) + '</h2>'
-    + '<button class="xbtn" data-close>' + I.x + '</button></div><div class="sheet-bd">' + bodyHtml + '</div>'
+  s.innerHTML = '<div class="sheet' + (ancho ? ' wide' : '') + '"><div class="grabber"></div>'
+    + '<div class="sheet-hd">'
+    + '<button class="atras only-mob" data-close><svg class="ic" viewBox="0 0 24 24"><polyline points="15 5 8 12 15 19"/></svg>Atrás</button>'
+    + '<h2>' + esc(title) + '</h2>'
+    + '<button class="xbtn no-mob" data-close>' + I.x + '</button>'
+    + '<button class="xbtn only-mob" data-close style="visibility:hidden">' + I.x + '</button>'
+    + '</div><div class="sheet-bd">' + bodyHtml + '</div>'
     + (footHtml ? '<div class="sheet-ft">' + footHtml + '</div>' : '') + '</div>';
   document.body.appendChild(s);
   var cerrar = function(){ s.remove(); document.removeEventListener('keydown', onKey); pararAudio(); };
-  s.querySelector('[data-close]').onclick = cerrar;
+  s.querySelectorAll('[data-close]').forEach(function(b){ b.onclick = cerrar; });
+  /* el título de la cabecera aparece al desplazar, como en iOS */
+  var hd = s.querySelector('.sheet-hd');
+  s.addEventListener('scroll', function(){ hd.classList.toggle('visto', s.scrollTop > 90); }, {passive:true});
   s.dataset.cerrable = '1';
   s.addEventListener('mousedown', function(e){ if(e.target === s) cerrar(); });
   function onKey(ev){ if(ev.key === 'Escape' && !document.querySelector('.pal')) cerrar(); }
   document.addEventListener('keydown', onKey);
   arrastrarParaCerrar(s, cerrar);
+  s.scrollTop = 0;
   return s;
 }
-/* En el móvil, arrastrar desde la barrita superior cierra la hoja.
-   Nunca interfiere con el desplazamiento del contenido. */
+/* En el móvil, deslizar desde el borde izquierdo cierra la hoja, como el gesto
+   de volver atrás. Nunca interfiere con el desplazamiento vertical. */
 function arrastrarParaCerrar(scrim, cerrar){
   var hoja = scrim.querySelector('.sheet');
   if(!hoja || window.innerWidth > 760) return;
-  var asa = hoja.querySelector('.grabber');
-  if(!asa) return;
-  var y0 = null, dy = 0;
-  asa.addEventListener('touchstart', function(e){
-    y0 = e.touches[0].clientY; dy = 0;
+  var x0 = null, y0 = 0, dx = 0, valido = false;
+  scrim.addEventListener('touchstart', function(e){
+    var t = e.touches[0];
+    if(t.clientX > 26){ x0 = null; return; }
+    x0 = t.clientX; y0 = t.clientY; dx = 0; valido = false;
     hoja.style.transition = 'none';
   }, {passive:true});
-  asa.addEventListener('touchmove', function(e){
-    if(y0 === null) return;
-    dy = Math.max(0, e.touches[0].clientY - y0);
-    hoja.style.transform = 'translateY(' + dy + 'px)';
+  scrim.addEventListener('touchmove', function(e){
+    if(x0 === null) return;
+    var t = e.touches[0];
+    dx = t.clientX - x0;
+    var dyAbs = Math.abs(t.clientY - y0);
+    if(!valido){
+      if(dx > 12 && dx > dyAbs) valido = true;
+      else if(dyAbs > 12){ x0 = null; hoja.style.transform = ''; return; }
+    }
+    if(!valido) return;
+    hoja.style.transform = 'translateX(' + Math.max(0, dx) + 'px)';
     if(e.cancelable) e.preventDefault();
   }, {passive:false});
   var soltar = function(){
-    if(y0 === null) return;
-    hoja.style.transition = 'transform .28s var(--ease)';
-    if(dy > 90){ hoja.style.transform = 'translateY(100%)'; setTimeout(cerrar, 230); }
+    if(x0 === null) return;
+    hoja.style.transition = 'transform .26s var(--ease)';
+    if(valido && dx > 90){ hoja.style.transform = 'translateX(100%)'; setTimeout(cerrar, 220); }
     else hoja.style.transform = '';
-    y0 = null; dy = 0;
+    x0 = null; dx = 0; valido = false;
   };
-  asa.addEventListener('touchend', soltar);
-  asa.addEventListener('touchcancel', soltar);
+  scrim.addEventListener('touchend', soltar);
+  scrim.addEventListener('touchcancel', soltar);
 }
 function fieldRow(label, inner){ return '<div class="grow"><label>' + label + '</label>' + inner + '</div>'; }
 function genOpts(sel){
@@ -3176,7 +3238,10 @@ function genOpts(sel){
     return '<option value="' + esc(g) + '"' + (g === sel ? ' selected' : '') + '>' + esc(g) + '</option>';
   }).join('');
 }
-function spec(k, v){ return '<div class="spec"><div class="k">' + k + '</div><div class="v">' + esc(v) + '</div></div>'; }
+function spec(k, v){
+  var vacio = (v === '—' || v === '' || v === null || v === undefined);
+  return '<div class="spec' + (vacio ? ' vacio' : '') + '"><div class="k">' + k + '</div><div class="v">' + esc(v) + '</div></div>';
+}
 function lightbox(url){
   var big = url.indexOf('mzstatic') >= 0 ? artBig(url.replace(/\d+x\d+bb/, '100x100bb'), 1200)
     : url.replace('/front-500', '/front-1200').replace('/front-250', '/front-1200');
@@ -3210,6 +3275,38 @@ function pintarBotonesAudio(){
 }
 
 /* ---------- ficha ---------- */
+var autoHecho = {};
+/* Vuelve a pintar las partes de la ficha que dependen de los datos, sin cerrarla */
+function refrescarFicha(s, d){
+  var cov = s.querySelector('#cov');
+  if(cov && d.portada && !cov.querySelector('img')) cov.innerHTML = coverHtml(d);
+  var mapa = {
+    'Formato': d.formatoDetalle || '—', 'Año': d['año'] || '—', 'Sello': d.sello || '—',
+    'Catálogo': d.numeroCatalogo || '—', 'País': d.pais ? (bandera(d.pais) + ' ' + nombrePais(d.pais)) : '—'
+  };
+  s.querySelectorAll('.spec').forEach(function(sp){
+    var k = sp.querySelector('.k').textContent;
+    if(mapa[k] !== undefined) sp.querySelector('.v').textContent = mapa[k];
+  });
+  var tl = s.querySelector('#dTL');
+  if(tl && d.tracklist.length && !tl.querySelector('.trk')){
+    tl.innerHTML = '<div class="tl">' + d.tracklist.map(function(t, i){
+      return '<div class="trk"><span class="num">' + (i + 1) + '</span><span class="nm">' + esc(t.titulo) + '</span>'
+        + '<span class="dur">' + esc(t.duracion || '') + '</span>'
+        + '<a class="lyr" target="_blank" rel="noopener" title="Ver la letra" href="'
+        + esc(urlLetra(d.artista, t.titulo)) + '">' + I.letra + '</a></div>';
+    }).join('') + '</div>';
+    var n = s.querySelector('#dN');
+    if(n) n.textContent = ' · ' + d.tracklist.length;
+  }
+  if(d.genero){
+    var tags = s.querySelector('.dhero .tags');
+    if(tags && tags.textContent.indexOf(d.genero) < 0){
+      tags.insertAdjacentHTML('beforeend', '<span class="tag">' + esc(d.genero) + '</span>');
+    }
+  }
+  toast('Ficha completada');
+}
 function openDetail(id){
   var d = DB.discos.filter(function(x){ return x.id === id; })[0];
   if(!d) return;
@@ -3242,10 +3339,9 @@ function openDetail(id){
     + '<div id="dTL"></div>';
 
   var pie = readOnly
-    ? '<button class="btn btncerrar" id="cerrarPie">Cerrar</button><span></span>'
-    : '<div class="rowb"><button class="btn btncerrar" id="cerrarPie">' + I.x + 'Cerrar</button>'
-      + '<button class="btn sm" id="aiFull">' + I.spark + 'Completar</button>'
-      + '<button class="btn sm" id="edics">' + I.layers + 'Ediciones</button></div>'
+    ? '<span></span><span></span>'
+    : '<div class="rowb"><button class="btn sm" id="aiFull" title="Completar">' + I.spark + '<span class="txt">Completar</span></button>'
+      + '<button class="btn sm" id="edics" title="Ediciones">' + I.layers + '<span class="txt">Ediciones</span></button></div>'
       + '<div class="rowb"><button class="btn sm" id="mas">···</button><button class="btn pri sm" id="edit">' + I.pencil + 'Editar</button></div>';
 
   var s = sheet(d.titulo || 'Sin título', body, pie);
@@ -3284,7 +3380,6 @@ function openDetail(id){
   });
 
   $('#cov').onclick = function(){ if(d.portada) lightbox(d.portada); };
-  if($('#cerrarPie')) $('#cerrarPie').onclick = function(){ s.querySelector('[data-close]').click(); };
   if($('#btnWiki')) $('#btnWiki').onclick = function(){ verWikipedia(d, false); };
   if(!readOnly) montarEstrellas($('#dStars'), d, function(v){
     $('#dStarsL').textContent = v ? TEXTO_VALORACION[v] : 'Toca para valorar';
@@ -3294,12 +3389,15 @@ function openDetail(id){
   if(d.mbid && (!d.extra || !d.extra.cargado)){
     cargarExtra(d).then(function(){ pintaExtra($('#dExtra'), d); }).catch(function(){});
   }
-  if(!readOnly && incompleto(d) && (d.titulo || d.artista)){
-    var aviso = toast('Buscando lo que falta de este disco…');
+  /* Se intenta rellenar lo que falte una única vez por disco y sesión.
+     Nunca se reabre la ficha: se refrescan los datos en su sitio. */
+  if(!readOnly && incompleto(d) && (d.titulo || d.artista) && !autoHecho[d.id]){
+    autoHecho[d.id] = 1;
     enrich(d.id, false).then(function(ok){
-      aviso.remove();
-      if(ok){ s.remove(); openDetail(d.id); toast('Ficha completada'); }
-    });
+      if(!ok || !document.body.contains(s)) return;
+      refrescarFicha(s, d);
+      paintCol();
+    }).catch(function(){});
   }
   $('#byArt').onclick = function(){ fArt = d.artista; grupo = 'none'; document.getElementById('selGroup').value = 'none'; setView('col'); paintCol(); s.remove(); };
   s.querySelectorAll('[data-tag]').forEach(function(t){
@@ -3400,10 +3498,10 @@ function openDetail(id){
   if($('#edit')) $('#edit').onclick = function(){ s.remove(); openForm(d); };
   if($('#edics')) $('#edics').onclick = function(){ elegirEdicion(d, s); };
   if($('#aiFull')) $('#aiFull').onclick = function(e){
-    var b = e.currentTarget; b.disabled = true; b.innerHTML = I.spark + 'Buscando…';
+    var b = e.currentTarget; b.disabled = true; b.innerHTML = I.spark + '<span class="txt">Buscando…</span>';
     enrich(d.id, true).then(function(ok){
       if(ok){ s.remove(); toast('Ficha actualizada'); openDetail(d.id); return; }
-      b.disabled = false; b.innerHTML = I.spark + 'Completar';
+      b.disabled = false; b.innerHTML = I.spark + '<span class="txt">Completar</span>';
       toast('Sin coincidencia exacta · mira las ediciones parecidas', true);
       elegirEdicion(d, s);
     });
