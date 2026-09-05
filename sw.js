@@ -1,7 +1,7 @@
 /* Discoteca — service worker
-   La aplicación se guarda en caché para que abra al instante y sin conexión.
+   Guarda la aplicación en caché para que abra al instante y sin conexión.
    Los datos NUNCA se cachean: siempre se piden a GitHub. */
-var CACHE = 'discoteca-v1';
+var CACHE = 'discoteca-v2';
 var SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', function(e){
@@ -12,10 +12,12 @@ self.addEventListener('activate', function(e){
     return Promise.all(ks.map(function(k){ return k === CACHE ? null : caches.delete(k); }));
   }).then(function(){ return self.clients.claim(); }));
 });
+self.addEventListener('message', function(e){
+  if(e.data === 'saltar') self.skipWaiting();
+});
 self.addEventListener('fetch', function(e){
   var url = new URL(e.request.url);
   if(e.request.method !== 'GET') return;
-  // nunca interceptar la API, las portadas remotas ni el archivo de datos
   if(url.origin !== location.origin || /datos\.json/.test(url.pathname)) return;
   e.respondWith(
     fetch(e.request).then(function(r){
