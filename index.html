@@ -104,6 +104,7 @@ button{font-family:inherit}
 .btn.icon{padding:8px;width:36px;height:36px;border-radius:50%}
 .btn:disabled{opacity:.45;cursor:default;transform:none}
 .rowb{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btncerrar{display:none}
 
 .page{max-width:1320px;margin:0 auto;padding:22px max(22px,var(--sar)) calc(120px + var(--sab)) max(22px,var(--sal))}
 .view{display:none}.view.on{display:block;animation:fadeup .3s var(--ease)}
@@ -174,12 +175,15 @@ button{font-family:inherit}
 .tile:active .art{transform:scale(.97)}
 .art img{width:100%;height:100%;object-fit:cover;display:block}
 .art .ph{width:46%;height:46%;color:var(--txt3);stroke-width:1.3}
-.badge{position:absolute;top:8px;left:8px;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  background:rgba(255,255,255,.9);backdrop-filter:blur(12px) saturate(180%);-webkit-backdrop-filter:blur(12px) saturate(180%);
-  box-shadow:0 1px 4px rgba(0,0,0,.22)}
-.badge .ic{width:15px;height:15px;stroke-width:1.7}
-.badge.vin{color:#8944ab}
-.badge.cd{color:#1d7f92}
+.badge{position:absolute;top:8px;left:8px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.94);backdrop-filter:blur(12px) saturate(180%);-webkit-backdrop-filter:blur(12px) saturate(180%);
+  box-shadow:0 1px 5px rgba(0,0,0,.26)}
+.badge.vin .ic{width:23px;height:23px}
+.badge.cd .ic{width:17px;height:17px}
+.badge .vinilo-out{stroke:#15151a}
+.badge .vinilo-lab{fill:#15151a}
+.badge .cd-out{stroke:#8b98a8}
+.badge .cd-sh{stroke:#c3ccd6}
 .pill{position:absolute;top:8px;right:8px;font-size:9.5px;font-weight:700;letter-spacing:.04em;padding:4px 8px;border-radius:99px;color:#fff}
 .pill.dup{background:rgba(255,149,0,.95)}
 .pill.low{background:rgba(255,59,48,.95)}
@@ -204,6 +208,17 @@ button{font-family:inherit}
 .meta .t{font-size:13.5px;font-weight:550;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meta .a{font-size:13px;color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
 .meta .y{font-size:11.5px;color:var(--txt3);margin-top:3px;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.stars{display:inline-flex;gap:2px;align-items:center}
+.stars .st{width:15px;height:15px;color:var(--txt3);cursor:default;flex-shrink:0}
+.stars .st.on{color:#ffb400}
+.stars.big .st{width:30px;height:30px;cursor:pointer;transition:transform .12s var(--ease)}
+.stars.big .st:hover{transform:scale(1.18)}
+.stars.big .st:active{transform:scale(.94)}
+.starbox{display:flex;flex-direction:column;align-items:center;gap:5px;margin-top:16px}
+.starbox .lbl{font-size:11.5px;color:var(--txt3);font-weight:550;min-height:14px}
+.tile .stars{margin-top:3px}
+.tile .stars .st{width:11px;height:11px}
 
 /* ---------- lista ---------- */
 .lista{background:var(--elev);border-radius:var(--r-md);overflow:hidden;box-shadow:var(--sh1)}
@@ -425,6 +440,47 @@ svg.chart .axis{stroke:var(--sep);stroke-width:1}
 .iconbtn.on{background:var(--blue);color:#fff}
 .iconbtn .ic{width:16px;height:16px}
 
+.lyr{width:26px;height:26px;border-radius:50%;border:none;background:transparent;color:var(--txt3);cursor:pointer;display:flex;
+  align-items:center;justify-content:center;flex-shrink:0;transition:background .16s,color .16s;text-decoration:none}
+.lyr:hover{background:var(--fill2);color:var(--txt)}
+.lyr .ic{width:14px;height:14px}
+.trk .dur{min-width:34px;text-align:right}
+
+.creds{background:var(--sunk);border-radius:var(--r-sm);box-shadow:0 0 0 .5px var(--sep);overflow:hidden;margin-bottom:18px}
+.cred{display:flex;justify-content:space-between;gap:14px;padding:10px 14px;border-bottom:.5px solid var(--sep);font-size:13.5px}
+.cred:last-child{border-bottom:none}
+.cred .k{color:var(--txt2);flex-shrink:0}
+.cred .v{text-align:right;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis}
+
+.tip{display:flex;gap:13px;align-items:flex-start;background:linear-gradient(120deg,rgba(0,113,227,.10),rgba(175,82,222,.10));
+  border-radius:var(--r-lg);padding:16px 18px;margin-bottom:18px;position:relative;overflow:hidden}
+.tip .bulb{width:34px;height:34px;border-radius:50%;background:var(--elev);display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;box-shadow:var(--sh1)}
+.tip .bulb .ic{width:18px;height:18px;color:var(--orange)}
+.tip .tx{flex:1;min-width:0}
+.tip .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;color:var(--txt3)}
+.tip .v{font-size:15px;line-height:1.45;margin-top:3px;font-weight:500}
+.tip .v b{font-weight:700}
+.tip .otro{border:none;background:var(--elev);color:var(--txt2);width:32px;height:32px;border-radius:50%;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:var(--sh1);transition:transform .2s}
+.tip .otro:hover{transform:rotate(90deg)}
+.tip .otro .ic{width:15px;height:15px}
+
+.wiki{font-size:14.8px;line-height:1.62;color:var(--txt)}
+.wiki p{margin:0 0 13px}
+.wiki .fuente{font-size:12px;color:var(--txt3);margin-top:16px;padding-top:12px;border-top:.5px solid var(--sep)}
+.wiki .fuente a{color:var(--blue);text-decoration:none}
+.wikihd{display:flex;gap:14px;align-items:center;margin-bottom:16px}
+.wikihd img{width:74px;height:74px;border-radius:12px;object-fit:cover;background:var(--fill);flex-shrink:0}
+.wikihd .n{font-size:19px;font-weight:650;letter-spacing:-.02em}
+.wikihd .d{font-size:13px;color:var(--txt2);margin-top:2px}
+
+.gotit{position:absolute;bottom:8px;left:8px;right:8px;border:none;border-radius:999px;background:rgba(52,199,89,.94);color:#fff;
+  font-size:12.5px;font-weight:600;padding:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;
+  backdrop-filter:blur(10px);opacity:0;transform:translateY(6px);transition:opacity .2s,transform .2s}
+.tile:hover .gotit{opacity:1;transform:none}
+.gotit .ic{width:14px;height:14px}
+
 /* ---------- candidatos e importación ---------- */
 .cands{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:13px}
 .cand{cursor:pointer;border-radius:var(--r-sm);overflow:hidden;background:var(--sunk);box-shadow:0 0 0 .5px var(--sep);transition:transform .2s var(--ease),box-shadow .2s;min-width:0}
@@ -540,9 +596,11 @@ svg.chart .axis{stroke:var(--sep);stroke-width:1}
   .selw select{max-width:132px;font-size:14px}
   .seg button{font-size:14px;height:36px}
 
-  .scrim{padding:0;align-items:flex-end}
-  .sheet{border-radius:20px 20px 0 0;margin-bottom:0;min-height:95vh;max-width:none;animation:subir .4s var(--ease)}
+  .scrim{padding:0;display:block;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .sheet{border-radius:0;margin:0;min-height:100vh;min-height:100dvh;max-width:none;animation:subir .38s var(--ease);
+    display:flex;flex-direction:column}
   .sheet.wide{max-width:none}
+  .sheet-bd{flex:1}
   .grabber{display:block;width:38px;height:5px;border-radius:99px;background:var(--sep2);margin:8px auto 2px;flex-shrink:0}
   .sheet-hd{padding:6px 16px 12px}
   .sheet-hd h2{font-size:17px}
@@ -565,7 +623,11 @@ svg.chart .axis{stroke:var(--sep);stroke-width:1}
   .spec .k{font-size:13.5px;text-transform:none;letter-spacing:0;color:var(--txt2);font-weight:450;flex-shrink:0}
   .spec .v{font-size:15px;margin-top:0;text-align:right;font-weight:550}
 
+  .btncerrar{display:flex}
   .tl-hd h4{font-size:17px}
+  .lyr{width:34px;height:34px}
+  .lyr .ic{width:17px;height:17px}
+  .stars.big .st{width:34px;height:34px}
   .trk{padding:14px 15px;min-height:52px}
   .trk .nm{font-size:15.5px}
   .trk .dur{font-size:13.5px}
@@ -630,6 +692,7 @@ svg.chart .axis{stroke:var(--sep);stroke-width:1}
 /* táctil */
 @media (hover:none){
   .magic{opacity:1;transform:none;width:34px;height:34px;background:rgba(28,28,30,.7)}
+  .gotit{opacity:1;transform:none}
   .oir{opacity:1;transform:none;width:34px;height:34px;right:50px;background:rgba(28,28,30,.7)}
   .ghead .gbtn{opacity:1}
   .tile:hover .art{transform:none;box-shadow:var(--sh2)}
@@ -692,6 +755,7 @@ svg.chart .axis{stroke:var(--sep);stroke-width:1}
           <button class="on" data-f="all">Todo</button>
           <button data-f="Vinilo">Vinilo</button>
           <button data-f="CD">CD</button>
+          <button data-f="fav">Favoritos</button>
           <button data-f="noesc">Sin escuchar</button>
           <button data-f="dup">Repetidos</button>
           <button data-f="rev">Revisar</button>
@@ -717,6 +781,7 @@ svg.chart .axis{stroke:var(--sep);stroke-width:1}
             <option value="title">Título A–Z</option>
             <option value="year-desc">Año ↓</option>
             <option value="year-asc">Año ↑</option>
+            <option value="rating">Mejor valorados</option>
             <option value="plays">Más escuchados</option>
             <option value="last">Escuchado hace poco</option>
             <option value="random">Aleatorio</option>
@@ -787,7 +852,7 @@ svg.chart .axis{stroke:var(--sep);stroke-width:1}
 var IDB_NAME = 'discoteca', IDB_STORE = 'kv', K_DATOS = 'datos', K_CFG = 'config';
 var LS_KEY = 'discoteca.local.v4';
 var DB = { version: 4, actualizado: '', discos: [], borrados: [] };
-var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', auto: true };
+var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', discogs: '', auto: true };
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
@@ -867,6 +932,21 @@ var I = {
   cdIc:'<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.2"/><path d="M12 3a9 9 0 0 1 7.8 4.5" opacity=".55"/></svg>',
   playF:'<svg class="ic" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M7 4.5v15l12-7.5z"/></svg>',
   oreja:'<svg class="ic" viewBox="0 0 24 24"><path d="M6 8.5a6 6 0 1 1 12 0c0 3-2 4-2.6 5.6-.5 1.3-.3 2.4-1.2 3.4-.8.9-2 1.2-3 .8"/><path d="M9.5 9a2.6 2.6 0 1 1 5 .5"/></svg>',
+  vinBadge:'<svg class="ic" viewBox="0 0 24 24"><circle class="vinilo-out" cx="12" cy="12" r="10" fill="#15151a" stroke="none"/>'
+    + '<circle cx="12" cy="12" r="7.4" fill="none" stroke="#4a4a52" stroke-width="1"/>'
+    + '<circle cx="12" cy="12" r="5.4" fill="none" stroke="#4a4a52" stroke-width="1"/>'
+    + '<circle class="vinilo-lab" cx="12" cy="12" r="3.4" fill="#c62b36" stroke="none"/>'
+    + '<circle cx="12" cy="12" r=".9" fill="#15151a" stroke="none"/></svg>',
+  cdBadge:'<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.6" fill="#cfd6de" stroke="#9aa6b4" stroke-width="1"/>'
+    + '<path d="M12 3.6a8.4 8.4 0 0 1 7.3 4.2" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/>'
+    + '<circle cx="12" cy="12" r="3.1" fill="#eef2f6" stroke="#9aa6b4" stroke-width="1"/>'
+    + '<circle cx="12" cy="12" r="1.2" fill="#8f9bab" stroke="none"/></svg>',
+  bombilla:'<svg class="ic" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 2a6.5 6.5 0 0 0-3.7 11.9c.6.4 1 1.1 1.1 1.8l.1.8h5l.1-.8c.1-.7.5-1.4 1.1-1.8A6.5 6.5 0 0 0 12 2z"/></svg>',
+  estrella:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z"/></svg>',
+  letra:'<svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16M4 10h16M4 15h10M4 20h7"/></svg>',
+  libro:'<svg class="ic" viewBox="0 0 24 24"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 0 4 22z"/><path d="M4 17.5A2.5 2.5 0 0 1 6.5 15H20"/></svg>',
+  carrito:'<svg class="ic" viewBox="0 0 24 24"><circle cx="9.5" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.7 12.4a1.6 1.6 0 0 0 1.6 1.3h8.4a1.6 1.6 0 0 0 1.6-1.3L21 7H6"/></svg>',
+  info:'<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16.5"/><line x1="12" y1="7.6" x2="12.01" y2="7.6"/></svg>',
   eye:'<svg class="ic" viewBox="0 0 24 24"><path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg>'
 };
 var CHEV = '<svg class="ic cv" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>';
@@ -945,6 +1025,8 @@ function normDisc(d){
     mbid: d.mbid || '', rgid: d.rgid || '', discogs: d.discogs || '',
     codigoBarras: d.codigoBarras || '',
     confianza: d.confianza || '',
+    valoracion: Number(d.valoracion) || 0,
+    extra: d.extra && typeof d.extra === 'object' ? d.extra : null,
     escuchas: Number(d.escuchas) || 0,
     escuchasFechas: Array.isArray(d.escuchasFechas) ? d.escuchasFechas.filter(Boolean).slice(-600) : [],
     ultimaEscucha: d.ultimaEscucha || '',
@@ -1376,6 +1458,11 @@ function pantallaSync(){
       + '<div class="grow"><label>Archivo</label><input id="sPath" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.path) + '" placeholder="datos.json"></div>'
       + '<div class="grow"><label>Token</label><input id="sToken" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.token) + '" placeholder="github_pat_…"></div>'
     + '</div>'
+    + '<div class="warnb info">' + I.scan + '<span>Opcional: un <b>token de Discogs</b> mejora mucho el escáner de códigos de barras '
+    + 'y el relleno de fichas, porque su base de datos de discos físicos es la más completa. '
+    + 'Se crea en Discogs → Settings → Developers → Generate token.</span></div>'
+    + '<div class="group"><div class="grow"><label>Token Discogs</label>'
+    + '<input id="sDisc" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.discogs || '') + '" placeholder="opcional"></div></div>'
     + '<div style="font-size:12.5px;color:var(--txt2);line-height:1.5;margin:-4px 0 14px 3px">'
     + 'El token se crea en GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens, '
     + 'con permiso <b>Contents: Read and write</b> sobre ese único repositorio.</div>'
@@ -1390,7 +1477,7 @@ function pantallaSync(){
     return {
       owner: $('#sOwner').value.trim(), repo: $('#sRepo').value.trim(),
       branch: $('#sBranch').value.trim() || 'main', path: $('#sPath').value.trim() || 'datos.json',
-      token: $('#sToken').value.trim(), auto: true
+      token: $('#sToken').value.trim(), discogs: $('#sDisc').value.trim(), auto: true
     };
   };
   var probar = function(cfg){
@@ -1429,7 +1516,7 @@ function pantallaSync(){
   };
   if($('#sOff')) $('#sOff').onclick = function(){
     if(!confirm('¿Desconectar este dispositivo? La colección se quedará solo aquí.')) return;
-    CFG = {owner:'', repo:'', branch:'main', path:'datos.json', token:'', auto:true};
+    CFG = {owner:'', repo:'', branch:'main', path:'datos.json', token:'', discogs:CFG.discogs || '', auto:true};
     SHA = '';
     guardarCfg();
     marcar('local');
@@ -1447,16 +1534,16 @@ function pantallaSync(){
    ============================================================ */
 var IT = 'https://itunes.apple.com/';
 var MB = 'https://musicbrainz.org/ws/2/';
-var itNext = 0, mbNext = 0;
+var itNext = 0, mbNext = 0, dgNext = 0;
 var artistNat = {}, artistMbid = {};
 var cancelBulk = false;
 
 function slot(kind, gap){
   var now = Date.now();
-  var next = kind === 'it' ? itNext : mbNext;
+  var next = kind === 'it' ? itNext : (kind === 'dg' ? dgNext : mbNext);
   var wait = Math.max(0, next - now);
   var t = now + wait + gap;
-  if(kind === 'it') itNext = t; else mbNext = t;
+  if(kind === 'it') itNext = t; else if(kind === 'dg') dgNext = t; else mbNext = t;
   return new Promise(function(r){ setTimeout(r, wait); });
 }
 function jget(url, kind, gap, retry){
@@ -1488,7 +1575,7 @@ function selloDeCopyright(c){
 function artBig(url, px){ return String(url || '').replace('100x100bb', (px || 600) + 'x' + (px || 600) + 'bb'); }
 
 /* ---------- Apple Music ---------- */
-function itCandidatos(titulo, artista){
+function itCandidatos(titulo, artista, laxo){
   var term = ((artista ? artista + ' ' : '') + titulo).trim();
   return itGet('search?term=' + encodeURIComponent(term) + '&entity=album&limit=25&country=ES').then(function(j){
     var nt = plain(titulo), na = plain(artista);
@@ -1501,13 +1588,18 @@ function itCandidatos(titulo, artista){
       if(na){
         if(ca === na) s += 5;
         else if(ca.indexOf(na) >= 0 || na.indexOf(ca) >= 0) s += 3;
-        else return;
+        else if(!laxo) return;
       }
       if(ct === nt){ s += 8; exacto = true; }
       else if(ct.indexOf(nt) === 0 && nt.length >= 4) s += 5;
       else if(nt && ct.indexOf(nt) >= 0 && nt.length >= 5) s += 2;
       else if(nt && nt.indexOf(ct) === 0 && ct.length >= 5) s += 2;
-      else return;
+      else{
+        /* nada literal: aceptamos el más parecido si se aproxima bastante */
+        var par = similitud(ct, nt);
+        if(par >= 0.62) s += Math.round(par * 6);
+        else return;
+      }
       if(!quiereExtra && !exacto && extra.test(String(c.collectionName).toLowerCase())) s -= 5;
       if((c.trackCount || 0) < 3) s -= 4;
       cand.push({c:c, s:s, exacto:exacto, d:String(c.releaseDate || '9999')});
@@ -1516,10 +1608,10 @@ function itCandidatos(titulo, artista){
     return cand;
   });
 }
-function itBuscar(titulo, artista){
-  return itCandidatos(titulo, artista).then(function(cand){
+function itBuscar(titulo, artista, laxo){
+  return itCandidatos(titulo, artista, laxo).then(function(cand){
     if(!cand.length) throw new Error('sin coincidencia');
-    if(cand[0].s < (artista ? 8 : 6)) throw new Error('coincidencia débil');
+    if(!laxo && cand[0].s < (artista ? 8 : 6)) throw new Error('coincidencia débil');
     return cand[0];
   });
 }
@@ -1756,6 +1848,21 @@ function fetchInfo(titulo, artista, formato, faltan){
         };
       });
     });
+  }).catch(function(){
+    /* último intento: el disco que más se parezca, aunque el título no sea idéntico */
+    return itBuscar(titulo, artista, true).then(function(hit){
+      var al = hit.c;
+      var year = String(al.releaseDate || '').slice(0, 4);
+      return itTracks(al.collectionId).then(function(tr){
+        var g = clasificar(al.primaryGenreName || '', false, al.artistName);
+        return {
+          portada: artBig(al.artworkUrl100, 600), 'año': /^\d{4}$/.test(year) ? year : '',
+          sello: selloDeCopyright(al.copyright), tracklist: tr, genero: g,
+          numeroCatalogo:'', pais:'', formatoDetalle:'', notas:'', mbid:'', rgid:'', codigoBarras:'',
+          tituloReal: al.collectionName, artistaReal: al.artistName, confianza:'baja'
+        };
+      });
+    });
   }).catch(function(){ return askAI(titulo, artista, formato, ''); });
 }
 
@@ -1882,12 +1989,48 @@ function aplicarCandidato(d, cand){
   });
 }
 
+/* ---------- Discogs (opcional, con token propio) ---------- */
+function hayDiscogs(){ return !!(CFG && CFG.discogs); }
+function dgGet(path){
+  return jget('https://api.discogs.com/' + path + (path.indexOf('?') >= 0 ? '&' : '?')
+    + 'token=' + encodeURIComponent(CFG.discogs), 'dg', 1100);
+}
+function dgPorBarcode(codigo){
+  return dgGet('database/search?barcode=' + encodeURIComponent(codigo) + '&type=release&per_page=5').then(function(j){
+    var r = (j.results || [])[0];
+    if(!r) throw new Error('no encontrado');
+    return dgGet('releases/' + r.id);
+  }).then(dgNormaliza);
+}
+function dgPorId(id){ return dgGet('releases/' + id).then(dgNormaliza); }
+function dgNormaliza(r){
+  var lab = (r.labels || [])[0] || {};
+  var fmt = (r.formats || [])[0] || {};
+  var tl = (r.tracklist || []).filter(function(t){ return t.type_ === 'track' || !t.type_; })
+    .map(function(t){ return {titulo: t.title, duracion: t.duration || '', preview: ''}; });
+  var artista = (r.artists || []).map(function(a){ return limpiaNombre(a.name); }).join(', ');
+  var estilos = (r.styles || []).concat(r.genres || []).join(' ');
+  return {
+    id:'', rgId:'', titulo: r.title || '', artista: artista,
+    'año': String(r.year || (r.released || '').slice(0, 4) || ''),
+    anioOriginal:'', sello: limpiaSello(lab.name || ''), numeroCatalogo: lab.catno || '',
+    pais: (r.country === 'Spain' ? 'ES' : (r.country === 'US' || r.country === 'USA' ? 'US' : '')),
+    formatoDetalle: [fmt.name, (fmt.descriptions || []).join(', ')].filter(Boolean).join(', '),
+    codigoBarras: ((r.identifiers || []).filter(function(i){ return /barcode/i.test(i.type); })[0] || {}).value || '',
+    portada: (r.images && r.images[0] && (r.images[0].uri || r.images[0].resource_url)) || '',
+    tracklist: tl, tags: estilos, sec: '', discogsUrl: r.uri ? ('https://www.discogs.com' + r.uri) : ''
+  };
+}
+
 /* ---------- código de barras ---------- */
 function porCodigoBarras(codigo){
   return mbGet('release?query=barcode:' + encodeURIComponent(codigo) + '&limit=5').then(function(j){
     var r = (j.releases || [])[0];
-    if(!r) throw new Error('no encontrado');
+    if(!r) throw new Error('mb');
     return mbDetalle(r.id);
+  }).catch(function(){
+    if(!hayDiscogs()) throw new Error('no encontrado');
+    return dgPorBarcode(codigo);
   });
 }
 
@@ -2340,15 +2483,51 @@ function lectorZX(){
   var Z = window.ZXing;
   var hints = new Map();
   hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [
-    Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_E, Z.BarcodeFormat.CODE_128
+    Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.EAN_8,
+    Z.BarcodeFormat.UPC_E, Z.BarcodeFormat.CODE_128, Z.BarcodeFormat.CODE_39
   ]);
   hints.set(Z.DecodeHintType.TRY_HARDER, true);
-  return new Z.BrowserMultiFormatReader(hints, 300);
+  return new Z.BrowserMultiFormatReader(hints, 200);
+}
+/* Reduce una foto a un tamaño que el lector maneja bien */
+function fotoParaLeer(file, lado){
+  return new Promise(function(res, rej){
+    var fr = new FileReader();
+    fr.onload = function(){
+      var img = new Image();
+      img.onload = function(){
+        var m = lado || 1600, sc = Math.min(1, m / Math.max(img.width, img.height));
+        var c = document.createElement('canvas');
+        c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+        var ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        /* más contraste: los códigos impresos en fundas brillantes se leen mucho mejor */
+        try{
+          var dat = ctx.getImageData(0, 0, c.width, c.height), px = dat.data;
+          for(var i = 0; i < px.length; i += 4){
+            var g = (px[i] * .299 + px[i+1] * .587 + px[i+2] * .114);
+            g = g < 110 ? 0 : (g > 150 ? 255 : (g - 110) * 255 / 40);
+            px[i] = px[i+1] = px[i+2] = g;
+          }
+          ctx.putImageData(dat, 0, 0);
+        }catch(e){}
+        res(c.toDataURL('image/png'));
+      };
+      img.onerror = rej;
+      img.src = String(fr.result);
+    };
+    fr.onerror = rej;
+    fr.readAsDataURL(file);
+  });
 }
 function escanear(){
-  var body = '<div id="scanwrap"><video id="vid" playsinline muted autoplay></video><div class="scanbox"></div><div class="scanline"></div></div>'
-    + '<div class="note busy" id="snote" style="margin-top:12px">Encuadra el código de barras de la contraportada</div>'
-    + '<div class="group" style="margin-top:14px"><div class="grow"><label>O escríbelo</label>'
+  var body = '<div id="scanwrap"><video id="vid" playsinline muted autoplay></video>'
+    + '<div class="scanbox"><i></i><i></i><i></i><i></i></div><div class="scanline"></div></div>'
+    + '<div class="note busy" id="snote" style="margin-top:12px">Preparando la cámara…</div>'
+    + '<div class="warnb info" style="margin-top:14px">' + I.info
+    + '<span>Acerca el código hasta que llene el recuadro y sujeta firme un par de segundos. '
+    + 'Con poca luz cuesta: usa la opción de la foto.</span></div>'
+    + '<div class="group"><div class="grow"><label>O escríbelo</label>'
     + '<input id="cbMan" type="text" inputmode="numeric" enterkeyhint="search" placeholder="0724384296520"></div></div>';
   var pie = '<button class="btn sm" id="btnFoto">' + I.img + 'Usar una foto</button>'
     + '<div class="rowb"><button class="btn" id="scanCancel">Cancelar</button><button class="btn pri" id="cbOk">Buscar</button></div>';
@@ -2380,32 +2559,44 @@ function escanear(){
       var f = ev.target.files[0];
       if(!f) return;
       nota('Leyendo la foto…');
-      var url = URL.createObjectURL(f);
       cargarZX().then(function(){
-        return lectorZX().decodeFromImageUrl(url);
+        return fotoParaLeer(f, 1600);
+      }).then(function(uri){
+        var rd = lectorZX();
+        return rd.decodeFromImageUrl(uri).catch(function(){
+          return fotoParaLeer(f, 2400).then(function(u2){ return lectorZX().decodeFromImageUrl(u2); });
+        });
       }).then(function(r){
-        URL.revokeObjectURL(url);
         encontrado(r.getText());
       }).catch(function(){
-        URL.revokeObjectURL(url);
-        nota('No se pudo leer el código en esa foto', 'err');
+        nota('No se distingue el código en esa foto. Prueba más cerca, con buena luz y el código recto.', 'err');
       });
     };
     inp.click();
   };
 
+  /* La cámara necesita resolución alta: con 640x480 las barras finas no se resuelven */
+  var restricciones = {
+    video: {
+      facingMode: {ideal:'environment'},
+      width: {ideal: 1920}, height: {ideal: 1080},
+      focusMode: 'continuous', advanced: [{focusMode:'continuous'}]
+    }
+  };
   var conNativo = function(){
-    var det = new window.BarcodeDetector({formats:['ean_13','upc_a','ean_8','upc_e']});
-    return navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}}).then(function(st){
+    if(!('BarcodeDetector' in window)) return Promise.reject(new Error('sin api'));
+    var det = new window.BarcodeDetector({formats:['ean_13','upc_a','ean_8','upc_e','code_128']});
+    return navigator.mediaDevices.getUserMedia(restricciones).then(function(st){
       stream = st; video.srcObject = st;
+      nota('Encuadra el código de barras de la contraportada');
       var tick = function(){
         if(parar) return;
         det.detect(video).then(function(c){
           if(c && c.length) return encontrado(c[0].rawValue);
-          setTimeout(tick, 300);
-        }).catch(function(){ setTimeout(tick, 500); });
+          setTimeout(tick, 250);
+        }).catch(function(){ setTimeout(tick, 450); });
       };
-      video.play().then(function(){ setTimeout(tick, 600); }).catch(function(){ setTimeout(tick, 900); });
+      video.play().then(function(){ setTimeout(tick, 500); }).catch(function(){ setTimeout(tick, 900); });
     });
   };
   var conZX = function(){
@@ -2413,13 +2604,12 @@ function escanear(){
     return cargarZX().then(function(){
       lector = lectorZX();
       nota('Encuadra el código de barras de la contraportada');
-      return lector.decodeFromConstraints({video:{facingMode:{ideal:'environment'}}}, video, function(result){
+      return lector.decodeFromConstraints(restricciones, video, function(result, err){
         if(result) encontrado(result.getText());
       });
     });
   };
-  var iniciar = ('BarcodeDetector' in window) ? conNativo().catch(conZX) : conZX();
-  iniciar.catch(function(){
+  conNativo().catch(conZX).catch(function(){
     nota('No se pudo abrir la cámara. Escribe el código o usa una foto.', 'err');
   });
 }
@@ -2430,14 +2620,13 @@ function altaPorCodigo(codigo){
     var d = normDisc({
       id: uid(), artista: mb.artista, titulo: mb.titulo, 'año': mb.anioOriginal || mb['año'],
       formato: formato, formatoDetalle: mb.formatoDetalle, sello: mb.sello, numeroCatalogo: mb.numeroCatalogo,
-      pais: mb.pais, codigoBarras: mb.codigoBarras || codigo, mbid: mb.id, rgid: mb.rgId, tracklist: mb.tracklist,
-      fechaAlta: nowISO()
+      pais: mb.pais, codigoBarras: mb.codigoBarras || codigo, mbid: mb.id || '', rgid: mb.rgId || '',
+      discogs: mb.discogsUrl || '', portada: mb.portada || '', tracklist: mb.tracklist, fechaAlta: nowISO()
     });
     var dup = DB.discos.filter(function(x){ return key(x) === key(d); })[0];
     if(dup){ t.remove(); toast('Ya tienes «' + dup.titulo + '» de ' + dup.artista, true); openDetail(dup.id); return; }
-    coverArchive(mb.id, mb.rgId).then(function(cov){
-      d.portada = cov || '';
-      var texto = mb.tags + ' ' + mb.sec;
+    var seguir = function(){
+      var texto = (mb.tags || '') + ' ' + (mb.sec || '');
       var pre = clasificar(texto, false, d.artista);
       var fin = function(gen){
         d.genero = gen;
@@ -2446,19 +2635,41 @@ function altaPorCodigo(codigo){
         t.remove();
         toast('Añadido: ' + d.titulo);
         openDetail(d.id);
-        if(!d.portada || !d.tracklist.length) enrich(d.id, false);
       };
       if(!necesitaNacionalidad(pre)) return fin(pre);
       esArtistaEspanol(d.artista, texto).then(function(es){ fin(clasificar(texto, es, d.artista)); });
-    });
+    };
+    if(d.portada || !d.mbid) return seguir();
+    coverArchive(mb.id, mb.rgId).then(function(cov){ d.portada = cov || ''; seguir(); });
   }).catch(function(){
     t.remove();
     var s = sheet('Código no encontrado',
-      '<div class="warnb">' + I.warn + '<span>El código <b>' + esc(codigo) + '</b> no está en MusicBrainz. '
-      + 'Puedes darlo de alta a mano y completarlo por título.</span></div>',
-      '<button class="btn" data-c2>Cerrar</button><button class="btn pri" id="altaMan">Añadir a mano</button>');
+      '<div class="warnb">' + I.warn + '<span>He leído el código <b>' + esc(codigo) + '</b>, pero no aparece en '
+      + (hayDiscogs() ? 'MusicBrainz ni en Discogs' : 'MusicBrainz') + '.'
+      + (hayDiscogs() ? '' : ' Con un token de Discogs configurado se encuentran muchísimos más.') + '</span></div>'
+      + '<p style="font-size:14px;color:var(--txt2);line-height:1.5;margin:0 0 4px">Puedes buscarlo por título, '
+      + 'o darlo de alta a mano con el código ya guardado.</p>'
+      + '<div class="group"><div class="grow"><label>Título</label><input id="cbT" type="text" placeholder="Nombre del álbum"></div>'
+      + '<div class="grow"><label>Artista</label><input id="cbA" type="text" placeholder="Nombre del artista"></div></div>'
+      + '<a class="lnk" target="_blank" rel="noopener" href="https://www.discogs.com/search/?q='
+      + encodeURIComponent(codigo) + '&type=release">' + I.search + 'Buscar ' + esc(codigo) + ' en Discogs</a>',
+      '<button class="btn" data-c2>Cerrar</button><button class="btn pri" id="altaMan">Crear ficha</button>');
     s.querySelector('[data-c2]').onclick = function(){ s.remove(); };
-    s.querySelector('#altaMan').onclick = function(){ s.remove(); openForm(normDisc({codigoBarras:codigo})); };
+    s.querySelector('#altaMan').onclick = function(){
+      var d = normDisc({
+        id: uid(), codigoBarras: codigo,
+        titulo: s.querySelector('#cbT').value.trim(),
+        artista: s.querySelector('#cbA').value.trim(),
+        fechaAlta: nowISO()
+      });
+      s.remove();
+      if(d.titulo || d.artista){
+        DB.discos.push(d);
+        persist();
+        toast('Ficha creada · buscando datos…');
+        enrich(d.id, false).then(function(ok){ openDetail(d.id); });
+      }else openForm(d);
+    };
   });
 }
 
@@ -2533,6 +2744,7 @@ function filtrados(base){
     if(fType === 'dup' && !dups[d.id]) return false;
     if(fType === 'rev' && d.confianza !== 'baja') return false;
     if(fType === 'noesc' && totalEscuchas(d) > 0) return false;
+    if(fType === 'fav' && (d.valoracion || 0) < 4) return false;
     if(fGen && d.genero !== fGen) return false;
     if(fArt && d.artista !== fArt) return false;
     if(fTag && d.etiquetas.indexOf(fTag) < 0) return false;
@@ -2559,6 +2771,7 @@ function ordenar(list){
     if(sortBy === 'year-asc') return (parseInt(a['año']) || 9999) - (parseInt(b['año']) || 9999);
     if(sortBy === 'plays') return totalEscuchas(b) - totalEscuchas(a) || (a.artista || '').localeCompare(b.artista || '', 'es');
     if(sortBy === 'last') return String(b.ultimaEscucha || '').localeCompare(String(a.ultimaEscucha || ''));
+    if(sortBy === 'rating') return (b.valoracion || 0) - (a.valoracion || 0) || totalEscuchas(b) - totalEscuchas(a);
     return String(b.fechaAlta || '').localeCompare(String(a.fechaAlta || ''));
   });
   return l;
@@ -2576,7 +2789,7 @@ function tileHtml(d, dups){
   var vin = d.formato === 'Vinilo';
   var hoy = escuchadoHoy(d);
   return '<div class="tile" data-id="' + d.id + '"><div class="art">' + coverHtml(d)
-    + '<span class="badge ' + (vin ? 'vin' : 'cd') + '" title="' + (vin ? 'Vinilo' : 'CD') + '">' + (vin ? I.vinilo : I.cdIc) + '</span>'
+    + '<span class="badge ' + (vin ? 'vin' : 'cd') + '" title="' + (vin ? 'Vinilo' : 'CD') + '">' + (vin ? I.vinBadge : I.cdBadge) + '</span>'
     + (dups && dups[d.id] ? '<span class="pill dup">REPETIDO</span>' : (d.confianza === 'baja' ? '<span class="pill low">REVISAR</span>' : ''))
     + (d.prestadoA ? '<span class="pill lend">PRESTADO</span>' : '')
     + (readOnly ? '' : '<button class="oir' + (hoy ? ' hoy' : '') + '" data-oir="' + d.id + '" title="'
@@ -2585,13 +2798,14 @@ function tileHtml(d, dups){
     + '</div><div class="meta"><div class="t">' + (esc(d.titulo) || 'Sin título') + '</div>'
     + '<div class="a">' + (esc(d.artista) || 'Artista desconocido') + '</div>'
     + '<div class="y">' + (d['año'] || '—') + (d.genero ? ' · ' + esc(d.genero) : '')
-    + (totalEscuchas(d) ? ' · ▶ ' + totalEscuchas(d) : '') + '</div></div></div>';
+    + (totalEscuchas(d) ? ' · ▶ ' + totalEscuchas(d) : '') + '</div>'
+    + (d.valoracion ? estrellasHtml(d.valoracion) : '') + '</div></div>';
 }
 function listHtml(items, dups){
   return '<div class="lista">' + items.map(function(d){
     return '<div class="lrow" data-id="' + d.id + '"><div class="mini">' + coverHtml(d) + '</div>'
       + '<div class="c1"><div class="t">' + (esc(d.titulo) || 'Sin título') + '</div><div class="a">' + esc(d.artista) + '</div></div>'
-      + '<div class="c2">' + esc(d.sello || d.genero || '') + '</div>'
+      + '<div class="c2">' + (d.valoracion ? estrellasHtml(d.valoracion) : esc(d.sello || d.genero || '')) + '</div>'
       + '<div class="c3">' + (d['año'] || '') + '</div>'
       + '<div class="c4"><span class="sop ' + (d.formato === 'Vinilo' ? 'vin' : 'cd') + '">'
       + (d.formato === 'Vinilo' ? I.vinilo + 'Vinilo' : I.cdIc + 'CD') + '</span></div></div>';
@@ -2720,7 +2934,9 @@ function kpi(icon, label, val, pct, color){
 }
 function enlazarTiles(root, dups){
   root.querySelectorAll('.tile,.lrow,.spine').forEach(function(t){
-    t.onclick = function(e){ if(!e.target.closest('[data-ai]') && !e.target.closest('[data-oir]')) openDetail(t.dataset.id); };
+    t.onclick = function(e){
+      if(!e.target.closest('[data-ai]') && !e.target.closest('[data-oir]') && !e.target.closest('[data-comprado]')) openDetail(t.dataset.id);
+    };
   });
   root.querySelectorAll('[data-oir]').forEach(function(b){
     b.onclick = function(e){
@@ -2798,8 +3014,14 @@ function paintWish(){
     box.innerHTML = head
       + (gasto ? '<div class="banner" style="border-left-color:var(--pink)"><div><div class="t">Valor estimado de la lista: ' + gasto.toFixed(0) + ' €</div>'
         + '<div class="s">Según los precios que hayas anotado</div></div></div>' : '')
-      + '<div class="grid">' + ds.map(function(d){ return tileHtml(d, null); }).join('') + '</div>';
+      + '<div class="grid">' + ds.map(function(d){
+          return tileHtml(d, null).replace('</div><div class="meta">',
+            (readOnly ? '' : '<button class="gotit" data-comprado="' + d.id + '">' + I.carrito + 'Ya lo tengo</button>') + '</div><div class="meta">');
+        }).join('') + '</div>';
     enlazarTiles(box, null);
+    box.querySelectorAll('[data-comprado]').forEach(function(b){
+      b.onclick = function(e){ e.stopPropagation(); marcarComprado(b.dataset.comprado); };
+    });
   }
   var aw = document.getElementById('addWish');
   if(aw) aw.onclick = function(){ openForm(null, 'deseos'); };
@@ -2920,39 +3142,33 @@ function sheet(title, bodyHtml, footHtml, ancho){
   arrastrarParaCerrar(s, cerrar);
   return s;
 }
-/* En el móvil, arrastrar la hoja hacia abajo la cierra, como en iOS */
+/* En el móvil, arrastrar desde la barrita superior cierra la hoja.
+   Nunca interfiere con el desplazamiento del contenido. */
 function arrastrarParaCerrar(scrim, cerrar){
   var hoja = scrim.querySelector('.sheet');
   if(!hoja || window.innerWidth > 760) return;
-  var y0 = null, dy = 0, activo = false;
-  var zonas = [hoja.querySelector('.grabber'), hoja.querySelector('.sheet-hd'), hoja.querySelector('.dhero')].filter(Boolean);
-  var empezar = function(e){
-    if(scrim.scrollTop > 4) return;
-    y0 = e.touches[0].clientY; dy = 0; activo = true;
+  var asa = hoja.querySelector('.grabber');
+  if(!asa) return;
+  var y0 = null, dy = 0;
+  asa.addEventListener('touchstart', function(e){
+    y0 = e.touches[0].clientY; dy = 0;
     hoja.style.transition = 'none';
-  };
-  var mover = function(e){
-    if(!activo || y0 === null) return;
-    dy = e.touches[0].clientY - y0;
-    if(dy < 0){ dy = 0; return; }
+  }, {passive:true});
+  asa.addEventListener('touchmove', function(e){
+    if(y0 === null) return;
+    dy = Math.max(0, e.touches[0].clientY - y0);
     hoja.style.transform = 'translateY(' + dy + 'px)';
-    scrim.style.background = 'rgba(0,0,0,' + Math.max(0, .42 - dy / 900) + ')';
     if(e.cancelable) e.preventDefault();
-  };
+  }, {passive:false});
   var soltar = function(){
-    if(!activo) return;
-    activo = false;
+    if(y0 === null) return;
     hoja.style.transition = 'transform .28s var(--ease)';
-    if(dy > 110){ hoja.style.transform = 'translateY(100%)'; setTimeout(cerrar, 240); }
-    else{ hoja.style.transform = ''; scrim.style.background = ''; }
-    y0 = null;
+    if(dy > 90){ hoja.style.transform = 'translateY(100%)'; setTimeout(cerrar, 230); }
+    else hoja.style.transform = '';
+    y0 = null; dy = 0;
   };
-  zonas.forEach(function(z){
-    z.addEventListener('touchstart', empezar, {passive:true});
-    z.addEventListener('touchmove', mover, {passive:false});
-    z.addEventListener('touchend', soltar);
-    z.addEventListener('touchcancel', soltar);
-  });
+  asa.addEventListener('touchend', soltar);
+  asa.addEventListener('touchcancel', soltar);
 }
 function fieldRow(label, inner){ return '<div class="grow"><label>' + label + '</label>' + inner + '</div>'; }
 function genOpts(sel){
@@ -3019,13 +3235,16 @@ function openDetail(id){
     + spec('Escuchas', totalEscuchas(d) ? totalEscuchas(d) + (d.ultimaEscucha ? ' · última ' + fechaBonita(d.ultimaEscucha) : '') : '—')
     + '</div>'
     + (d.notas ? '<p style="font-size:14.5px;color:var(--txt2);line-height:1.5;margin:0 3px 16px">' + esc(d.notas) + '</p>' : '')
+    + '<div id="dExtra"></div>'
     + '<div class="tl-hd"><h4>Tracklist<span class="n" id="dN"></span></h4><div class="rowb">'
     + (readOnly ? '' : '<button class="iconbtn" id="loadPrev" title="Cargar fragmentos de audio">' + I.play + '</button>')
     + (readOnly ? '' : '<button class="iconbtn" id="pen" title="Editar tracklist">' + I.pencil + '</button>') + '</div></div>'
     + '<div id="dTL"></div>';
 
-  var pie = readOnly ? '<span></span><span></span>'
-    : '<div class="rowb"><button class="btn sm" id="aiFull">' + I.spark + 'Completar</button>'
+  var pie = readOnly
+    ? '<button class="btn btncerrar" id="cerrarPie">Cerrar</button><span></span>'
+    : '<div class="rowb"><button class="btn btncerrar" id="cerrarPie">' + I.x + 'Cerrar</button>'
+      + '<button class="btn sm" id="aiFull">' + I.spark + 'Completar</button>'
       + '<button class="btn sm" id="edics">' + I.layers + 'Ediciones</button></div>'
       + '<div class="rowb"><button class="btn sm" id="mas">···</button><button class="btn pri sm" id="edit">' + I.pencil + 'Editar</button></div>';
 
@@ -3037,12 +3256,16 @@ function openDetail(id){
     '<div class="dhero" style="--herobg:' + tint + '"><div class="cov" id="cov">' + coverHtml(d) + '</div>'
     + '<h3>' + (esc(d.titulo) || 'Sin título') + '</h3>'
     + '<div class="art2" id="byArt">' + (esc(d.artista) || 'Artista desconocido')
-    + '<svg class="ic" viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg></div><div class="tags">'
+    + '<svg class="ic" viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg></div>'
+    + '<div class="starbox"><div id="dStars">' + estrellasHtml(d.valoracion, true, d.id) + '</div>'
+    + '<div class="lbl" id="dStarsL">' + (d.valoracion ? TEXTO_VALORACION[d.valoracion] : (readOnly ? '' : 'Toca para valorar')) + '</div></div>'
+    + '<div class="tags">'
     + '<span class="tag ' + (d.formato === 'Vinilo' ? 'vin' : 'cd') + '">' + (d.formato === 'Vinilo' ? I.vinilo : I.cdIc) + ' ' + d.formato + '</span>'
     + (d.genero ? '<span class="tag">' + esc(d.genero) + '</span>' : '')
     + (d['año'] ? '<span class="tag">' + esc(d['año']) + '</span>' : '')
     + (tracks.length ? '<span class="tag">' + tracks.length + ' temas</span>' : '')
     + (d.lista === 'deseos' ? '<span class="tag pur">En deseos</span>' : '')
+    + (d.extra && d.extra.secundarios ? '<span class="tag">' + esc(traduceTipo(d.extra.secundarios)) + '</span>' : '')
     + d.etiquetas.map(function(t){ return '<span class="tag usr" data-tag="' + esc(t) + '">' + esc(t) + '</span>'; }).join('')
     + '</div><div class="linkrow">'
     + '<a class="lnk" target="_blank" rel="noopener" href="' + (d.mbid ? 'https://musicbrainz.org/release/' + d.mbid
@@ -3051,6 +3274,7 @@ function openDetail(id){
         : 'https://www.discogs.com/search/?q=' + encodeURIComponent(d.artista + ' ' + d.titulo) + '&type=release') + '">' + I.link + 'Discogs</a>'
     + '<a class="lnk" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query='
         + encodeURIComponent(d.artista + ' ' + d.titulo + ' full album') + '">' + I.play + 'YouTube</a>'
+    + '<button class="lnk" id="btnWiki">' + I.libro + 'Quién es / Qué es</button>'
     + (readOnly ? '' : '<button class="lnk' + (escuchadoHoy(d) ? ' hecho' : '') + '" id="escuchado">'
         + (escuchadoHoy(d) ? I.check + 'Escuchado hoy' : I.playF + 'He escuchado') + '</button>')
     + '</div></div>');
@@ -3060,6 +3284,23 @@ function openDetail(id){
   });
 
   $('#cov').onclick = function(){ if(d.portada) lightbox(d.portada); };
+  if($('#cerrarPie')) $('#cerrarPie').onclick = function(){ s.querySelector('[data-close]').click(); };
+  if($('#btnWiki')) $('#btnWiki').onclick = function(){ verWikipedia(d, false); };
+  if(!readOnly) montarEstrellas($('#dStars'), d, function(v){
+    $('#dStarsL').textContent = v ? TEXTO_VALORACION[v] : 'Toca para valorar';
+    paintCol();
+  });
+  pintaExtra($('#dExtra'), d);
+  if(d.mbid && (!d.extra || !d.extra.cargado)){
+    cargarExtra(d).then(function(){ pintaExtra($('#dExtra'), d); }).catch(function(){});
+  }
+  if(!readOnly && incompleto(d) && (d.titulo || d.artista)){
+    var aviso = toast('Buscando lo que falta de este disco…');
+    enrich(d.id, false).then(function(ok){
+      aviso.remove();
+      if(ok){ s.remove(); openDetail(d.id); toast('Ficha completada'); }
+    });
+  }
   $('#byArt').onclick = function(){ fArt = d.artista; grupo = 'none'; document.getElementById('selGroup').value = 'none'; setView('col'); paintCol(); s.remove(); };
   s.querySelectorAll('[data-tag]').forEach(function(t){
     t.onclick = function(){ fTag = t.dataset.tag; setView('col'); paintCol(); s.remove(); };
@@ -3102,7 +3343,9 @@ function openDetail(id){
             ? '<button class="play" data-prev="' + d.id + ':' + i + '" data-url="' + esc(t.preview) + '">' + I.play + '</button>'
             : '<span class="num">' + (i + 1) + '</span>')
           + '<span class="nm">' + esc(t.titulo) + '</span>'
-          + (t.duracion ? '<span class="dur">' + esc(t.duracion) + '</span>' : '') + '</div>';
+          + (t.duracion ? '<span class="dur">' + esc(t.duracion) + '</span>' : '<span class="dur"></span>')
+          + '<a class="lyr" target="_blank" rel="noopener" title="Ver la letra" href="'
+          + esc(urlLetra(d.artista, t.titulo)) + '">' + I.letra + '</a></div>';
       }).join('') + '</div>';
       $('#dTL').querySelectorAll('[data-prev]').forEach(function(b){
         b.onclick = function(){ reproducir(b.dataset.url, b.dataset.prev, b); };
@@ -3159,9 +3402,10 @@ function openDetail(id){
   if($('#aiFull')) $('#aiFull').onclick = function(e){
     var b = e.currentTarget; b.disabled = true; b.innerHTML = I.spark + 'Buscando…';
     enrich(d.id, true).then(function(ok){
-      s.remove();
-      toast(ok ? 'Ficha actualizada' : 'No se encontró · prueba con «Ediciones» o pega su URL de MusicBrainz', !ok);
-      if(ok) openDetail(d.id);
+      if(ok){ s.remove(); toast('Ficha actualizada'); openDetail(d.id); return; }
+      b.disabled = false; b.innerHTML = I.spark + 'Completar';
+      toast('Sin coincidencia exacta · mira las ediciones parecidas', true);
+      elegirEdicion(d, s);
     });
   };
   if($('#mas')) $('#mas').onclick = function(){ menuDisco(d, s); };
@@ -3172,7 +3416,9 @@ function menuDisco(d, padre){
   var body = '<div class="dbact">'
     + accion(I.tag, 'Etiquetas', 'Marca este disco con etiquetas libres: firmado, primera edición, para vender…', 'tags', '', 'Editar etiquetas')
     + accion(I.hand, d.prestadoA ? 'Prestado a ' + d.prestadoA : 'Prestar', 'Anota a quién se lo dejas y desde cuándo.', 'lend', '', d.prestadoA ? 'Cambiar' : 'Prestar')
-    + accion(I.heart, d.lista === 'deseos' ? 'Mover a la colección' : 'Mover a deseos', d.lista === 'deseos' ? 'Ya lo tienes: pásalo a tu colección.' : 'Guárdalo como disco pendiente de comprar.', 'wish', '', 'Mover')
+    + (d.lista === 'deseos'
+        ? accion(I.carrito, 'Ya lo tengo', 'Pásalo a tu colección indicando en qué formato lo has comprado.', 'comprado', '', 'Lo he comprado')
+        : accion(I.heart, 'Mover a deseos', 'Guárdalo como disco pendiente de comprar.', 'wish', '', 'Mover'))
     + accion(I.gap, 'Huecos del artista', 'Compara tu colección con la discografía completa de ' + esc(d.artista) + '.', 'gaps', '', 'Buscar huecos')
     + accion(I.link, 'Fijar edición por URL', 'Pega el enlace de MusicBrainz o Discogs de tu prensado exacto.', 'url', '', 'Pegar URL')
     + accion(I.copy, 'Duplicar ficha', 'Crea una copia, útil si tienes el mismo disco en dos formatos.', 'dup', '', 'Duplicar')
@@ -3181,11 +3427,14 @@ function menuDisco(d, padre){
   var cerrar = function(){ s.remove(); };
   s.querySelector('[data-a=tags]').onclick = function(){ cerrar(); editarEtiquetas(d, padre); };
   s.querySelector('[data-a=lend]').onclick = function(){ cerrar(); prestar(d, padre); };
-  s.querySelector('[data-a=wish]').onclick = function(){
-    d.lista = d.lista === 'deseos' ? 'coleccion' : 'deseos';
+  var bw = s.querySelector('[data-a=wish]');
+  if(bw) bw.onclick = function(){
+    d.lista = 'deseos';
     persist(); cerrar(); if(padre) padre.remove();
-    toast(d.lista === 'deseos' ? 'Movido a deseos' : 'Movido a la colección');
+    toast('Movido a deseos');
   };
+  var bc = s.querySelector('[data-a=comprado]');
+  if(bc) bc.onclick = function(){ cerrar(); marcarComprado(d.id, padre); };
   s.querySelector('[data-a=gaps]').onclick = function(){ cerrar(); verHuecos(d.artista); };
   s.querySelector('[data-a=url]').onclick = function(){ cerrar(); pedirUrl(d, padre); };
   s.querySelector('[data-a=dup]').onclick = function(){
@@ -3509,7 +3758,19 @@ function openForm(item, listaDestino){
     }
     fetchInfo(t, a, formato, {sello:true, catalogo:true, pais:true, formato:true, 'año':true})
       .then(vuelca)
-      .catch(function(){ $('#ainote').innerHTML = '<div class="note err">No encontrado. Pega la URL de MusicBrainz o pulsa Ediciones.</div>'; })
+      .catch(function(){
+        $('#ainote').innerHTML = '<div class="note err">Sin coincidencia exacta. Te enseño lo más parecido…</div>';
+        var tmp2 = normDisc({id:d.id, titulo:t, artista:a, formato:formato});
+        elegirEdicionTemp(tmp2, function(){
+          portada = tmp2.portada; tracks = normTracks(tmp2.tracklist);
+          $('#fY').value = tmp2['año']; $('#fL').value = tmp2.sello; $('#fC').value = tmp2.numeroCatalogo;
+          $('#fP').value = tmp2.pais; $('#fF').value = tmp2.formatoDetalle;
+          if(tmp2.genero) $('#fG').value = tmp2.genero;
+          $('#fU').value = tmp2.portada; d.mbid = tmp2.mbid; d.rgid = tmp2.rgid;
+          paintCover(); paintTL();
+          $('#ainote').innerHTML = '<div class="note ok">Ficha completada</div>';
+        });
+      })
       .then(fin);
   };
 
@@ -3572,6 +3833,322 @@ function elegirEdicionTemp(tmp, cb){
       };
     });
   }).catch(function(){ s.querySelector('#cnote').className = 'note err'; s.querySelector('#cnote').textContent = 'No se pudo consultar.'; });
+}
+
+
+/* ============================================================
+   15. VALORACIÓN, LETRAS, WIKIPEDIA, CRÉDITOS Y CURIOSIDADES
+   ============================================================ */
+
+/* ---------- estrellas ---------- */
+function estrellaSVG(llena){
+  return '<svg class="ic st' + (llena ? ' on' : '') + '" viewBox="0 0 24 24"' + (llena ? ' fill="currentColor" stroke="none"' : '') + '>'
+    + '<path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3-5.8 3 1.1-6.5L2.6 9.4l6.5-.9z"/></svg>';
+}
+function estrellasHtml(n, grande, id){
+  var v = Number(n) || 0, out = '<span class="stars' + (grande ? ' big' : '') + '"' + (id ? ' data-rate="' + id + '"' : '') + '>';
+  for(var i = 1; i <= 5; i++){
+    out += grande ? '<span data-v="' + i + '" role="button" aria-label="' + i + ' estrellas">' + estrellaSVG(i <= v) + '</span>'
+                  : estrellaSVG(i <= v);
+  }
+  return out + '</span>';
+}
+var TEXTO_VALORACION = ['Sin valorar', 'Flojo', 'Correcto', 'Bueno', 'Muy bueno', 'Imprescindible'];
+function montarEstrellas(caja, d, alCambiar){
+  if(!caja) return;
+  caja.querySelectorAll('[data-v]').forEach(function(el){
+    el.onclick = function(){
+      var v = +el.dataset.v;
+      d.valoracion = (d.valoracion === v) ? 0 : v;
+      persist(true);
+      caja.innerHTML = estrellasHtml(d.valoracion, true, d.id).replace(/^<span class="stars big"[^>]*>|<\/span>$/g, '');
+      montarEstrellas(caja, d, alCambiar);
+      if(alCambiar) alCambiar(d.valoracion);
+    };
+  });
+}
+
+/* ---------- letras (enlace externo: no puedo reproducirlas aquí) ---------- */
+function urlLetra(artista, cancion){
+  var limpio = String(cancion || '').replace(/\s*[\(\[][^\)\]]*[\)\]]/g, '').trim();
+  return 'https://genius.com/search?q=' + encodeURIComponent((artista || '') + ' ' + limpio);
+}
+
+/* ---------- Wikipedia en español ---------- */
+var wikiCache = {};
+function wikiBuscar(termino){
+  if(wikiCache[termino]) return Promise.resolve(wikiCache[termino]);
+  var api = 'https://es.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts|pageimages'
+    + '&exintro=1&explaintext=1&piprop=thumbnail&pithumbsize=300&redirects=1&generator=search&gsrlimit=1&gsrsearch='
+    + encodeURIComponent(termino);
+  return fetch(api).then(function(r){ return r.json(); }).then(function(j){
+    var pages = j && j.query && j.query.pages;
+    if(!pages) throw new Error('sin resultados');
+    var k = Object.keys(pages)[0], p = pages[k];
+    if(!p || !p.extract) throw new Error('sin extracto');
+    var res = {
+      titulo: p.title,
+      extracto: p.extract,
+      img: p.thumbnail ? p.thumbnail.source : '',
+      url: 'https://es.wikipedia.org/wiki/' + encodeURIComponent(p.title.replace(/ /g, '_'))
+    };
+    wikiCache[termino] = res;
+    return res;
+  });
+}
+function verWikipedia(d, sobreAlbum){
+  var termino = sobreAlbum ? (d.titulo + ' ' + d.artista + ' álbum') : d.artista;
+  var s = sheet(sobreAlbum ? d.titulo : d.artista,
+    '<div class="note busy" id="wnote">Buscando en Wikipedia en español…</div><div id="wbody"></div>',
+    '<button class="btn" id="wOtro">' + (sobreAlbum ? 'Ver el artista' : 'Ver el álbum') + '</button>'
+    + '<a class="btn pri" id="wLink" target="_blank" rel="noopener" href="#">Abrir en Wikipedia</a>');
+  var $ = function(q){ return s.querySelector(q); };
+  $('#wOtro').onclick = function(){ s.remove(); verWikipedia(d, !sobreAlbum); };
+  wikiBuscar(termino).then(function(w){
+    $('#wnote').style.display = 'none';
+    $('#wLink').href = w.url;
+    var parrafos = w.extracto.split('\n').filter(function(p){ return p.trim().length > 30; }).slice(0, 3);
+    $('#wbody').innerHTML =
+      '<div class="wikihd">' + (w.img ? '<img src="' + esc(w.img) + '" alt="">' : '')
+      + '<div><div class="n">' + esc(w.titulo) + '</div><div class="d">Wikipedia en español</div></div></div>'
+      + '<div class="wiki">' + parrafos.map(function(p){ return '<p>' + esc(p) + '</p>'; }).join('')
+      + '<div class="fuente">Extracto de <a href="' + esc(w.url) + '" target="_blank" rel="noopener">'
+      + esc(w.titulo) + '</a> en Wikipedia, bajo licencia CC BY-SA.</div></div>';
+  }).catch(function(){
+    $('#wnote').className = 'note err';
+    $('#wnote').textContent = 'No hay artículo en español sobre ' + (sobreAlbum ? 'este disco' : 'este artista') + '.';
+    $('#wLink').href = 'https://es.wikipedia.org/w/index.php?search=' + encodeURIComponent(termino);
+  });
+}
+
+/* ---------- datos ampliados de MusicBrainz ---------- */
+var ROLES = {
+  producer:'Producción', engineer:'Ingeniería', 'mix':'Mezcla', mastering:'Masterización',
+  recording:'Grabación', 'recorded at':'Grabado en', 'mixed at':'Mezclado en', 'mastered at':'Masterizado en',
+  'design/illustration':'Diseño', photography:'Fotografía', 'art direction':'Dirección artística',
+  'graphic design':'Diseño gráfico', arranger:'Arreglos', composer:'Composición', lyricist:'Letra',
+  'phonographic copyright':'Copyright fonográfico', 'copyright holder':'Copyright'
+};
+var PACKAGING = {
+  'Jewel Case':'Caja jewel', 'Slim Jewel Case':'Caja jewel fina', 'Digipak':'Digipak', 'Cardboard/Paper Sleeve':'Funda de cartón',
+  'Gatefold Cover':'Portada desplegable', 'Keep Case':'Caja alta', 'Box':'Caja', 'Super Jewel Box':'Super jewel box',
+  'Snap Case':'Snap case', 'Fatbox':'Caja doble', 'Other':'Otro', 'None':'Sin estuche'
+};
+var TIPOS = {Album:'Álbum', Single:'Single', EP:'EP', Broadcast:'Emisión', Other:'Otro',
+  Compilation:'Recopilatorio', Soundtrack:'Banda sonora', Live:'En directo', Remix:'Remezclas',
+  'DJ-mix':'Sesión DJ', Demo:'Maqueta', Interview:'Entrevista', Audiobook:'Audiolibro', Spokenword:'Hablado'};
+function traduceTipo(t){
+  return String(t || '').split(/,\s*/).map(function(x){ return TIPOS[x] || x; }).filter(Boolean).join(' · ');
+}
+var IDIOMAS = {eng:'Inglés', spa:'Español', fra:'Francés', deu:'Alemán', ita:'Italiano', por:'Portugués',
+  jpn:'Japonés', cat:'Catalán', eus:'Euskera', glg:'Gallego', zxx:'Sin letra', mul:'Varios'};
+
+function duracionTotal(d){
+  var seg = 0, n = 0;
+  (d.tracklist || []).forEach(function(t){
+    var m = String(t.duracion || '').match(/^(\d+):(\d{2})$/);
+    if(m){ seg += (+m[1]) * 60 + (+m[2]); n++; }
+  });
+  if(!n) return '';
+  var h = Math.floor(seg / 3600), mi = Math.round(seg % 3600 / 60);
+  return h ? h + ' h ' + mi + ' min' : mi + ' min';
+}
+function cargarExtra(d){
+  if(!d.mbid) return Promise.reject(new Error('sin mbid'));
+  return mbGet('release/' + d.mbid + '?inc=artist-rels+label-rels+release-groups+genres+ratings+recordings')
+    .then(function(r){
+      var rg = r['release-group'] || {};
+      var creditos = {};
+      (r.relations || []).forEach(function(rel){
+        var tipo = ROLES[rel.type] || null;
+        if(!tipo) return;
+        var quien = (rel.artist && rel.artist.name) || (rel.label && rel.label.name) || (rel.place && rel.place.name);
+        if(!quien) return;
+        creditos[tipo] = creditos[tipo] ? (creditos[tipo].indexOf(quien) < 0 ? creditos[tipo] + ', ' + quien : creditos[tipo]) : quien;
+      });
+      var tags = ((r.genres || []).concat(rg.genres || []))
+        .sort(function(a, b){ return (b.count || 0) - (a.count || 0); })
+        .map(function(g){ return g.name; }).filter(function(v, i, a){ return a.indexOf(v) === i; }).slice(0, 6);
+      var ex = {
+        fecha: r.date || '',
+        primera: rg['first-release-date'] || '',
+        packaging: r.packaging || '',
+        idioma: (r['text-representation'] && r['text-representation'].language) || '',
+        estado: r.status || '',
+        barcode: r.barcode || '',
+        discos: (r.media || []).length,
+        tipo: rg['primary-type'] || '',
+        secundarios: (rg['secondary-types'] || []).join(', '),
+        nota: (rg.rating && rg.rating.value) || 0,
+        votos: (rg.rating && rg.rating['votes-count']) || 0,
+        tags: tags,
+        creditos: creditos,
+        cargado: nowISO()
+      };
+      d.extra = ex;
+      if(!d.codigoBarras && ex.barcode) d.codigoBarras = ex.barcode;
+      persist(true);
+      return ex;
+    });
+}
+function pintaExtra(caja, d){
+  var ex = d.extra;
+  if(!caja) return;
+  if(!ex){ caja.innerHTML = ''; return; }
+  var filas = [];
+  var f = function(k, v){ if(v) filas.push('<div class="cred"><span class="k">' + k + '</span><span class="v">' + esc(v) + '</span></div>'); };
+  if(ex.fecha && ex.fecha.length > 4){
+    try{ f('Publicado', new Date(ex.fecha + 'T12:00:00').toLocaleDateString('es-ES', {day:'numeric', month:'long', year:'numeric'})); }
+    catch(e){ f('Publicado', ex.fecha); }
+  }
+  if(ex.primera && ex.primera.slice(0, 4) !== String(d['año'])) f('Álbum original', ex.primera.slice(0, 4));
+  f('Duración', duracionTotal(d));
+  if(ex.discos > 1) f('Discos', ex.discos);
+  f('Estuche', PACKAGING[ex.packaging] || ex.packaging);
+  f('Idioma', IDIOMAS[ex.idioma] || '');
+  f('Tipo', traduceTipo([ex.tipo, ex.secundarios].filter(Boolean).join(', ')));
+  if(ex.nota) f('Nota en MusicBrainz', ex.nota.toFixed(1) + ' / 5' + (ex.votos ? ' (' + ex.votos + ' votos)' : ''));
+  if(ex.barcode) f('Código de barras', ex.barcode);
+  Object.keys(ex.creditos).forEach(function(k){ f(k, ex.creditos[k]); });
+  var etiquetas = (ex.tags || []).length
+    ? '<div class="rowb" style="margin:0 0 18px">' + ex.tags.map(function(t){
+        return '<span class="tag">' + esc(t) + '</span>'; }).join('') + '</div>'
+    : '';
+  caja.innerHTML = (filas.length ? '<div class="tl-hd"><h4>Detalles y créditos</h4></div><div class="creds">' + filas.join('') + '</div>' : '')
+    + etiquetas;
+}
+
+/* ---------- deseos: ya lo tengo ---------- */
+function marcarComprado(id, padre){
+  var d = DB.discos.filter(function(x){ return x.id === id; })[0];
+  if(!d) return;
+  var body = '<p style="font-size:15px;color:var(--txt2);line-height:1.5;margin:0 0 16px">Vas a mover <b style="color:var(--txt)">'
+    + esc(d.titulo) + '</b> de ' + esc(d.artista) + ' a tu colección. ¿En qué formato lo has comprado?</p>'
+    + '<div class="segtype" id="cFmt">'
+      + '<button data-f="Vinilo" class="' + (d.formato === 'Vinilo' ? 'on' : '') + '">' + I.vinilo + 'Vinilo</button>'
+      + '<button data-f="CD" class="' + (d.formato === 'CD' ? 'on' : '') + '">' + I.cdIc + 'CD</button>'
+    + '</div>'
+    + '<div class="group">'
+      + '<div class="grow"><label>Comprado el</label><input id="cFecha" type="date" value="' + new Date().toISOString().slice(0, 10) + '"></div>'
+      + '<div class="grow"><label>Precio (€)</label><input id="cPrecio" type="number" step="0.01" min="0" placeholder="opcional"></div>'
+      + '<div class="grow"><label>Estado</label><input id="cEstado" type="text" value="' + esc(d.estado) + '" placeholder="Mint, VG+…"></div>'
+    + '</div>';
+  var s = sheet('¿Ya lo tienes?', body,
+    '<button class="btn" data-cx>Cancelar</button><button class="btn ok" id="cOk">' + I.check + 'Añadir a la colección</button>');
+  var fmt = d.formato;
+  s.querySelector('[data-cx]').onclick = function(){ s.remove(); };
+  s.querySelector('#cFmt').onclick = function(e){
+    var b = e.target.closest('button');
+    if(!b) return;
+    fmt = b.dataset.f;
+    s.querySelectorAll('#cFmt button').forEach(function(x){ x.className = x.dataset.f === fmt ? 'on' : ''; });
+  };
+  s.querySelector('#cOk').onclick = function(){
+    d.lista = 'coleccion';
+    d.formato = fmt;
+    d.fechaCompra = s.querySelector('#cFecha').value || '';
+    var pr = parseFloat(s.querySelector('#cPrecio').value);
+    if(pr) d.precioCompra = pr;
+    d.estado = s.querySelector('#cEstado').value.trim();
+    if(!d.fechaAlta) d.fechaAlta = nowISO();
+    persist();
+    s.remove();
+    if(padre) padre.remove();
+    toast('«' + d.titulo + '» ya está en tu colección');
+    if(incompleto(d)) enrich(d.id, false);
+  };
+}
+
+/* ---------- curiosidades ---------- */
+function curiosidades(){
+  var ds = coleccion();
+  if(ds.length < 4) return [];
+  var out = [];
+  var cuenta = function(fn){
+    var m = {};
+    ds.forEach(function(d){ var k = fn(d); if(k) m[k] = (m[k] || 0) + 1; });
+    return Object.keys(m).map(function(k){ return {k:k, v:m[k]}; }).sort(function(a, b){ return b.v - a.v; });
+  };
+  var art = cuenta(function(d){ return d.artista; });
+  var sel = cuenta(function(d){ return d.sello; });
+  var dec = cuenta(function(d){ var y = parseInt(d['año']); return y ? Math.floor(y / 10) * 10 : 0; });
+  var anios = cuenta(function(d){ return d['año']; });
+  var pais = cuenta(function(d){ return d.pais; });
+  var vin = ds.filter(function(d){ return d.formato === 'Vinilo'; }).length;
+  var temas = ds.reduce(function(a, d){ return a + d.tracklist.length; }, 0);
+
+  if(art[0] && art[0].v > 1) out.push('Tu artista más presente es <b>' + esc(art[0].k) + '</b>, con <b>' + art[0].v + ' discos</b> en la estantería.');
+  if(dec[0]) out.push('La década de los <b>' + dec[0].k + '</b> domina tu colección: <b>' + dec[0].v + ' discos</b>, un ' + Math.round(dec[0].v / ds.length * 100) + '% del total.');
+  if(anios[0] && anios[0].v > 2) out.push('<b>' + anios[0].k + '</b> fue un buen año para ti: tienes <b>' + anios[0].v + ' discos</b> publicados ese año.');
+  if(sel[0] && sel[0].v > 2) out.push('El sello que más se repite es <b>' + esc(sel[0].k) + '</b>, con <b>' + sel[0].v + ' referencias</b>.');
+  if(temas) out.push('Entre todos tus discos suman <b>' + temas + ' canciones</b>. Puestas seguidas serían más de <b>' + Math.round(temas * 4 / 60) + ' horas</b> de música.');
+  out.push('Tu colección es <b>' + Math.round(vin / ds.length * 100) + '% vinilo</b> y <b>' + Math.round((ds.length - vin) / ds.length * 100) + '% CD</b>.');
+  if(pais[0] && PAISES[pais[0].k]) out.push('La mayoría de tus prensados vienen de <b>' + nombrePais(pais[0].k) + '</b> ' + bandera(pais[0].k) + ': <b>' + pais[0].v + ' discos</b>.');
+
+  var viejo = ds.filter(function(d){ return parseInt(d['año']) > 1900; }).sort(function(a, b){ return parseInt(a['año']) - parseInt(b['año']); })[0];
+  if(viejo) out.push('El disco más veterano es <b>' + esc(viejo.titulo) + '</b> de ' + esc(viejo.artista) + ', de <b>' + viejo['año'] + '</b>. Tiene ya ' + (new Date().getFullYear() - parseInt(viejo['año'])) + ' años.');
+  var nuevo = ds.slice().sort(function(a, b){ return parseInt(b['año'] || 0) - parseInt(a['año'] || 0); })[0];
+  if(nuevo && nuevo['año']) out.push('Lo más reciente que tienes es de <b>' + nuevo['año'] + '</b>: ' + esc(nuevo.titulo) + ', de ' + esc(nuevo.artista) + '.');
+
+  var largo = ds.filter(function(d){ return d.tracklist.length; }).sort(function(a, b){ return b.tracklist.length - a.tracklist.length; })[0];
+  if(largo) out.push('<b>' + esc(largo.titulo) + '</b> es tu disco con más canciones: <b>' + largo.tracklist.length + ' temas</b>.');
+
+  var titulos = {};
+  ds.forEach(function(d){ d.tracklist.forEach(function(t){ var k = plain(t.titulo); if(k.length > 3) titulos[k] = (titulos[k] || 0) + 1; }); });
+  var rep = Object.keys(titulos).filter(function(k){ return titulos[k] > 1; }).sort(function(a, b){ return titulos[b] - titulos[a]; })[0];
+  if(rep){
+    var nombreReal = '';
+    ds.some(function(d){ return d.tracklist.some(function(t){ if(plain(t.titulo) === rep){ nombreReal = t.titulo; return true; } }); });
+    out.push('Tienes <b>' + titulos[rep] + ' versiones</b> de la misma canción: <b>' + esc(nombreReal) + '</b>.');
+  }
+
+  var conNota = ds.filter(function(d){ return d.valoracion; });
+  if(conNota.length > 2){
+    var media = conNota.reduce(function(a, d){ return a + d.valoracion; }, 0) / conNota.length;
+    out.push('Has valorado <b>' + conNota.length + ' discos</b> con una media de <b>' + media.toFixed(1) + ' estrellas</b>.');
+    var cinco = conNota.filter(function(d){ return d.valoracion === 5; });
+    if(cinco.length) out.push('Para ti son imprescindibles <b>' + cinco.length + ' discos</b>. El primero de la lista: ' + esc(cinco[0].titulo) + '.');
+  }
+  var escuchados = ds.filter(function(d){ return totalEscuchas(d) > 0; });
+  if(escuchados.length){
+    var top = escuchados.slice().sort(function(a, b){ return totalEscuchas(b) - totalEscuchas(a); })[0];
+    out.push('El disco que más has puesto es <b>' + esc(top.titulo) + '</b>, <b>' + totalEscuchas(top) + ' veces</b>.');
+    out.push('Llevas <b>' + escuchados.length + ' discos</b> estrenados de ' + ds.length + '. Te quedan <b>' + (ds.length - escuchados.length) + '</b> por poner.');
+  }
+  var gasto = ds.reduce(function(a, d){ return a + (d.precioCompra || 0); }, 0);
+  if(gasto > 0) out.push('Lo que llevas registrado en compras suma <b>' + gasto.toFixed(0) + ' €</b>, a una media de ' + (gasto / ds.filter(function(d){ return d.precioCompra; }).length).toFixed(1) + ' € por disco.');
+
+  var huecos = [];
+  for(var y = 1960; y <= new Date().getFullYear(); y += 10){
+    if(!dec.some(function(x){ return +x.k === y; })) huecos.push(y + 's');
+  }
+  if(huecos.length && huecos.length < 4) out.push('No tienes ningún disco de los <b>' + huecos.join(' ni de los ') + '</b>. Un hueco por llenar.');
+
+  var solos = art.filter(function(a){ return a.v === 1; }).length;
+  if(solos) out.push('De <b>' + solos + ' artistas</b> tienes un único disco. La mitad de tu colección son visitas de una sola vez.');
+
+  var letras = {};
+  ds.forEach(function(d){ var L = (d.artista || '?')[0]; if(L) letras[L.toUpperCase()] = (letras[L.toUpperCase()] || 0) + 1; });
+  var topL = Object.keys(letras).sort(function(a, b){ return letras[b] - letras[a]; })[0];
+  if(topL) out.push('La letra <b>' + topL + '</b> es la más poblada de tu estantería, con <b>' + letras[topL] + ' artistas o discos</b>.');
+
+  return out;
+}
+function pintaCuriosidad(caja){
+  if(!caja) return;
+  var lista = curiosidades();
+  if(!lista.length){ caja.innerHTML = ''; return; }
+  var i = Math.floor(Math.random() * lista.length);
+  var pinta = function(){
+    caja.innerHTML = '<div class="tip"><div class="bulb">' + I.bombilla + '</div>'
+      + '<div class="tx"><div class="k">¿Sabías que…?</div><div class="v">' + lista[i] + '</div></div>'
+      + '<button class="otro" id="otraCur" title="Otra curiosidad">' + I.refresh + '</button></div>';
+    caja.querySelector('#otraCur').onclick = function(){
+      i = (i + 1 + Math.floor(Math.random() * (lista.length - 1))) % lista.length;
+      pinta();
+    };
+  };
+  pinta();
 }
 
 
@@ -3738,8 +4315,29 @@ function paintStats(){
   ds.forEach(function(d){ var m = (d.fechaAlta || '').slice(0, 7); if(m) porMes[m] = (porMes[m] || 0) + 1; });
   Object.keys(porMes).sort().forEach(function(m){ acc += porMes[m]; crec.push({k:m.slice(2).replace('-', '/'), v:acc}); });
 
+  var valorados = ds.filter(function(d){ return d.valoracion; });
+  var notaMedia = valorados.length ? (valorados.reduce(function(a, d){ return a + d.valoracion; }, 0) / valorados.length) : 0;
+  var porNota = [5,4,3,2,1].map(function(n){ return {k:n + '★', v: ds.filter(function(d){ return d.valoracion === n; }).length}; });
+  var favoritos = ds.filter(function(d){ return d.valoracion >= 4; })
+    .sort(function(a, b){ return b.valoracion - a.valoracion || totalEscuchas(b) - totalEscuchas(a); }).slice(0, 12);
+  var duraciones = ds.map(function(d){
+    var seg = 0;
+    d.tracklist.forEach(function(t){ var m = String(t.duracion || '').match(/^(\d+):(\d{2})$/); if(m) seg += (+m[1]) * 60 + (+m[2]); });
+    return {d:d, seg:seg};
+  }).filter(function(x){ return x.seg > 0; }).sort(function(a, b){ return b.seg - a.seg; });
+  var horas = duraciones.reduce(function(a, x){ return a + x.seg; }, 0) / 3600;
+  var porLetra = {};
+  ds.forEach(function(d){
+    var L = (d.artista || '#').replace(/^(el|la|los|las|the|a|an)\s+/i, '').trim()[0];
+    L = L ? L.toUpperCase() : '#';
+    if(!/[A-Z]/.test(L)) L = '#';
+    porLetra[L] = (porLetra[L] || 0) + 1;
+  });
+  var letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('').map(function(L){ return {k:L, v:porLetra[L] || 0}; });
+
   box.innerHTML =
-    '<div class="wrapped" style="margin-bottom:18px">'
+    '<div id="curiosidad"></div>'
+    + '<div class="wrapped" style="margin-bottom:18px">'
     + wcard(I.user, 'Artista más repetido', artistas[0] ? artistas[0].k : '—', artistas[0] ? artistas[0].v + ' discos' : '', 'linear-gradient(135deg,#ff2d55,#af52de)')
     + wcard(I.cal, 'Tu década', decaTop ? decaTop.k : '—', decaTop ? decaTop.v + ' discos de esa época' : '', 'linear-gradient(135deg,#0071e3,#30b0c7)')
     + wcard(I.disc, 'El más antiguo', masAntiguo ? masAntiguo['año'] : '—', masAntiguo ? masAntiguo.artista + ' · ' + masAntiguo.titulo : '', 'linear-gradient(135deg,#ff9500,#ffcc00)')
@@ -3747,6 +4345,8 @@ function paintStats(){
     + (masEscuchado && totalEscuchas(masEscuchado) ? wcard(I.playF, 'Más escuchado', masEscuchado.titulo, totalEscuchas(masEscuchado) + ' veces', 'linear-gradient(135deg,#5856d6,#0a84ff)') : '')
     + (totalEsc ? wcard(I.oreja, 'Escuchas registradas', totalEsc, (ds.length - nunca) + ' discos distintos', 'linear-gradient(135deg,#00c7be,#0071e3)') : '')
     + (gasto ? wcard(I.euro, 'Invertido', gasto.toFixed(0) + ' €', 'media de ' + (gasto / ds.length).toFixed(1) + ' € por disco', 'linear-gradient(135deg,#8e8e93,#48484a)') : '')
+    + (horas > 1 ? wcard(I.clock, 'Música en casa', Math.round(horas) + ' h', 'seguidas, sin repetir disco', 'linear-gradient(135deg,#ff9500,#ff2d55)') : '')
+    + (valorados.length ? wcard(I.estrella, 'Nota media', notaMedia.toFixed(1) + ' ★', valorados.length + ' discos valorados', 'linear-gradient(135deg,#ffb400,#ff7a00)') : '')
     + '</div>'
     + '<div class="kpis">'
     + kpi(I.layers, 'Discos', ds.length, 1, 'var(--blue)')
@@ -3813,6 +4413,22 @@ function paintStats(){
             {k:'Con año', v: ds.filter(function(d){ return !!d['año']; }).length},
             {k:'Con sello', v: ds.filter(function(d){ return !!d.sello; }).length}
           ], function(i){ return ['#34c759','#0071e3','#af52de','#ff9500','#30b0c7'][i]; }) + '</div>'
+      + (valorados.length ? '<div class="card"><h3>Cómo puntúas</h3><div class="sub">Reparto de tus estrellas</div>'
+        + hbars(porNota, function(i){ return ['#ffb400','#ffc93a','#c8c8cc','#a1a1a6','#c7c7cc'][i]; }) + '</div>' : '')
+      + (favoritos.length ? '<div class="card"><h3>Tus favoritos</h3><div class="sub">Cuatro estrellas o más</div><div class="tl">'
+        + favoritos.map(function(d){
+            return '<div class="trk" data-disco="' + d.id + '" style="cursor:pointer"><span class="nm">' + esc(d.titulo)
+              + '<span style="color:var(--txt3)"> · ' + esc(d.artista) + '</span></span>'
+              + '<span>' + estrellasHtml(d.valoracion) + '</span></div>';
+          }).join('') + '</div></div>' : '')
+      + (duraciones.length > 3 ? '<div class="card"><h3>Los más largos</h3><div class="sub">Por duración total del disco</div><div class="tl">'
+        + duraciones.slice(0, 6).map(function(x){
+            return '<div class="trk" data-disco="' + x.d.id + '" style="cursor:pointer"><span class="nm">' + esc(x.d.titulo)
+              + '<span style="color:var(--txt3)"> · ' + esc(x.d.artista) + '</span></span>'
+              + '<span class="dur">' + Math.floor(x.seg / 60) + ' min</span></div>';
+          }).join('') + '</div></div>' : '')
+      + '<div class="card full"><h3>Tu estantería por letra</h3><div class="sub">Cómo se reparte el alfabeto</div>'
+        + '<div class="chartwrap">' + columns(letras, 'var(--indigo)') + '</div></div>'
       + (prestados.length ? '<div class="card"><h3>Prestados ahora</h3><div class="sub">Quién tiene qué</div><div class="tl">'
         + prestados.map(function(d){
             return '<div class="trk"><span class="nm">' + esc(d.titulo) + '</span><span class="dur">' + esc(d.prestadoA) + '</span></div>';
@@ -3825,6 +4441,7 @@ function paintStats(){
   box.querySelectorAll('#topSel .hb').forEach(function(el){
     el.onclick = function(){ fSello = el.dataset.k; setView('col'); paintCol(); };
   });
+  pintaCuriosidad(box.querySelector('#curiosidad'));
   box.querySelectorAll('[data-disco]').forEach(function(el){
     el.onclick = function(){ openDetail(el.dataset.disco); };
   });

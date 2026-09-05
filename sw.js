@@ -1,7 +1,7 @@
 /* Discoteca — service worker
    Guarda la aplicación en caché para que abra al instante y sin conexión.
    Los datos NUNCA se cachean: siempre se piden a GitHub. */
-var CACHE = 'discoteca-v2';
+var CACHE = 'discoteca-v3';
 var SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', function(e){
