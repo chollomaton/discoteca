@@ -37,7 +37,7 @@
   --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
 }
 @media (prefers-color-scheme:dark){
-  :root{
+  :root:not([data-tema="claro"]){
     --blue:#0a84ff; --blue-h:#409cff; --blue-s:rgba(10,132,255,.18);
     --bg:#000; --elev:#1c1c1e; --sunk:#141416; --glass:rgba(0,0,0,.76);
     --sep:rgba(255,255,255,.10); --sep2:rgba(255,255,255,.18);
@@ -47,6 +47,16 @@
     --sh1:0 1px 2px rgba(0,0,0,.5); --sh2:0 4px 18px rgba(0,0,0,.55);
     --sh3:0 14px 44px rgba(0,0,0,.65); --sh4:0 30px 90px rgba(0,0,0,.8);
   }
+}
+:root[data-tema="oscuro"]{
+  --blue:#0a84ff; --blue-h:#409cff; --blue-s:rgba(10,132,255,.18);
+  --bg:#000; --elev:#1c1c1e; --sunk:#141416; --glass:rgba(0,0,0,.76);
+  --sep:rgba(255,255,255,.10); --sep2:rgba(255,255,255,.18);
+  --txt:#f5f5f7; --txt2:#98989d; --txt3:#6e6e73;
+  --fill:rgba(120,120,128,.24); --fill2:rgba(120,120,128,.38);
+  --vinilo:#bf5af2; --cd:#40c8e0;
+  --sh1:0 1px 2px rgba(0,0,0,.5); --sh2:0 4px 18px rgba(0,0,0,.55);
+  --sh3:0 14px 44px rgba(0,0,0,.65); --sh4:0 30px 90px rgba(0,0,0,.8);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{-webkit-text-size-adjust:100%}
@@ -174,12 +184,15 @@ button{font-family:inherit}
 .chipf .ic{width:14px;height:14px;stroke-width:2.4}
 
 /* ---------- rejilla ---------- */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:26px 18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:34px 18px}
 @keyframes entrar{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
 .grid .tile{animation:entrar .42s var(--ease) both}
 .tile{cursor:pointer;position:relative;min-width:0}
 .art{position:relative;width:100%;aspect-ratio:1/1;border-radius:var(--r-sm);overflow:hidden;background:var(--fill);
-  box-shadow:var(--sh2);transition:transform .32s var(--ease),box-shadow .32s var(--ease);display:flex;align-items:center;justify-content:center}
+  box-shadow:var(--sh2),0 0 0 1px rgba(0,0,0,.07) inset;
+  transition:transform .32s var(--ease),box-shadow .32s var(--ease);display:flex;align-items:center;justify-content:center}
+.tile.vin .art{border-radius:5px}
+:root[data-tema="oscuro"] .art{box-shadow:var(--sh2),0 0 0 1px rgba(255,255,255,.08) inset}
 .tile:hover .art{transform:translateY(-7px) scale(1.035);box-shadow:var(--sh3)}
 .tile:active .art{transform:scale(.97)}
 .art img{width:100%;height:100%;object-fit:cover;display:block}
@@ -189,8 +202,19 @@ button{font-family:inherit}
   box-shadow:0 1px 5px rgba(0,0,0,.26)}
 .badge.vin .ic{width:25px;height:25px}
 .badge.cd .ic{width:19px;height:19px}
-.badge.vin{background:rgba(255,255,255,.96)}
-.badge.cd{background:rgba(255,255,255,.96)}
+.badge.vin,.badge.cd{background:rgba(255,255,255,.96)}
+:root[data-tema="oscuro"] .badge{background:rgba(38,38,42,.94);box-shadow:0 1px 5px rgba(0,0,0,.5)}
+@media (prefers-color-scheme:dark){:root:not([data-tema="claro"]) .badge{background:rgba(38,38,42,.94)}}
+:root[data-tema="oscuro"] .sop.vin{color:#d08bf0}
+:root[data-tema="oscuro"] .sop.cd{color:#5fd4e8}
+:root[data-tema="oscuro"] .tag.vin{color:#d08bf0}
+:root[data-tema="oscuro"] .tag.cd{color:#5fd4e8}
+:root[data-tema="oscuro"] .tag.wrn{color:#ffb454}
+@media (prefers-color-scheme:dark){
+  :root:not([data-tema="claro"]) .sop.vin,:root:not([data-tema="claro"]) .tag.vin{color:#d08bf0}
+  :root:not([data-tema="claro"]) .sop.cd,:root:not([data-tema="claro"]) .tag.cd{color:#5fd4e8}
+  :root:not([data-tema="claro"]) .tag.wrn{color:#ffb454}
+}
 .badge .vinilo-out{stroke:#15151a}
 .badge .vinilo-lab{fill:#15151a}
 .badge .cd-out{stroke:#8b98a8}
@@ -215,10 +239,15 @@ button{font-family:inherit}
 .oir:active{transform:scale(.88)}
 .oir .ic{width:14px;height:14px}
 .oir.hoy{background:var(--green);opacity:1;transform:none}
-.meta{padding:9px 3px 0;min-width:0}
+.meta{padding:13px 3px 0;min-width:0}
 .meta .t{font-size:13.8px;font-weight:600;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.012em}
-.meta .a{font-size:13px;color:var(--blue);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1.5px}
-.meta .y{font-size:11.5px;color:var(--txt3);margin-top:3px;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meta .a{font-size:12.5px;color:var(--blue);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.meta .y{font-size:11.5px;color:var(--txt3);margin-top:4px;font-variant-numeric:tabular-nums;display:flex;
+  align-items:center;gap:7px;min-width:0}
+.meta .y .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.meta .y .stars{margin-left:auto;flex-shrink:0}
+.tile .stars{margin-top:0}
+.tile .stars .st{width:10.5px;height:10.5px}
 
 .stars{display:inline-flex;gap:2px;align-items:center}
 .stars .st{width:15px;height:15px;color:var(--sep2);cursor:default;flex-shrink:0}
@@ -296,6 +325,8 @@ button{font-family:inherit}
 .ghead .gav{width:38px;height:38px;border-radius:50%;object-fit:cover;background:var(--fill);flex-shrink:0}
 .ghead h3{font-size:19px;font-weight:600;margin:0;letter-spacing:-.02em;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ghead .n{font-size:13px;color:var(--txt3);font-weight:500;font-variant-numeric:tabular-nums}
+.ghead::after{content:'';position:absolute;left:2px;right:2px;bottom:0;height:1px;background:var(--sep)}
+.ghead{position:sticky}
 .ghead .gbtn{opacity:0;transition:opacity .18s}
 .gsec:hover .ghead .gbtn{opacity:1}
 
@@ -354,7 +385,8 @@ svg.mapa .tierra path{fill:var(--sep2);fill-opacity:.42;stroke:var(--sep2);strok
 svg.mapa .mapnum{font-size:11px;font-weight:700;fill:#fff;pointer-events:none;paint-order:stroke;
   stroke:rgba(0,0,0,.28);stroke-width:2.5px;stroke-linejoin:round}
 svg.mapa .maplbl{font-size:10.5px;font-weight:650;fill:var(--txt);pointer-events:none;paint-order:stroke;
-  stroke:var(--elev);stroke-width:3px;stroke-linejoin:round}
+  stroke:var(--elev);stroke-width:3.5px;stroke-linejoin:round}
+svg.mapa .mapline{stroke:var(--txt3);stroke-width:1;opacity:.55}
 
 /* ---------- hojas ---------- */
 .scrim{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
@@ -376,6 +408,8 @@ svg.mapa .maplbl{font-size:10.5px;font-weight:650;fill:var(--txt);pointer-events
 .xbtn .ic{width:14px;height:14px;stroke-width:2.4}
 .sheet-bd{padding:20px}
 .sheet-ft{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 20px;border-top:.5px solid var(--sep);background:var(--sunk);flex-wrap:wrap}
+.sheet-ft .btn:not(.pri):not(.destr){background:transparent;color:var(--txt2);box-shadow:0 0 0 1px var(--sep)}
+.sheet-ft .btn:not(.pri):not(.destr):hover{background:var(--fill);color:var(--txt)}
 
 .group{background:var(--sunk);border-radius:var(--r-sm);overflow:hidden;margin-bottom:15px;box-shadow:0 0 0 .5px var(--sep)}
 .grow{display:flex;align-items:center;gap:12px;padding:0 14px;min-height:48px;border-bottom:.5px solid var(--sep)}
@@ -427,7 +461,21 @@ svg.mapa .maplbl{font-size:10.5px;font-weight:650;fill:var(--txt);pointer-events
 .dhero h3{font-size:23px;font-weight:700;margin:0;letter-spacing:-.026em;line-height:1.2}
 .dhero .art2{font-size:16.5px;color:var(--blue);margin-top:4px;font-weight:550;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
 .dhero .art2 .ic{width:13px;height:13px;stroke-width:2.4}
-.dhero .tags{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.dhero .tags{display:flex;gap:0;justify-content:center;flex-wrap:wrap;margin-top:14px;align-items:center;
+  font-size:13.5px;color:var(--txt2);row-gap:4px}
+.dhero .tags .dato{display:inline-flex;align-items:center;gap:5px;padding:0 11px;position:relative}
+.dhero .tags .dato+.dato::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:3px;height:3px;border-radius:50%;background:var(--txt3);opacity:.6}
+.dhero .tags .dato .ic{width:15px;height:15px}
+.dhero .tags .dato.vin{color:#8944ab;font-weight:600}
+.dhero .tags .dato.cd{color:#1d7f92;font-weight:600}
+:root[data-tema="oscuro"] .dhero .tags .dato.vin{color:#d08bf0}
+:root[data-tema="oscuro"] .dhero .tags .dato.cd{color:#5fd4e8}
+@media (prefers-color-scheme:dark){
+  :root:not([data-tema="claro"]) .dhero .tags .dato.vin{color:#d08bf0}
+  :root:not([data-tema="claro"]) .dhero .tags .dato.cd{color:#5fd4e8}
+}
+.dhero .tags .tag{margin:0 3px}
 .tag{font-size:12px;font-weight:550;padding:6px 12px;border-radius:99px;background:var(--fill);color:var(--txt2);border:none}
 .tag.acc{background:var(--blue-s);color:var(--blue)}
 .tag.grn{background:rgba(52,199,89,.16);color:var(--green)}
@@ -436,7 +484,12 @@ svg.mapa .maplbl{font-size:10.5px;font-weight:650;fill:var(--txt);pointer-events
 .tag.usr{background:var(--fill2);color:var(--txt);cursor:pointer}
 .tag.vin{background:rgba(175,82,222,.16);color:#8944ab}
 .tag.cd{background:rgba(48,176,199,.18);color:#1d7f92}
-.linkrow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.linkrow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:18px;align-items:center}
+.linkrow .sep{width:1px;height:22px;background:var(--sep2);margin:0 4px}
+.linkrow .ext{background:transparent;color:var(--txt2);font-size:12.5px;font-weight:500;padding:7px 10px;
+  box-shadow:0 0 0 1px var(--sep)}
+.linkrow .ext:hover{background:var(--fill);color:var(--txt)}
+.linkrow .ext .ic{width:13px;height:13px}
 .lnk{display:inline-flex;align-items:center;gap:7px;font-size:13.5px;font-weight:550;padding:10px 15px;border-radius:999px;
   background:var(--fill);color:var(--txt);text-decoration:none;transition:background .18s,transform .12s;border:none;cursor:pointer}
 .lnk:hover{background:var(--fill2)}
@@ -446,9 +499,12 @@ svg.mapa .maplbl{font-size:10.5px;font-weight:650;fill:var(--txt);pointer-events
 
 .specs{display:grid;grid-template-columns:repeat(auto-fit,minmax(126px,1fr));background:var(--sunk);border-radius:var(--r-sm);
   overflow:hidden;box-shadow:0 0 0 .5px var(--sep);margin-bottom:18px}
-.spec{padding:11px 13px;border-right:.5px solid var(--sep);border-bottom:.5px solid var(--sep);min-width:0}
-.spec .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.045em;color:var(--txt3);font-weight:600}
-.spec .v{font-size:14px;margin-top:3px;font-weight:500;word-break:break-word}
+.specs{grid-template-columns:repeat(2,minmax(0,1fr))}
+.spec{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:13px 15px;
+  border-right:.5px solid var(--sep);border-bottom:.5px solid var(--sep);min-width:0}
+.spec .k{font-size:13.5px;color:var(--txt2);font-weight:450;flex-shrink:0}
+.spec .v{font-size:14.5px;font-weight:550;text-align:right;word-break:break-word}
+.spec.vacio{opacity:.45}
 
 .tl-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:0 3px;gap:8px}
 .tl-hd h4{font-size:16px;font-weight:600;margin:0;letter-spacing:-.012em}
@@ -473,6 +529,7 @@ svg.mapa .maplbl{font-size:10.5px;font-weight:650;fill:var(--txt);pointer-events
 .trk .del:hover{background:rgba(255,59,48,.14)}
 .trk .del .ic{width:15px;height:15px}
 .trk.playing{background:var(--blue-s)}
+.trk.playing .nm{font-weight:650;color:var(--blue)}
 .tl-empty{padding:22px 15px;text-align:center;font-size:14px;color:var(--txt3)}
 .tl-add{width:100%;border:none;background:transparent;color:var(--blue);font-size:14.5px;font-weight:500;padding:13px;
   cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;border-top:.5px solid var(--sep)}
@@ -584,6 +641,14 @@ body.modosel .tile.sel .art{outline:3px solid var(--blue);outline-offset:2px}
 .resumen .ri .ic{width:14px;height:14px}
 .resumen .ri .vinilo-out{stroke:none}
 
+.ayuda{position:fixed;z-index:210;background:rgba(28,28,30,.94);color:#fff;font-size:12.5px;font-weight:500;
+  padding:7px 11px;border-radius:9px;box-shadow:var(--sh2);pointer-events:none;opacity:0;transform:translateY(-4px);
+  transition:opacity .14s var(--ease),transform .14s var(--ease);white-space:nowrap;letter-spacing:-.005em;
+  backdrop-filter:blur(14px) saturate(180%);-webkit-backdrop-filter:blur(14px) saturate(180%)}
+.ayuda.on{opacity:1;transform:none}
+.ayuda kbd{background:rgba(255,255,255,.2);border-radius:4px;padding:1px 5px;font-family:inherit;font-size:11.5px;margin-left:5px}
+@media (hover:none){.ayuda{display:none}}
+
 /* país */
 .paishd{display:flex;align-items:center;gap:14px;margin-bottom:16px}
 .paishd .bandera{font-size:42px;line-height:1}
@@ -679,6 +744,46 @@ body.modosel .tile.sel .art{outline:3px solid var(--blue);outline-offset:2px}
 .palrow .s{font-size:12.5px;color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .palrow .k{font-size:11px;color:var(--txt3);background:var(--fill);padding:3px 7px;border-radius:5px;flex-shrink:0}
 .palhint{padding:9px 16px;font-size:11.5px;color:var(--txt3);border-top:.5px solid var(--sep);display:flex;gap:14px;flex-wrap:wrap}
+
+/* ---------- ajustes ---------- */
+.secc{display:flex;align-items:center;gap:11px;margin:26px 2px 12px}
+.secc:first-child{margin-top:0}
+.secc .si{width:30px;height:30px;border-radius:9px;background:var(--fill);display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;color:var(--txt2)}
+.secc .si .ic{width:16px;height:16px}
+.secc h3{font-size:17px;font-weight:650;margin:0;letter-spacing:-.02em}
+.secc .ss{font-size:12.5px;color:var(--txt2);margin-top:1px}
+.estado{background:var(--elev);border-radius:var(--r-lg);box-shadow:var(--sh1);overflow:hidden}
+.estado .ehd{display:flex;align-items:center;gap:13px;padding:17px 18px}
+.estado .epunto{width:11px;height:11px;border-radius:50%;background:var(--green);flex-shrink:0;
+  box-shadow:0 0 0 4px rgba(52,199,89,.18)}
+.estado.pend .epunto,.estado.local .epunto{background:var(--orange);box-shadow:0 0 0 4px rgba(255,149,0,.18)}
+.estado.err .epunto{background:var(--red);box-shadow:0 0 0 4px rgba(255,59,48,.18)}
+.estado.busy .epunto{background:var(--blue);box-shadow:0 0 0 4px rgba(0,113,227,.18);animation:pulse 1s infinite}
+.estado.off .epunto{background:var(--txt3);box-shadow:none}
+.estado .etxt{flex:1;min-width:0}
+.estado .et{font-size:16px;font-weight:650;letter-spacing:-.015em}
+.estado .es{font-size:12.8px;color:var(--txt2);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.estado .efilas{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border-top:.5px solid var(--sep)}
+.estado .efilas>div{padding:11px 18px;border-right:.5px solid var(--sep);min-width:0}
+.estado .efilas span{display:block;font-size:11.5px;color:var(--txt3);font-weight:550}
+.estado .efilas b{font-size:13.5px;font-weight:600;display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.estado .emsg{padding:10px 18px;background:rgba(255,59,48,.1);color:var(--red);font-size:13px;font-weight:550}
+.estado .epie{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 18px;border-top:.5px solid var(--sep);background:var(--sunk)}
+.estado .epie a{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--blue);text-decoration:none;font-weight:550}
+.estado .epie a .ic{width:13px;height:13px}
+.fila{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:.5px solid var(--sep)}
+.fila:last-child{border-bottom:none}
+.fila .ft{font-size:14.5px;font-weight:600}
+.fila .fs{font-size:12.8px;color:var(--txt2);margin-top:2px;line-height:1.4}
+.plega.peligro>summary{color:var(--red)}
+.pie-version{text-align:center;font-size:11.5px;color:var(--txt3);margin-top:26px;padding-bottom:6px}
+@media (max-width:760px){
+  .estado .efilas{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fila{flex-direction:column;align-items:flex-start;gap:10px}
+  .fila .seg{width:100%}
+  .fila .seg button{flex:1;justify-content:center}
+}
 
 /* ---------- archivo ---------- */
 .dbgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(226px,1fr));gap:12px;margin-bottom:16px}
@@ -900,7 +1005,7 @@ body.modosel .tile.sel .art{outline:3px solid var(--blue);outline-offset:2px}
 
 <nav class="nav" id="nav">
   <div class="nav-in">
-    <div class="logo" id="logo">
+    <div class="logo" id="logo" data-tip="Volver a la colección">
       <svg class="disc" viewBox="0 0 32 32" aria-hidden="true">
         <circle cx="16" cy="16" r="15.4" fill="url(#gVin)"/>
         <g fill="none" stroke="#fff" stroke-opacity=".13" stroke-width=".7">
@@ -919,16 +1024,16 @@ body.modosel .tile.sel .art{outline:3px solid var(--blue);outline-offset:2px}
       <button class="on" data-v="col"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg><span>Colección</span></button>
       <button data-v="wish"><svg class="ic" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg><span>Deseos</span></button>
       <button data-v="stats"><svg class="ic" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Estadísticas</span></button>
-      <button data-v="db"><svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3.2"/><path d="M4 5.5v13c0 1.8 3.6 3.2 8 3.2s8-1.4 8-3.2v-13"/><path d="M4 12c0 1.8 3.6 3.2 8 3.2s8-1.4 8-3.2"/></svg><span>Archivo</span></button>
+      <button data-v="db"><svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3.2"/><path d="M4 5.5v13c0 1.8 3.6 3.2 8 3.2s8-1.4 8-3.2v-13"/><path d="M4 12c0 1.8 3.6 3.2 8 3.2s8-1.4 8-3.2"/></svg><span>Ajustes</span></button>
     </div>
     <div class="rowb">
-      <button class="sync" id="syncBadge"><span class="dot"></span><span class="stxt" id="syncTxt">Local</span></button>
-      <button class="btn icon no-mob hide-ro" id="btnSel" title="Seleccionar varios"><svg class="ic" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h8"/></svg></button>
-      <button class="btn icon" id="btnPal" title="Buscar (⌘K)"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7.5"/><line x1="21" y1="21" x2="16.8" y2="16.8"/></svg></button>
-      <button class="btn icon no-mob" id="btnDice" title="Sorpréndeme"><svg class="ic" viewBox="0 0 24 24"><path d="M12 2.6l8.4 4.2v9.9L12 21.4 3.6 16.7V6.8z"/><path d="M3.6 6.8L12 11.5l8.4-4.7M12 11.5v9.9"/><circle cx="8" cy="8.4" r="1" fill="currentColor" stroke="none"/><circle cx="7.6" cy="14.6" r="1" fill="currentColor" stroke="none"/><circle cx="16.4" cy="10.6" r="1" fill="currentColor" stroke="none"/><circle cx="16.4" cy="15.4" r="1" fill="currentColor" stroke="none"/></svg></button>
-      <button class="btn icon no-mob hide-ro" id="btnScan" title="Escanear código de barras"><svg class="ic" viewBox="0 0 24 24"><path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"/><line x1="3" y1="12" x2="21" y2="12"/></svg></button>
-      <button class="btn icon only-mob hide-ro" id="btnAddMob" title="Añadir disco"><svg class="ic" viewBox="0 0 24 24" style="stroke-width:2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-      <button class="btn pri no-mob hide-ro" id="btnAdd"><svg class="ic" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Añadir</button>
+      <button class="sync" id="syncBadge" data-tip="Estado de la sincronización" data-tecla="⌘S"><span class="dot"></span><span class="stxt" id="syncTxt">Local</span></button>
+      <button class="btn icon no-mob hide-ro" id="btnSel" data-tip="Seleccionar varios discos"><svg class="ic" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h8"/></svg></button>
+      <button class="btn icon" id="btnPal" data-tip="Buscar en la colección" data-tecla="⌘K"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7.5"/><line x1="21" y1="21" x2="16.8" y2="16.8"/></svg></button>
+      <button class="btn icon no-mob" id="btnDice" data-tip="Abrir un disco al azar" data-tecla="R"><svg class="ic" viewBox="0 0 24 24"><path d="M12 2.6l8.4 4.2v9.9L12 21.4 3.6 16.7V6.8z"/><path d="M3.6 6.8L12 11.5l8.4-4.7M12 11.5v9.9"/><circle cx="8" cy="8.4" r="1" fill="currentColor" stroke="none"/><circle cx="7.6" cy="14.6" r="1" fill="currentColor" stroke="none"/><circle cx="16.4" cy="10.6" r="1" fill="currentColor" stroke="none"/><circle cx="16.4" cy="15.4" r="1" fill="currentColor" stroke="none"/></svg></button>
+      <button class="btn icon no-mob hide-ro" id="btnScan" data-tip="Escanear un código de barras"><svg class="ic" viewBox="0 0 24 24"><path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"/><line x1="3" y1="12" x2="21" y2="12"/></svg></button>
+      <button class="btn icon only-mob hide-ro" id="btnAddMob" data-tip="Añadir un disco"><svg class="ic" viewBox="0 0 24 24" style="stroke-width:2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      <button class="btn pri no-mob hide-ro" id="btnAdd" data-tip="Añadir un disco" data-tecla="N"><svg class="ic" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Añadir</button>
     </div>
   </div>
 </nav>
@@ -943,7 +1048,7 @@ body.modosel .tile.sel .art{outline:3px solid var(--blue);outline-offset:2px}
       <div class="searchw" id="searchw">
         <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7.5"/><line x1="21" y1="21" x2="16.8" y2="16.8"/></svg>
         <input type="text" id="q" placeholder="Buscar álbum, artista, canción…" enterkeyhint="search" autocapitalize="none" autocorrect="off">
-        <button class="clr" id="qClear" aria-label="Borrar"><svg class="ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        <button class="clr" id="qClear" aria-label="Borrar" data-tip="Borrar la búsqueda"><svg class="ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
       <div class="filtros">
         <div class="seg" id="segType">
@@ -990,9 +1095,9 @@ body.modosel .tile.sel .art{outline:3px solid var(--blue);outline-offset:2px}
           <svg class="ic cv" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         <div class="seg" id="segMode">
-          <button class="on" data-m="grid" title="Portadas"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg></button>
-          <button data-m="list" title="Lista"><svg class="ic" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg></button>
-          <button data-m="shelf" title="Estantería"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="3.4" height="14" rx="1"/><rect x="9.3" y="4" width="3.4" height="14" rx="1"/><rect x="14.6" y="4" width="3.4" height="14" rx="1"/><line x1="3" y1="20.5" x2="21" y2="20.5"/></svg></button>
+          <button class="on" data-m="grid" data-tip="Ver portadas"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg></button>
+          <button data-m="list" data-tip="Ver en lista"><svg class="ic" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg></button>
+          <button data-m="shelf" data-tip="Ver la estantería"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="3.4" height="14" rx="1"/><rect x="9.3" y="4" width="3.4" height="14" rx="1"/><rect x="14.6" y="4" width="3.4" height="14" rx="1"/><line x1="3" y1="20.5" x2="21" y2="20.5"/></svg></button>
         </div>
         <div id="activeChips" class="rowb"></div>
       </div>
@@ -1030,7 +1135,7 @@ body.modosel .tile.sel .art{outline:3px solid var(--blue);outline-offset:2px}
     <button data-v="db">
       <svg class="ic ico-off" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6"/><path d="M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3"/></svg>
       <svg class="ic ico-on" viewBox="0 0 24 24" fill="currentColor" stroke="none"><ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 8.6V12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V8.6c-1.6 1.2-4.4 1.9-7.5 1.9s-5.9-.7-7.5-1.9z"/><path d="M4.5 14.6V18c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-3.4c-1.6 1.2-4.4 1.9-7.5 1.9s-5.9-.7-7.5-1.9z"/></svg>
-      Archivo
+      Ajustes
     </button>
   </div>
 </nav>
@@ -1052,6 +1157,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
+var VERSION = '2026.09.06';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var view = 'col';
 var fType = 'all', fGen = '', fArt = '', fTag = '', fDec = '', fPais = '', fSello = '';
@@ -1307,6 +1413,65 @@ function todasEtiquetas(){
   DB.discos.forEach(function(d){ d.etiquetas.forEach(function(t){ m[t] = (m[t] || 0) + 1; }); });
   return Object.keys(m).sort(function(a, b){ return m[b] - m[a]; });
 }
+/* ---------- tema claro / oscuro / automático ---------- */
+var K_TEMA = 'discoteca.tema';
+function temaActual(){
+  try{ return localStorage.getItem(K_TEMA) || 'auto'; }catch(e){ return 'auto'; }
+}
+function aplicarTema(t){
+  t = t || temaActual();
+  var raiz = document.documentElement;
+  if(t === 'auto') raiz.removeAttribute('data-tema');
+  else raiz.setAttribute('data-tema', t);
+  try{ localStorage.setItem(K_TEMA, t); }catch(e){}
+  var oscuro = t === 'oscuro'
+    || (t === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){ m.remove(); });
+  var m2 = document.createElement('meta');
+  m2.name = 'theme-color';
+  m2.content = oscuro ? '#000000' : '#f5f5f7';
+  document.head.appendChild(m2);
+}
+
+/* ---------- ayudas al pasar el ratón ---------- */
+var cajaAyuda = null, tempAyuda = null;
+function montarAyudas(raiz){
+  (raiz || document).querySelectorAll('[data-tip]').forEach(function(el){
+    if(el.dataset.tipListo) return;
+    el.dataset.tipListo = '1';
+    el.addEventListener('mouseenter', function(){
+      if(window.matchMedia && window.matchMedia('(hover: none)').matches) return;
+      clearTimeout(tempAyuda);
+      tempAyuda = setTimeout(function(){ mostrarAyuda(el); }, 320);
+    });
+    el.addEventListener('mouseleave', ocultarAyuda);
+    el.addEventListener('click', ocultarAyuda);
+  });
+}
+function mostrarAyuda(el){
+  if(!cajaAyuda){
+    cajaAyuda = document.createElement('div');
+    cajaAyuda.className = 'ayuda';
+    document.body.appendChild(cajaAyuda);
+  }
+  var txt = el.dataset.tip || '';
+  var atajo = el.dataset.tecla ? '<kbd>' + esc(el.dataset.tecla) + '</kbd>' : '';
+  cajaAyuda.innerHTML = esc(txt) + atajo;
+  var r = el.getBoundingClientRect();
+  cajaAyuda.style.visibility = 'hidden';
+  cajaAyuda.classList.add('on');
+  var a = cajaAyuda.getBoundingClientRect();
+  var x = Math.min(window.innerWidth - a.width - 8, Math.max(8, r.left + r.width / 2 - a.width / 2));
+  var abajo = r.bottom + 8 + a.height < window.innerHeight;
+  cajaAyuda.style.left = x + 'px';
+  cajaAyuda.style.top = (abajo ? r.bottom + 8 : r.top - a.height - 8) + 'px';
+  cajaAyuda.style.visibility = '';
+}
+function ocultarAyuda(){
+  clearTimeout(tempAyuda);
+  if(cajaAyuda) cajaAyuda.classList.remove('on');
+}
+
 function toast(msg, err){
   var old = document.querySelectorAll('.toast');
   for(var i = 0; i < old.length; i++) old[i].remove();
@@ -1628,6 +1793,9 @@ function boot(){
         try{ var raw = localStorage.getItem(LS_KEY); if(raw) loc = JSON.parse(raw); }catch(e){}
       }
       if(cfg) CFG = Object.assign(CFG, cfg);
+      /* Sin token no se puede escribir en el repositorio: la app se abre en modo consulta */
+      readOnly = !configurado();
+      document.body.classList.toggle('ro', readOnly);
       if(loc && Array.isArray(loc.discos) && loc.discos.length){
         DB.discos = loc.discos.map(normDisc);
         DB.borrados = loc.borrados || [];
@@ -1726,8 +1894,11 @@ function pantallaSync(){
       CFG = Object.assign(CFG, cfg);
       SHA = '';
       guardarCfg();
+      readOnly = false;
+      document.body.classList.remove('ro');
       s.remove();
-      toast('Sincronización activada');
+      toast('Sincronización activada · ya puedes editar');
+      renderAll();
       pull().then(function(){ if(syncState !== 'ok') return push(); });
     }).catch(function(e){ $('#snote').innerHTML = '<div class="note err">' + esc(e.message) + '</div>'; });
   };
@@ -1736,6 +1907,8 @@ function pantallaSync(){
     CFG = {owner:'', repo:'', branch:'main', path:'datos.json', token:'', discogs:CFG.discogs || '', auto:true};
     SHA = '';
     guardarCfg();
+    readOnly = true;
+    document.body.classList.add('ro');
     marcar('local');
     s.remove();
     renderAll();
@@ -2896,7 +3069,7 @@ function altaPorCodigo(codigo){
    ============================================================ */
 window.PH_V = I.disc; window.PH_C = I.cd;
 
-function renderAll(){ paintNav(); paintCol(); paintWish(); paintStats(); paintDb(); }
+function renderAll(){ paintNav(); paintCol(); paintWish(); paintStats(); paintDb(); montarAyudas(document); }
 function paintNav(){
   var n = coleccion().length, w = deseos().length;
   document.getElementById('navCount').textContent = n + (n === 1 ? ' disco' : ' discos') + (w ? ' · ' + w + ' en deseos' : '');
@@ -2937,9 +3110,9 @@ function paintBanner(){
     return;
   }
   if(!configurado()){
-    slot.innerHTML = '<div class="banner warn"><div><div class="t">Esta colección solo está en este dispositivo</div>'
-      + '<div class="s">Conéctala a tu repositorio para tenerla igual en el Mac y en el iPhone</div></div>'
-      + '<button class="btn pri sm" id="cfgBtn">' + I.cloud + 'Configurar</button></div>';
+    slot.innerHTML = '<div class="banner warn"><div><div class="t">Modo consulta</div>'
+      + '<div class="s">Puedes mirar y buscar. Para editar, conecta este dispositivo con tu token</div></div>'
+      + '<button class="btn pri sm" id="cfgBtn">' + I.key + 'Conectar</button></div>';
     var cb = document.getElementById('cfgBtn');
     if(cb) cb.onclick = pantallaSync;
     return;
@@ -3013,18 +3186,18 @@ function claveGrupo(d){
 function tileHtml(d, dups){
   var vin = d.formato === 'Vinilo';
   var hoy = escuchadoHoy(d);
-  return '<div class="tile" data-id="' + d.id + '"><div class="art">' + coverHtml(d)
-    + '<span class="badge ' + (vin ? 'vin' : 'cd') + '" title="' + (vin ? 'Vinilo' : 'CD') + '">' + (vin ? I.vinBadge : I.cdBadge) + '</span>'
+  return '<div class="tile' + (vin ? ' vin' : '') + '" data-id="' + d.id + '"><div class="art">' + coverHtml(d)
+    + '<span class="badge ' + (vin ? 'vin' : 'cd') + '" data-tip="' + (vin ? 'Vinilo' : 'CD') + '">' + (vin ? I.vinBadge : I.cdBadge) + '</span>'
     + (dups && dups[d.id] ? '<span class="pill dup">REPETIDO</span>' : (d.confianza === 'baja' ? '<span class="pill low">REVISAR</span>' : ''))
     + (d.prestadoA ? '<span class="pill lend">PRESTADO</span>' : '')
-    + (readOnly ? '' : '<button class="oir' + (hoy ? ' hoy' : '') + '" data-oir="' + d.id + '" title="'
+    + (readOnly ? '' : '<button class="oir' + (hoy ? ' hoy' : '') + '" data-oir="' + d.id + '" data-tip="'
         + (hoy ? 'Ya lo marcaste hoy' : 'Marcar que lo has escuchado') + '">' + (hoy ? I.check : I.playF) + '</button>')
-    + (readOnly ? '' : '<button class="magic" data-ai="' + d.id + '" title="Completar automáticamente">' + I.spark + '</button>')
+    + (readOnly ? '' : '<button class="magic" data-ai="' + d.id + '" data-tip="Buscar los datos que falten">' + I.spark + '</button>')
     + '</div><div class="meta"><div class="t">' + (esc(d.titulo) || 'Sin título') + '</div>'
     + '<div class="a">' + (esc(d.artista) || 'Artista desconocido') + '</div>'
-    + '<div class="y">' + (d['año'] || '—') + (d.genero ? ' · ' + esc(d.genero) : '')
-    + (totalEscuchas(d) ? ' · ▶ ' + totalEscuchas(d) : '') + '</div>'
-    + (d.valoracion ? estrellasHtml(d.valoracion) : '') + '</div></div>';
+    + '<div class="y"><span class="txt">' + (d['año'] || '—') + (d.genero ? ' · ' + esc(d.genero) : '')
+    + (totalEscuchas(d) ? ' · ▶ ' + totalEscuchas(d) : '') + '</span>'
+    + (d.valoracion ? estrellasHtml(d.valoracion) : '') + '</div></div></div>';
 }
 function listHtml(items, dups){
   return '<div class="lista">' + items.map(function(d){
@@ -3301,7 +3474,7 @@ function enlazarTiles(root, dups){
       var puesto = marcarEscucha(b.dataset.oir);
       b.className = 'oir' + (puesto ? ' hoy' : '');
       b.innerHTML = puesto ? I.check : I.playF;
-      b.title = puesto ? 'Ya lo marcaste hoy' : 'Marcar que lo has escuchado';
+      b.dataset.tip = puesto ? 'Ya lo marcaste hoy' : 'Marcar que lo has escuchado';
       var d = DB.discos.filter(function(x){ return x.id === b.dataset.oir; })[0];
       var y = b.closest('.tile') && b.closest('.tile').querySelector('.meta .y');
       if(y && d) y.textContent = (d['año'] || '—') + (d.genero ? ' · ' + d.genero : '')
@@ -3638,7 +3811,7 @@ function refrescarFicha(s, d){
     tl.innerHTML = '<div class="tl">' + d.tracklist.map(function(t, i){
       return '<div class="trk"><span class="num">' + (i + 1) + '</span><span class="nm">' + esc(t.titulo) + '</span>'
         + '<span class="dur">' + esc(t.duracion || '') + '</span>'
-        + '<a class="lyr" target="_blank" rel="noopener" title="Ver la letra" href="'
+        + '<a class="lyr" target="_blank" rel="noopener" data-tip="Ver la letra en Genius" href="'
         + esc(urlLetra(d.artista, t.titulo)) + '">' + I.letra + '</a></div>';
     }).join('') + '</div>';
     var n = s.querySelector('#dN');
@@ -3680,14 +3853,14 @@ function openDetail(id, desde){
     + (d.notas ? '<p style="font-size:14.5px;color:var(--txt2);line-height:1.5;margin:0 3px 16px">' + esc(d.notas) + '</p>' : '')
     + '<div id="dExtra"></div><div id="dTecnica"></div>'
     + '<div class="tl-hd"><h4>Tracklist<span class="n" id="dN"></span></h4><div class="rowb">'
-    + (readOnly ? '' : '<button class="iconbtn" id="loadPrev" title="Cargar fragmentos de audio">' + I.play + '</button>')
-    + (readOnly ? '' : '<button class="iconbtn" id="pen" title="Editar tracklist">' + I.pencil + '</button>') + '</div></div>'
+    + (readOnly ? '' : '<button class="iconbtn" id="loadPrev" data-tip="Cargar fragmentos de audio">' + I.play + '</button>')
+    + (readOnly ? '' : '<button class="iconbtn" id="pen" data-tip="Editar el tracklist">' + I.pencil + '</button>') + '</div></div>'
     + '<div id="dTL"></div>';
 
   var pie = readOnly
     ? '<span></span><span></span>'
     : '<div class="rowb"><button class="btn sm" id="aiFull" title="Completar">' + I.spark + '<span class="txt">Completar</span></button>'
-      + '<button class="btn sm" id="edics" title="Ediciones">' + I.layers + '<span class="txt">Ediciones</span></button></div>'
+      + '<button class="btn sm" id="edics" data-tip="Elegir otra edición">' + I.layers + '<span class="txt">Ediciones</span></button></div>'
       + '<div class="rowb"><button class="btn sm" id="mas">···</button><button class="btn pri sm" id="edit">' + I.pencil + 'Editar</button></div>';
 
   var s = sheet(d.titulo || 'Sin título', body, pie);
@@ -3695,29 +3868,31 @@ function openDetail(id, desde){
 
   var tint = d.color ? 'linear-gradient(180deg, rgba(' + d.color + ',.30), rgba(' + d.color + ',.05))' : 'var(--sunk)';
   $('.sheet-bd').insertAdjacentHTML('beforebegin',
-    '<div class="dhero" style="--herobg:' + tint + '"><div class="cov" id="cov">' + coverHtml(d) + '</div>'
+    '<div class="dhero" style="--herobg:' + tint + '"><div class="cov' + (d.formato === 'Vinilo' ? ' vin' : '') + '" id="cov">' + coverHtml(d) + '</div>'
     + '<h3>' + (esc(d.titulo) || 'Sin título') + '</h3>'
     + '<div class="art2" id="byArt">' + (esc(d.artista) || 'Artista desconocido')
     + '<svg class="ic" viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg></div>'
     + '<div class="starbox"><div id="dStars">' + estrellasHtml(d.valoracion, true, d.id) + '</div>'
     + '<div class="lbl" id="dStarsL">' + (d.valoracion ? TEXTO_VALORACION[d.valoracion] : (readOnly ? '' : 'Toca para valorar')) + '</div></div>'
     + '<div class="tags">'
-    + '<span class="tag ' + (d.formato === 'Vinilo' ? 'vin' : 'cd') + '">' + (d.formato === 'Vinilo' ? I.vinilo : I.cdIc) + ' ' + d.formato + '</span>'
-    + (d.genero ? '<span class="tag">' + esc(d.genero) + '</span>' : '')
-    + (d['año'] ? '<span class="tag">' + esc(d['año']) + '</span>' : '')
-    + (tracks.length ? '<span class="tag">' + tracks.length + ' temas</span>' : '')
-    + (duracionTotal(d) ? '<span class="tag">' + duracionTotal(d) + '</span>' : '')
+    + '<span class="dato ' + (d.formato === 'Vinilo' ? 'vin' : 'cd') + '">'
+      + (d.formato === 'Vinilo' ? I.vinBadge : I.cdBadge) + d.formato + '</span>'
+    + (d.genero ? '<span class="dato">' + esc(d.genero) + '</span>' : '')
+    + (d['año'] ? '<span class="dato">' + esc(d['año']) + '</span>' : '')
+    + (tracks.length ? '<span class="dato">' + tracks.length + ' temas</span>' : '')
+    + (duracionTotal(d) ? '<span class="dato">' + duracionTotal(d) + '</span>' : '')
     + (d.lista === 'deseos' ? '<span class="tag pur">En deseos</span>' : '')
     + (d.extra && d.extra.secundarios ? '<span class="tag">' + esc(traduceTipo(d.extra.secundarios)) + '</span>' : '')
     + d.etiquetas.map(function(t){ return '<span class="tag usr" data-tag="' + esc(t) + '">' + esc(t) + '</span>'; }).join('')
     + '</div><div class="linkrow">'
-    + '<a class="lnk" target="_blank" rel="noopener" href="' + (d.mbid ? 'https://musicbrainz.org/release/' + d.mbid
+    + '<a class="lnk ext" target="_blank" rel="noopener" href="' + (d.mbid ? 'https://musicbrainz.org/release/' + d.mbid
         : 'https://musicbrainz.org/search?type=release&query=' + encodeURIComponent(d.artista + ' ' + d.titulo)) + '">' + I.link + 'MusicBrainz</a>'
-    + '<a class="lnk" target="_blank" rel="noopener" href="' + (d.discogs ? d.discogs
+    + '<a class="lnk ext" target="_blank" rel="noopener" href="' + (d.discogs ? d.discogs
         : 'https://www.discogs.com/search/?q=' + encodeURIComponent(d.artista + ' ' + d.titulo) + '&type=release') + '">' + I.link + 'Discogs</a>'
-    + '<a class="lnk" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query='
+    + '<a class="lnk ext" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query='
         + encodeURIComponent(d.artista + ' ' + d.titulo + ' full album') + '">' + I.play + 'YouTube</a>'
-    + '<button class="lnk" id="btnWiki">' + I.libro + 'Datos Artista / Álbum</button>'
+    + '<button class="lnk ext" id="btnWiki">' + I.libro + 'Datos Artista / Álbum</button>'
+    + '<span class="sep"></span>'
     + '<button class="lnk" id="btnShare">' + I.compartir + 'Compartir</button>'
     + (readOnly ? '' : '<button class="lnk' + (escuchadoHoy(d) ? ' hecho' : '') + '" id="escuchado">'
         + (escuchadoHoy(d) ? I.check + 'Escuchado hoy' : I.playF + 'Escuchado hoy') + '</button>')
@@ -3800,7 +3975,7 @@ function openDetail(id, desde){
             : '<span class="' + (t.pos ? 'pos' : 'num') + '">' + (t.pos ? esc(t.pos) : (i + 1)) + '</span>')
           + '<span class="nm">' + esc(t.titulo) + '</span>'
           + (t.duracion ? '<span class="dur">' + esc(t.duracion) + '</span>' : '<span class="dur"></span>')
-          + '<a class="lyr" target="_blank" rel="noopener" title="Ver la letra" href="'
+          + '<a class="lyr" target="_blank" rel="noopener" data-tip="Ver la letra en Genius" href="'
           + esc(urlLetra(d.artista, t.titulo)) + '">' + I.letra + '</a></div>';
       }).join('') + '</div>';
       $('#dTL').querySelectorAll('[data-prev]').forEach(function(b){
@@ -4265,6 +4440,11 @@ function openForm(item, listaDestino){
       fechaAlta: d.fechaAlta || nowISO()
     });
     if(!n.titulo && !n.artista){ toast('Falta el título o el artista', true); return; }
+    if(n.lista === 'deseos'){
+      var yaTengo = equivalenteEn(n, 'coleccion');
+      if(yaTengo.length && !confirm('Ya tienes «' + yaTengo[0].titulo + '» de ' + yaTengo[0].artista
+          + ' en tu colección (' + yaTengo[0].formato + ').\n\n¿Aun así lo añades a deseos?')) return;
+    }
     if(ed) DB.discos = DB.discos.map(function(x){ return x.id === n.id ? n : x; });
     else DB.discos.push(n);
     persist();
@@ -4482,10 +4662,24 @@ function pintaExtra(caja, d){
 }
 
 /* ---------- deseos: ya lo tengo ---------- */
+/* Busca una ficha equivalente en la otra lista (mismo artista y título) */
+function equivalenteEn(d, lista){
+  return DB.discos.filter(function(x){
+    return x.id !== d.id && x.lista === lista
+      && plain(x.artista) === plain(d.artista)
+      && (plain(x.titulo) === plain(d.titulo) || similitud(x.titulo, d.titulo) >= 0.9);
+  });
+}
 function marcarComprado(id, padre){
   var d = DB.discos.filter(function(x){ return x.id === id; })[0];
   if(!d) return;
-  var body = '<p style="font-size:15px;color:var(--txt2);line-height:1.5;margin:0 0 16px">Vas a mover <b style="color:var(--txt)">'
+  var gemelos = equivalenteEn(d, 'coleccion');
+  var body = (gemelos.length
+      ? '<div class="warnb">' + I.warn + '<span>Ojo: ya tienes <b>' + esc(gemelos[0].titulo) + '</b> de '
+        + esc(gemelos[0].artista) + ' en tu colección, en ' + gemelos[0].formato + '. '
+        + 'Si es el mismo disco y no otra edición, mejor <a href="#" id="fusionarYa" style="color:var(--blue)">fusionar las fichas</a>.</span></div>'
+      : '')
+    + '<p style="font-size:15px;color:var(--txt2);line-height:1.5;margin:0 0 16px">Vas a mover <b style="color:var(--txt)">'
     + esc(d.titulo) + '</b> de ' + esc(d.artista) + ' a tu colección. ¿En qué formato lo has comprado?</p>'
     + '<div class="segtype" id="cFmt">'
       + '<button data-f="Vinilo" class="' + (d.formato === 'Vinilo' ? 'on' : '') + '">' + I.vinilo + 'Vinilo</button>'
@@ -4500,6 +4694,22 @@ function marcarComprado(id, padre){
     '<button class="btn" data-cx>Cancelar</button><button class="btn ok" id="cOk">' + I.check + 'Añadir a la colección</button>');
   var fmt = d.formato;
   s.querySelector('[data-cx]').onclick = function(){ s.remove(); };
+  if(s.querySelector('#fusionarYa')) s.querySelector('#fusionarYa').onclick = function(e){
+    e.preventDefault();
+    var base = gemelos[0];
+    guardarDeshacer([d, base], 'fusionar con la ficha existente');
+    ['año','genero','sello','numeroCatalogo','pais','portada','notas','formatoDetalle','mbid','rgid','discogs','codigoBarras'].forEach(function(f){
+      if(!base[f] && d[f]) base[f] = d[f];
+    });
+    if(!base.tracklist.length && d.tracklist.length) base.tracklist = d.tracklist;
+    d.etiquetas.forEach(function(t){ if(base.etiquetas.indexOf(t) < 0) base.etiquetas.push(t); });
+    DB.discos = DB.discos.filter(function(x){ return x.id !== d.id; });
+    persist();
+    s.remove();
+    if(padre) padre.remove();
+    toast('Fichas fusionadas en la que ya tenías');
+    openDetail(base.id);
+  };
   s.querySelector('#cFmt').onclick = function(e){
     var b = e.target.closest('button');
     if(!b) return;
@@ -4605,7 +4815,7 @@ function pintaCuriosidad(caja){
   var pinta = function(){
     caja.innerHTML = '<div class="tip"><div class="bulb">' + I.bombilla + '</div>'
       + '<div class="tx"><div class="k">¿Sabías que…?</div><div class="v">' + lista[i] + '</div></div>'
-      + '<button class="otro" id="otraCur" title="Otra curiosidad">' + I.refresh + '</button></div>';
+      + '<button class="otro" id="otraCur" data-tip="Otra curiosidad">' + I.refresh + '</button></div>';
     caja.querySelector('#otraCur').onclick = function(){
       i = (i + 1 + Math.floor(Math.random() * (lista.length - 1))) % lista.length;
       pinta();
@@ -5389,12 +5599,12 @@ function areaLine(data, color){
   });
   return out + '</svg>';
 }
-var MUNDO_PATHS = '<path d="M50.7 40.1 L82.3 44.3 L109.8 42.2 L139.3 44.3 L179.4 46.4 L202.7 50.7 L215.3 57.0 L215.3 67.6 L206.9 73.9 L211.1 82.3 L217.4 73.9 L232.2 63.3 L247.0 67.6 L257.6 76.0 L261.8 84.4 L268.1 90.8 L240.7 97.1 L232.2 103.4 L223.8 107.7 L219.6 116.1 L209.0 124.6 L211.1 137.2 L202.7 126.7 L192.1 128.8 L175.2 135.1 L175.2 145.7 L181.6 152.0 L196.3 145.7 L194.2 149.9 L194.2 156.2 L196.3 162.6 L215.3 173.1 L211.1 171.0 L183.7 158.3 L158.3 149.9 L147.8 141.4 L137.2 130.9 L133.0 122.4 L122.4 111.9 L118.2 101.3 L116.1 88.7 L99.2 73.9 L84.4 65.4 L67.6 63.3 L46.4 67.6 L29.6 52.8 L42.2 42.2Z"/><path d="M228.0 164.7 L244.9 166.8 L257.6 177.3 L270.2 181.6 L276.6 192.1 L304.0 200.6 L299.8 217.4 L293.4 238.6 L274.4 253.3 L259.7 270.2 L244.9 278.7 L236.4 295.6 L238.6 306.1 L228.0 301.9 L221.7 287.1 L223.8 274.4 L228.0 259.7 L232.2 238.6 L230.1 228.0 L217.4 215.3 L209.0 200.6 L211.1 190.0 L217.4 177.3 L221.7 171.0Z"/><path d="M312.4 14.8 L337.8 21.1 L342.0 29.6 L333.6 42.2 L295.6 52.8 L268.1 42.2 L253.3 29.6 L257.6 21.1 L285.0 16.9Z"/><path d="M439.1 40.1 L422.2 44.3 L426.4 52.8 L418.0 63.3 L405.3 71.8 L401.1 67.6 L390.6 59.1 L390.6 67.6 L396.9 76.0 L388.4 80.2 L377.9 84.4 L371.6 78.1 L367.3 67.6 L358.9 76.0 L369.4 82.3 L373.7 90.8 L377.9 97.1 L361.0 99.2 L361.0 111.9 L367.3 114.0 L375.8 111.9 L380.0 107.7 L386.3 103.4 L394.8 99.2 L401.1 97.1 L411.7 109.8 L418.0 105.6 L407.4 95.0 L420.1 101.3 L428.6 111.9 L434.9 103.4 L441.2 95.0 L449.7 92.9 L460.2 97.1 L460.2 88.7 L447.6 80.2 L439.1 71.8 L439.1 65.4 L445.4 57.0 L443.3 50.7 L445.4 44.3Z"/><path d="M401.1 111.9 L403.2 120.3 L422.2 122.4 L432.8 124.6 L447.6 124.6 L458.1 143.6 L464.4 158.3 L470.8 166.8 L468.7 185.8 L462.3 200.6 L464.4 221.7 L449.7 242.8 L434.9 261.8 L420.1 261.8 L415.9 251.2 L409.6 238.6 L405.3 225.9 L407.4 213.2 L405.3 202.7 L399.0 190.0 L399.0 181.6 L386.3 177.3 L371.6 179.4 L363.1 181.6 L352.6 171.0 L344.1 160.4 L344.1 147.8 L352.6 130.9 L363.1 120.3 L373.7 114.0 L386.3 111.9Z"/><path d="M506.7 42.2 L548.9 35.9 L591.1 29.6 L612.2 38.0 L650.2 40.1 L675.6 42.2 L738.9 50.7 L757.9 59.1 L724.1 63.3 L709.3 73.9 L677.7 80.2 L679.8 92.9 L658.7 99.2 L648.1 107.7 L646.0 116.1 L635.4 111.9 L637.6 124.6 L629.1 139.3 L612.2 143.6 L603.8 152.0 L601.7 168.9 L591.1 173.1 L599.6 185.8 L580.6 177.3 L578.4 158.3 L570.0 145.7 L565.8 143.6 L534.1 147.8 L523.6 141.4 L510.9 137.2 L500.3 137.2 L506.7 143.6 L496.1 154.1 L475.0 162.6 L462.3 145.7 L453.9 128.8 L456.0 114.0 L441.2 103.4 L453.9 95.0 L481.3 99.2 L485.6 109.8 L491.9 101.3 L510.9 95.0 L527.8 84.4 L538.3 73.9 L523.6 67.6 L510.9 54.9 L519.3 46.4Z"/><path d="M656.6 213.2 L669.2 215.3 L688.2 223.8 L694.6 234.3 L703.0 249.1 L698.8 261.8 L690.3 270.2 L677.7 270.2 L667.1 263.9 L660.8 257.6 L637.6 261.8 L627.0 263.9 L624.9 257.6 L620.7 244.9 L620.7 236.4 L637.6 228.0 L648.1 219.6Z"/><path d="M745.2 263.9 L751.6 268.1 L749.4 276.6 L732.6 287.1 L741.0 285.0 L745.2 276.6 L747.3 270.2Z"/><path d="M679.8 95.0 L686.1 99.2 L677.7 103.4 L677.7 109.8 L675.6 116.1 L667.1 118.2 L656.6 120.3 L654.4 124.6 L660.8 118.2 L669.2 114.0 L675.6 107.7 L675.6 101.3Z"/><path d="M371.6 67.6 L375.8 69.7 L380.0 76.0 L382.1 82.3 L371.6 84.4 L371.6 78.1 L367.3 73.9 L367.3 67.6Z"/><path d="M365.2 73.9 L367.3 78.1 L361.0 82.3 L358.9 78.1 L363.1 73.9Z"/><path d="M483.4 215.3 L485.6 223.8 L481.3 236.4 L477.1 242.8 L470.8 236.4 L475.0 223.8Z"/>';
+var MUNDO_PATHS = '<path d="M50.7 40.1 L82.3 44.3 L109.8 42.2 L139.3 44.3 L179.4 46.4 L202.7 50.7 L215.3 57.0 L215.3 67.6 L206.9 73.9 L211.1 82.3 L217.4 73.9 L232.2 63.3 L247.0 67.6 L257.6 76.0 L261.8 84.4 L268.1 90.8 L251.2 95.0 L240.7 97.1 L232.2 103.4 L223.8 107.7 L219.6 116.1 L211.1 122.4 L209.0 126.7 L211.1 137.2 L206.9 135.1 L202.7 126.7 L192.1 128.8 L181.6 128.8 L175.2 135.1 L175.2 145.7 L181.6 152.0 L190.0 149.9 L196.3 145.7 L194.2 152.0 L194.2 156.2 L196.3 162.6 L204.8 171.0 L215.3 173.1 L211.1 171.0 L204.8 164.7 L194.2 158.3 L179.4 156.2 L158.3 149.9 L147.8 141.4 L147.8 141.4 L139.3 130.9 L139.3 124.6 L147.8 139.3 L141.4 133.0 L135.1 126.7 L133.0 122.4 L122.4 111.9 L118.2 101.3 L116.1 88.7 L99.2 73.9 L84.4 65.4 L67.6 63.3 L46.4 67.6 L29.6 52.8 L42.2 42.2Z"/><path d="M228.0 164.7 L244.9 166.8 L257.6 177.3 L270.2 181.6 L276.6 192.1 L287.1 196.3 L304.0 200.6 L306.1 209.0 L299.8 217.4 L297.7 228.0 L293.4 238.6 L278.7 247.0 L274.4 253.3 L266.0 261.8 L259.7 270.2 L249.1 274.4 L244.9 278.7 L238.6 287.1 L236.4 295.6 L236.4 301.9 L238.6 306.1 L228.0 301.9 L223.8 293.4 L221.7 287.1 L223.8 278.7 L225.9 270.2 L228.0 259.7 L230.1 249.1 L232.2 238.6 L230.1 228.0 L219.6 219.6 L217.4 215.3 L213.2 206.9 L209.0 200.6 L211.1 190.0 L215.3 183.7 L217.4 177.3 L221.7 171.0 L223.8 166.8Z"/><path d="M312.4 14.8 L337.8 21.1 L342.0 29.6 L333.6 42.2 L295.6 52.8 L268.1 42.2 L253.3 29.6 L257.6 21.1 L285.0 16.9Z"/><path d="M439.1 40.1 L422.2 44.3 L428.6 50.7 L424.3 57.0 L418.0 63.3 L405.3 71.8 L401.1 67.6 L390.6 65.4 L390.6 59.1 L405.3 52.8 L413.8 44.3 L407.4 50.7 L394.8 59.1 L392.7 67.6 L396.9 69.7 L399.0 76.0 L388.4 78.1 L386.3 82.3 L377.9 84.4 L371.6 78.1 L375.8 73.9 L371.6 67.6 L367.3 71.8 L358.9 76.0 L369.4 82.3 L371.6 88.7 L377.9 92.9 L377.9 99.2 L361.0 99.2 L361.0 103.4 L361.0 109.8 L363.1 111.9 L367.3 114.0 L375.8 111.9 L380.0 107.7 L386.3 103.4 L388.4 99.2 L394.8 99.2 L401.1 97.1 L405.3 95.0 L405.3 101.3 L411.7 105.6 L413.8 109.8 L418.0 105.6 L415.9 101.3 L407.4 95.0 L409.6 95.0 L420.1 101.3 L422.2 105.6 L428.6 111.9 L434.9 103.4 L441.2 103.4 L441.2 95.0 L449.7 92.9 L460.2 97.1 L460.2 90.8 L458.1 84.4 L447.6 80.2 L439.1 71.8 L439.1 65.4 L445.4 57.0 L443.3 50.7 L445.4 44.3Z"/><path d="M401.1 111.9 L403.2 120.3 L411.7 122.4 L422.2 124.6 L432.8 124.6 L447.6 124.6 L451.8 130.9 L458.1 143.6 L464.4 158.3 L470.8 166.8 L487.7 168.9 L481.3 181.6 L468.7 185.8 L462.3 200.6 L464.4 213.2 L464.4 221.7 L453.9 234.3 L449.7 242.8 L445.4 251.2 L434.9 261.8 L420.1 261.8 L418.0 255.4 L415.9 251.2 L409.6 238.6 L405.3 225.9 L407.4 213.2 L405.3 202.7 L399.0 192.1 L399.0 181.6 L386.3 177.3 L377.9 179.4 L363.1 181.6 L356.8 177.3 L352.6 171.0 L346.2 164.7 L344.1 160.4 L344.1 147.8 L348.3 139.3 L352.6 130.9 L358.9 124.6 L363.1 120.3 L373.7 114.0 L386.3 111.9Z"/><path d="M506.7 42.2 L548.9 35.9 L591.1 29.6 L612.2 38.0 L650.2 40.1 L675.6 42.2 L738.9 50.7 L757.9 59.1 L724.1 63.3 L709.3 73.9 L677.7 80.2 L681.9 86.6 L679.8 92.9 L658.7 99.2 L648.1 107.7 L646.0 116.1 L652.3 118.2 L635.4 111.9 L629.1 107.7 L633.3 116.1 L637.6 124.6 L633.3 133.0 L629.1 139.3 L620.7 143.6 L612.2 143.6 L603.8 152.0 L610.1 164.7 L601.7 168.9 L591.1 171.0 L591.1 173.1 L599.6 185.8 L586.9 181.6 L580.6 177.3 L576.3 168.9 L578.4 158.3 L570.0 145.7 L565.8 143.6 L561.6 147.8 L548.9 156.2 L548.9 162.6 L542.6 173.1 L536.2 158.3 L534.1 147.8 L523.6 141.4 L519.3 137.2 L510.9 137.2 L500.3 137.2 L506.7 143.6 L496.1 154.1 L475.0 162.6 L468.7 158.3 L462.3 145.7 L453.9 128.8 L451.8 124.6 L456.0 114.0 L437.0 111.9 L441.2 103.4 L453.9 95.0 L481.3 99.2 L485.6 109.8 L491.9 101.3 L510.9 95.0 L527.8 84.4 L538.3 73.9 L523.6 67.6 L510.9 54.9 L519.3 46.4Z"/><path d="M656.6 213.2 L669.2 215.3 L667.1 219.6 L675.6 223.8 L688.2 223.8 L694.6 234.3 L703.0 242.8 L703.0 249.1 L698.8 261.8 L690.3 270.2 L684.0 272.3 L677.7 270.2 L671.3 263.9 L667.1 263.9 L660.8 257.6 L646.0 257.6 L637.6 261.8 L629.1 263.9 L624.9 257.6 L620.7 244.9 L620.7 236.4 L631.2 232.2 L637.6 228.0 L648.1 219.6 L654.4 215.3Z"/><path d="M745.2 263.9 L751.6 268.1 L753.7 272.3 L749.4 276.6 L741.0 278.7 L732.6 287.1 L741.0 285.0 L745.2 276.6 L747.3 270.2Z"/><path d="M679.8 95.0 L686.1 99.2 L677.7 103.4 L677.7 109.8 L675.6 116.1 L667.1 118.2 L656.6 120.3 L654.4 124.6 L660.8 118.2 L669.2 114.0 L675.6 107.7 L675.6 101.3Z"/><path d="M371.6 67.6 L375.8 69.7 L377.9 73.9 L380.0 78.1 L382.1 82.3 L371.6 84.4 L371.6 82.3 L373.7 78.1 L369.4 73.9 L367.3 67.6Z"/><path d="M365.2 73.9 L367.3 78.1 L361.0 82.3 L358.9 78.1 L363.1 73.9Z"/><path d="M483.4 215.3 L485.6 223.8 L481.3 236.4 L477.1 242.8 L470.8 236.4 L475.0 223.8Z"/><path d="M331.4 50.7 L348.3 50.7 L350.4 54.9 L337.8 57.0 L329.3 52.8Z"/><path d="M405.3 109.8 L411.7 111.9 L412.7 109.8 L407.4 109.8Z"/><path d="M396.9 103.4 L401.1 107.7 L399.0 107.7 L397.5 103.4Z"/><path d="M202.7 141.4 L213.2 143.6 L221.7 147.8 L217.4 147.8 L206.9 143.6Z"/>';
 function mapaMundo(data){
   var W = 760, H = 380;
   var max = Math.max.apply(null, data.map(function(d){ return d.v; })) || 1;
   var out = '<svg class="chart mapa" viewBox="0 0 ' + W + ' ' + H + '">';
-  out += '<rect x="0" y="0" width="' + W + '" height="' + H + '" rx="16" fill="var(--fill)" opacity=".35"/>';
+  out += '<rect x="0" y="0" width="' + W + '" height="' + H + '" rx="16" fill="var(--fill)" opacity=".3"/>';
   out += '<g class="tierra">' + MUNDO_PATHS + '</g>';
 
   var puntos = data.filter(function(d){ return PAISES[d.k]; }).map(function(d, i){
@@ -5402,41 +5612,61 @@ function mapaMundo(data){
     return {
       k:d.k, v:d.v, i:i,
       x:(p[2] + 180) / 360 * W, y:(90 - p[1]) / 180 * H,
-      r:6 + Math.sqrt(d.v / max) * 20,
+      r:6 + Math.sqrt(d.v / max) * 19,
       nombre:p[0]
     };
   });
-  puntos.slice().sort(function(a, b){ return b.r - a.r; }).forEach(function(p){
-    out += '<g class="mapdot" data-pais="' + p.k + '">'
-      + '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + p.r.toFixed(1) + '" fill="'
-      + PAL[p.i % PAL.length] + '" fill-opacity=".72" stroke="#fff" stroke-opacity=".7" stroke-width="1.2"/>'
-      + '<text x="' + p.x.toFixed(1) + '" y="' + (p.y + 4).toFixed(1) + '" text-anchor="middle" class="mapnum">'
-      + p.v + '</text><title>' + esc(p.nombre) + ': ' + p.v + ' discos</title></g>';
-  });
 
-  var puestas = [];
+  /* etiquetas: se buscan huecos cerca y, si hay que apartarse, se traza una línea al círculo */
+  var puestas = [], lineas = [], textos = [];
   puntos.slice().sort(function(a, b){ return b.v - a.v; }).forEach(function(p){
-    var ancho = p.nombre.length * 5.6 + 8, alto = 13;
+    var ancho = p.nombre.length * 5.7 + 10, alto = 14;
     var cand = [
-      [p.x, p.y - p.r - 7], [p.x, p.y + p.r + 13],
-      [p.x - p.r - ancho / 2 - 5, p.y + 4], [p.x + p.r + ancho / 2 + 5, p.y + 4],
-      [p.x, p.y - p.r - 20], [p.x, p.y + p.r + 26]
+      [p.x, p.y - p.r - 6, 0], [p.x, p.y + p.r + 12, 0],
+      [p.x - p.r - ancho / 2 - 4, p.y + 4, 0], [p.x + p.r + ancho / 2 + 4, p.y + 4, 0],
+      [p.x, p.y - p.r - 20, 1], [p.x, p.y + p.r + 26, 1],
+      [p.x - p.r - ancho / 2 - 20, p.y - 16, 1], [p.x + p.r + ancho / 2 + 20, p.y - 16, 1],
+      [p.x - p.r - ancho / 2 - 20, p.y + 22, 1], [p.x + p.r + ancho / 2 + 20, p.y + 22, 1],
+      [p.x, p.y - p.r - 34, 1], [p.x, p.y + p.r + 40, 1]
     ];
     var elegida = null;
     for(var c = 0; c < cand.length && !elegida; c++){
       var x = cand[c][0], y = cand[c][1];
-      if(x - ancho / 2 < 2 || x + ancho / 2 > W - 2 || y < 10 || y > H - 4) continue;
+      if(x - ancho / 2 < 3 || x + ancho / 2 > W - 3 || y < 12 || y > H - 5) continue;
       var choca = puestas.some(function(q){
-        return Math.abs(q.x - x) < (q.w + ancho) / 2 + 3 && Math.abs(q.y - y) < alto + 1;
+        return Math.abs(q.x - x) < (q.w + ancho) / 2 + 4 && Math.abs(q.y - y) < alto + 2;
       });
-      if(!choca) elegida = [x, y];
+      /* tampoco debe caer encima de otra burbuja */
+      if(!choca) choca = puntos.some(function(o){
+        if(o === p) return false;
+        return Math.abs(o.x - x) < ancho / 2 + o.r * .7 && Math.abs(o.y - (y - 4)) < o.r * .7 + 6;
+      });
+      if(!choca) elegida = cand[c];
     }
     if(!elegida) return;
     puestas.push({x:elegida[0], y:elegida[1], w:ancho});
-    out += '<text x="' + elegida[0].toFixed(1) + '" y="' + elegida[1].toFixed(1)
-      + '" text-anchor="middle" class="maplbl">' + esc(p.nombre) + '</text>';
+    if(elegida[2]){
+      /* línea guía desde el borde del círculo hasta la etiqueta */
+      var dx = elegida[0] - p.x, dy = (elegida[1] - 4) - p.y;
+      var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      var x1 = p.x + dx / dist * (p.r + 1), y1 = p.y + dy / dist * (p.r + 1);
+      var x2 = elegida[0] - dx / dist * (ancho / 2 - 2), y2 = (elegida[1] - 4) - dy / dist * 7;
+      lineas.push('<line class="mapline" x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1)
+        + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '"/>');
+    }
+    textos.push('<text x="' + elegida[0].toFixed(1) + '" y="' + elegida[1].toFixed(1)
+      + '" text-anchor="middle" class="maplbl">' + esc(p.nombre) + '</text>');
   });
-  return out + '</svg>';
+  out += '<g>' + lineas.join('') + '</g>';
+
+  puntos.slice().sort(function(a, b){ return b.r - a.r; }).forEach(function(p){
+    out += '<g class="mapdot" data-pais="' + p.k + '">'
+      + '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + p.r.toFixed(1) + '" fill="'
+      + PAL[p.i % PAL.length] + '" fill-opacity=".78" stroke="var(--elev)" stroke-width="1.4"/>'
+      + '<text x="' + p.x.toFixed(1) + '" y="' + (p.y + 4).toFixed(1) + '" text-anchor="middle" class="mapnum">'
+      + p.v + '</text><title>' + esc(p.nombre) + ': ' + p.v + ' discos</title></g>';
+  });
+  return out + textos.join('') + '</svg>';
 }
 function wcard(icon, k, v, s, grad){
   return '<div class="wcard" style="background:' + grad + '"><div class="bgic">' + icon + '</div>'
@@ -5666,53 +5896,109 @@ function paintDb(){
   var box = document.getElementById('dbBody');
   if(!box) return;
   var estados = {
-    local:['Solo en este dispositivo', 'var(--orange)'], ok:['Sincronizada', 'var(--green)'],
+    local:['Sin conectar', 'var(--orange)'], ok:['Al día', 'var(--green)'],
     pend:['Cambios sin subir', 'var(--orange)'], busy:['Sincronizando', 'var(--blue)'],
     err:['Error', 'var(--red)'], off:['Sin conexión', 'var(--txt3)']
   };
   var est = estados[syncState] || estados.local;
   var pesoDatos = new Blob([JSON.stringify(DB.discos)]).size;
+  var instalada = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+  var ultimaCopia = (DB.historial || []).filter(function(x){ return /copia/i.test(x.tipo); }).pop();
+  var diasCopia = ultimaCopia ? Math.floor((Date.now() - new Date(ultimaCopia.fecha).getTime()) / 86400000) : null;
+  var tema = temaActual();
+
+  var seccion = function(icono, titulo, sub){
+    return '<div class="secc"><div class="si">' + icono + '</div><div><h3>' + titulo + '</h3>'
+      + (sub ? '<div class="ss">' + sub + '</div>' : '') + '</div></div>';
+  };
 
   box.innerHTML =
-    (configurado()
-      ? '<div class="tipbox"><b>Tu colección vive en GitHub.</b> Se guarda en <b>' + esc(CFG.owner + '/' + CFG.repo) + ' › ' + esc(CFG.path)
-        + '</b>. Cada dispositivo la baja al abrir y sube lo que cambies, fusionando por la fecha de cada ficha: '
-        + 'puedes editar en el Mac y escanear en el iPhone sin que se pisen los cambios.</div>'
-      : '<div class="tipbox"><b>Todavía sin sincronizar.</b> Ahora mismo la colección solo está en este dispositivo. '
-        + 'Conéctala a tu repositorio de GitHub y la tendrás igual en el Mac y en el iPhone.</div>')
-    + '<div class="dbgrid">'
-    + kpi(I.db, 'Discos', DB.discos.length, 'var(--blue)')
-    + kpi(I.cloud, 'Estado', est[0], est[1])
-    + kpi(I.clock, 'Última sincronía', lastSync ? fhora(lastSync) : '—', 'var(--purple)')
-    + kpi(I.layers, 'Tamaño', bytes(pesoDatos), 'var(--teal)')
+    /* ---- estado ---- */
+    '<div class="estado ' + syncState + '">'
+      + '<div class="ehd"><div class="epunto"></div><div class="etxt">'
+      + '<div class="et">' + est[0] + '</div>'
+      + '<div class="es">' + (configurado()
+          ? esc(CFG.owner + '/' + CFG.repo) + ' › ' + esc(CFG.path)
+          : 'La colección solo está en este dispositivo, en modo consulta') + '</div>'
+      + '</div>' + (configurado()
+          ? '<button class="btn sm" data-a="sync">' + I.refresh + 'Sincronizar</button>'
+          : '<button class="btn pri sm" data-a="cfg">Conectar</button>') + '</div>'
+      + '<div class="efilas">'
+        + '<div><span>Discos</span><b>' + DB.discos.length + '</b></div>'
+        + '<div><span>Última sincronía</span><b>' + (lastSync ? fdate(lastSync) : '—') + '</b></div>'
+        + '<div><span>Último cambio</span><b>' + fdate(DB.actualizado) + '</b></div>'
+        + '<div><span>Tamaño</span><b>' + bytes(pesoDatos) + '</b></div>'
+      + '</div>'
+      + (syncMsg ? '<div class="emsg">' + esc(syncMsg) + '</div>' : '')
+      + (configurado() ? '<div class="epie"><a href="https://github.com/' + esc(CFG.owner) + '/' + esc(CFG.repo)
+          + '/commits/' + esc(CFG.branch) + '/' + esc(CFG.path) + '" target="_blank" rel="noopener">'
+          + I.clock + 'Ver el historial de cambios en GitHub</a>'
+          + '<button class="lnk ext" data-a="cfg">' + I.key + 'Ajustes de sincronización</button></div>' : '')
     + '</div>'
-    + '<div style="font-size:13px;color:var(--txt2);margin:-4px 0 16px 3px">Último cambio: <b style="color:var(--txt)">' + fdate(DB.actualizado) + '</b>'
-    + (syncMsg ? ' · <b style="color:var(--red)">' + esc(syncMsg) + '</b>' : '') + '</div>'
-    + '<div class="dbact">'
-      + accion(I.cloud, 'Sincronización', configurado()
-          ? 'Conectada a ' + esc(CFG.owner + '/' + CFG.repo) + '. Puedes cambiar el repositorio o desconectar este dispositivo.'
-          : 'Conecta la app con tu repositorio de GitHub para compartir la colección entre todos tus dispositivos.',
-          'cfg', configurado() ? '' : 'pri', configurado() ? 'Ajustes' : 'Configurar ahora')
-      + accion(I.refresh, 'Sincronizar ahora', 'Baja los cambios de otros dispositivos y sube los tuyos. Se hace solo, pero puedes forzarlo.', 'sync', '', 'Sincronizar')
-      + accion(I.down, 'Copia de seguridad', 'Guarda un JSON con toda la colección. En el iPhone se abre la hoja de compartir.', 'bak', '', 'Descargar copia')
-      + accion(I.up, 'Restaurar copia', 'Fusiona un JSON exportado antes. Nunca borra lo que ya tienes.', 'impbak', '', 'Seleccionar JSON')
-      + accion(I.down, 'Importar CSV de Discogs', 'Añade solo lo que falte: los repetidos exactos se descartan y los dudosos te los pregunto.', 'csv', '', 'Seleccionar CSV')
-      + accion(I.file, 'Exportar CSV', 'Genera un CSV con las columnas de Discogs más tus campos propios.', 'expcsv', '', 'Exportar CSV')
-      + accion(I.print, 'Catálogo imprimible', 'Catálogo con portadas agrupado por artista, listo para imprimir o guardar en PDF.', 'print', '', 'Generar catálogo')
-      + accion(I.spark, 'Completar fichas', 'Busca carátula, tracklist, sello y género de todo lo que esté incompleto.', 'bulk', '', 'Completar todo')
-      + accion(I.euro, 'Valor de la colección', 'Suma lo que valen tus discos según Discogs y te enseña los más valiosos.', 'valor', '', 'Ver valor')
-      + accion(I.pin, 'Inventario por ubicación', 'Listado imprimible de qué hay en cada estantería o caja.', 'inv', '', 'Generar inventario')
-    + '</div>'
-    + '<div class="card" style="margin-top:16px"><h3>Instalarla en el iPhone</h3>'
-    + '<div class="sub">Para tenerla con su icono, a pantalla completa y siempre a mano</div>'
-    + '<div style="font-size:13.5px;line-height:1.6;color:var(--txt2)">Abre esta misma dirección en Chrome en el iPhone, '
-    + 'pulsa el botón de compartir y elige <b style="color:var(--txt)">Añadir a pantalla de inicio</b>. '
-    + 'La primera vez, entra en Sincronización y pega el mismo token que usas en el Mac.</div></div>'
-    + '<div class="card" style="margin-top:16px"><h3>Vaciar colección</h3>'
-    + '<div class="sub">Elimina todos los discos. Si estás sincronizado, el borrado se propagará al resto de dispositivos.</div>'
-    + '<button class="btn destr" id="wipe">' + I.trash + 'Vaciar colección</button></div>';
 
-  var on = function(a, fn){ var el = box.querySelector('[data-a=' + a + ']'); if(el) el.onclick = fn; };
+    /* ---- apariencia ---- */
+    + seccion(I.eye, 'Apariencia')
+    + '<div class="card"><div class="fila"><div><div class="ft">Tema</div>'
+      + '<div class="fs">Automático sigue lo que tengas puesto en el sistema</div></div>'
+      + '<div class="seg" id="segTema">'
+        + ['claro:Claro', 'oscuro:Oscuro', 'auto:Automático'].map(function(o){
+            var q = o.split(':');
+            return '<button data-t="' + q[0] + '"' + (tema === q[0] ? ' class="on"' : '') + '>' + q[1] + '</button>';
+          }).join('')
+      + '</div></div></div>'
+
+    /* ---- copias ---- */
+    + seccion(I.save, 'Copias de seguridad', diasCopia === null
+        ? 'Aún no has descargado ninguna copia'
+        : (diasCopia === 0 ? 'Última copia: hoy' : 'Última copia hace ' + diasCopia + (diasCopia === 1 ? ' día' : ' días')))
+    + (diasCopia !== null && diasCopia > 30
+        ? '<div class="warnb">' + I.warn + '<span>Hace más de un mes que no descargas una copia. '
+          + 'Tus datos están en GitHub con su historial, pero una copia local no está de más.</span></div>' : '')
+    + '<div class="dbact">'
+      + accion(I.down, 'Descargar copia', 'Un JSON con toda la colección. En el iPhone se abre la hoja de compartir.', 'bak', '', 'Descargar')
+      + accion(I.up, 'Restaurar copia', 'Fusiona un JSON exportado antes. Nunca borra lo que ya tienes.', 'impbak', '', 'Seleccionar JSON')
+    + '</div>'
+
+    /* ---- importar y exportar ---- */
+    + seccion(I.layers, 'Importar y exportar')
+    + '<div class="dbact">'
+      + accion(I.down, 'Importar CSV de Discogs', 'Añade solo lo que falte: los repetidos se descartan y los dudosos te los pregunto.', 'csv', '', 'Seleccionar CSV')
+      + accion(I.file, 'Exportar CSV', 'Con las columnas de Discogs más tus campos propios.', 'expcsv', '', 'Exportar')
+    + '</div>'
+
+    /* ---- herramientas ---- */
+    + seccion(I.spark, 'Herramientas')
+    + '<div class="dbact">'
+      + accion(I.spark, 'Completar fichas', 'Busca carátula, tracklist, sello y género de lo que esté incompleto.', 'bulk', '', 'Completar')
+      + accion(I.copy, 'Buscar repetidos', 'Revisa si hay fichas duplicadas del mismo disco y te deja fusionarlas.', 'dups', '', 'Revisar')
+      + accion(I.print, 'Catálogo imprimible', 'Con portadas y agrupado por artista.', 'print', '', 'Generar')
+      + accion(I.pin, 'Inventario por ubicación', 'Qué hay en cada estantería o caja.', 'inv', '', 'Generar')
+      + accion(I.euro, 'Valor de la colección', 'Lo que valen tus discos según Discogs.', 'valor', '', 'Ver valor')
+    + '</div>'
+
+    /* ---- instalación ---- */
+    + (instalada ? '' : seccion(I.cloud, 'Instalar en el iPhone')
+      + '<div class="card"><div style="font-size:13.5px;line-height:1.6;color:var(--txt2)">'
+      + 'Abre esta misma dirección en el iPhone, pulsa compartir y elige '
+      + '<b style="color:var(--txt)">Añadir a pantalla de inicio</b>. La primera vez, entra en Sincronización '
+      + 'y pega el mismo token que usas aquí.</div></div>')
+
+    /* ---- zona delicada ---- */
+    + '<details class="plega peligro" style="margin-top:24px"><summary>Zona delicada'
+      + '<svg class="ic ch" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></summary>'
+      + '<div class="cuerpo" style="padding:16px">'
+      + '<div class="fila"><div><div class="ft">Desconectar este dispositivo</div>'
+        + '<div class="fs">La colección se queda solo aquí y pasa a modo consulta.</div></div>'
+        + '<button class="btn sm" data-a="cfg">Ajustes</button></div>'
+      + '<div class="fila"><div><div class="ft" style="color:var(--red)">Vaciar la colección</div>'
+        + '<div class="fs">Elimina los ' + DB.discos.length + ' discos. Si estás sincronizado, se propaga al resto de dispositivos.</div></div>'
+        + '<button class="btn destr sm" id="wipe">' + I.trash + 'Vaciar</button></div>'
+      + '</div></details>'
+    + '<div class="pie-version">Discoteca · versión ' + VERSION + (instalada ? ' · instalada' : '') + '</div>';
+
+  var on = function(a, fn){
+    box.querySelectorAll('[data-a=' + a + ']').forEach(function(el){ el.onclick = fn; });
+  };
   on('cfg', pantallaSync);
   on('sync', function(){ sincronizarAhora(); toast('Sincronizando…'); });
   on('bak', exportBackup);
@@ -5720,14 +6006,32 @@ function paintDb(){
   on('csv', function(){ document.getElementById('fileCsv').click(); });
   on('expcsv', exportarCsv);
   on('print', catalogoImprimible);
-  on('bulk', function(){ setView('col'); bulkRun(); });
-  on('valor', valorColeccion);
   on('inv', inventarioUbicaciones);
-  box.querySelector('#wipe').onclick = function(){
+  on('valor', valorColeccion);
+  on('bulk', function(){ setView('col'); bulkRun(); });
+  on('dups', function(){
+    var dups = dupSet();
+    var n = Object.keys(dups).length;
+    if(!n){ toast('No hay fichas repetidas'); return; }
+    fType = 'dup';
+    document.querySelectorAll('#segType button').forEach(function(x){ x.className = x.dataset.f === 'dup' ? 'on' : ''; });
+    setView('col'); paintCol();
+    toast(n + ' fichas repetidas · ábrelas para fusionarlas');
+  });
+  box.querySelectorAll('#segTema button').forEach(function(b){
+    b.onclick = function(){
+      aplicarTema(b.dataset.t);
+      box.querySelectorAll('#segTema button').forEach(function(x){ x.className = x.dataset.t === b.dataset.t ? 'on' : ''; });
+    };
+  });
+  var w = box.querySelector('#wipe');
+  if(w) w.onclick = function(){
     if(confirm('¿Eliminar los ' + DB.discos.length + ' discos?')){
+      guardarDeshacer(DB.discos.slice(), 'vaciar la colección');
       DB.discos = []; persist(); toast('Colección vaciada');
     }
   };
+  montarAyudas(box);
 }
 
 /* ============================================================
@@ -5735,6 +6039,12 @@ function paintDb(){
    ============================================================ */
 function montarEventos(){
   var byId = function(id){ return document.getElementById(id); };
+  aplicarTema();
+  if(window.matchMedia){
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    if(mq.addEventListener) mq.addEventListener('change', function(){ if(temaActual() === 'auto') aplicarTema('auto'); });
+  }
+  montarAyudas(document);
   byId('btnAdd').onclick = function(){ openForm(null); };
   byId('btnAddMob').onclick = function(){ openForm(null); };
   byId('qClear').onclick = function(){
