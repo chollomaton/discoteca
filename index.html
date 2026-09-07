@@ -135,13 +135,15 @@ button{font-family:inherit}
 .kpi .val small{font-size:14px;font-weight:550;color:var(--txt2);margin-left:2px}
 
 .resumen{display:none;background:var(--elev);border-radius:var(--r-md);box-shadow:var(--sh1);
-  padding:10px 2px;margin-bottom:14px;align-items:stretch}
-.resumen>div{flex:1 1 0;text-align:center;position:relative;min-width:0;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:1px;padding:2px 4px}
-.resumen>div+div::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
-  height:30px;width:1px;background:var(--sep)}
-.resumen .v{font-size:19px;font-weight:650;letter-spacing:-.025em;font-variant-numeric:tabular-nums;line-height:1.15}
-.resumen .k{font-size:10.5px;color:var(--txt2);line-height:1.2}
+  margin-bottom:14px;overflow:hidden}
+.resumen .rcol{flex:1 1 0;min-width:0;padding:12px 4px 11px;text-align:center;
+  border-left:1px solid var(--sep);background:none;box-shadow:none;border-radius:0}
+.resumen .rcol:first-child{border-left:none}
+.resumen .ri{height:18px;margin-bottom:5px;color:var(--txt3);display:block}
+.resumen .ri svg{width:17px;height:17px;display:inline-block;vertical-align:top}
+.resumen .v{font-size:20px;font-weight:650;letter-spacing:-.03em;font-variant-numeric:tabular-nums;
+  line-height:1.1;display:block}
+.resumen .k{font-size:10.5px;color:var(--txt2);line-height:1.2;margin-top:3px;display:block}
 .resumen .v.vin{color:var(--vinilo)}
 .resumen .v.cd{color:var(--cd)}
 
@@ -870,6 +872,22 @@ label.trk{cursor:pointer}
   .mtnav input[type=range]{flex:1 0 100%;order:3}
 }
 
+.cands.imgs .cand{cursor:default}
+.cands.imgs .cand:hover{transform:none}
+.dosbtn{display:flex;gap:5px;margin-top:7px}
+.dosbtn .btn{flex:1;justify-content:center;padding:5px 6px;font-size:11.5px}
+
+.banner.fino{padding:10px 14px;gap:10px;flex-wrap:nowrap;align-items:center}
+.banner.fino .t{font-size:13.5px;font-weight:600;white-space:nowrap}
+.banner.fino .s{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.banner.fino .bar{width:auto;flex:1;min-width:60px}
+.banner.fino .btn{padding:5px 11px;font-size:12.5px;flex-shrink:0}
+.banner.fino .txt{min-width:0;flex:1}
+
+.marcado{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(52,199,89,.82);color:#fff;animation:fade .18s var(--ease);border-radius:inherit}
+.marcado .ic{width:44px;height:44px;stroke-width:3}
+
 /* país */
 .paishd{display:flex;align-items:center;gap:14px;margin-bottom:16px}
 .paishd .bandera{font-size:42px;line-height:1}
@@ -1154,7 +1172,11 @@ label.trk{cursor:pointer}
   .only-mob{display:flex !important}
   .no-mob{display:none !important}
 
-  .nav-in{padding:7px 14px;gap:9px;flex-wrap:nowrap}
+  .nav-in{padding:12px 14px 11px;gap:8px;flex-wrap:nowrap}
+  .nav{padding-top:calc(var(--sat) + 4px)}
+  .btn.icon{width:42px;height:42px;padding:0}
+  .btn.icon .ic{width:19px;height:19px}
+  .sync{padding:8px 12px;min-height:40px}
   .logo h1{font-size:18px}
   .logo .disc{width:30px;height:30px}
   .logo .cnt{font-size:11.5px}
@@ -1420,8 +1442,7 @@ label.trk{cursor:pointer}
       <button class="btn icon no-mob hide-ro" id="btnSel" data-tip="Seleccionar varios discos"><svg class="ic" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h8"/></svg></button>
       <button class="btn icon" id="btnPal" data-tip="Buscar en la colección" data-tecla="⌘K"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7.5"/><line x1="21" y1="21" x2="16.8" y2="16.8"/></svg></button>
       <button class="btn icon no-mob" id="btnDice" data-tip="Abrir un disco al azar" data-tecla="R"><svg class="ic" viewBox="0 0 24 24"><path d="M12 2.6l8.4 4.2v9.9L12 21.4 3.6 16.7V6.8z"/><path d="M3.6 6.8L12 11.5l8.4-4.7M12 11.5v9.9"/><circle cx="8" cy="8.4" r="1" fill="currentColor" stroke="none"/><circle cx="7.6" cy="14.6" r="1" fill="currentColor" stroke="none"/><circle cx="16.4" cy="10.6" r="1" fill="currentColor" stroke="none"/><circle cx="16.4" cy="15.4" r="1" fill="currentColor" stroke="none"/></svg></button>
-      <button class="btn icon hide-ro" id="btnTienda" data-tip="Modo tienda" data-tecla="T"><svg class="ic" viewBox="0 0 24 24"><path d="M4 8h16l-1.2 11.2a2 2 0 0 1-2 1.8H7.2a2 2 0 0 1-2-1.8z"/><path d="M8.5 8V6a3.5 3.5 0 0 1 7 0v2"/></svg></button>
-      <button class="btn icon no-mob hide-ro" id="btnScan" data-tip="Escanear un código de barras"><svg class="ic" viewBox="0 0 24 24"><path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"/><line x1="3" y1="12" x2="21" y2="12"/></svg></button>
+      <button class="btn icon hide-ro" id="btnScan" data-tip="Escanear un código de barras"><svg class="ic" viewBox="0 0 24 24"><path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"/><line x1="3" y1="12" x2="21" y2="12"/></svg></button>
       <button class="btn icon only-mob hide-ro" id="btnAddMob" data-tip="Añadir un disco"><svg class="ic" viewBox="0 0 24 24" style="stroke-width:2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
       <button class="btn pri no-mob hide-ro" id="btnAdd" data-tip="Añadir un disco" data-tecla="N"><svg class="ic" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Añadir</button>
     </div>
@@ -1448,6 +1469,7 @@ label.trk{cursor:pointer}
           <button data-f="fav">Favoritos</button>
           <button data-f="noesc">Sin escuchar</button>
           <button data-f="dup">Repetidos</button>
+          <button data-f="inc">Incompletas</button>
           <button data-f="rev">Revisar</button>
         </div>
         <div class="selw">
@@ -1516,8 +1538,8 @@ label.trk{cursor:pointer}
       <svg class="ic ico-on" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
       Deseos
     </button>
-    <button class="fab hide-ro" id="fabScan" aria-label="Escanear">
-      <span><svg class="ic" viewBox="0 0 24 24"><path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"/><line x1="3.5" y1="12" x2="20.5" y2="12"/></svg></span>
+    <button class="fab hide-ro" id="fabTienda" aria-label="Modo tienda">
+      <span><svg class="ic" viewBox="0 0 24 24"><path d="M4 8h16l-1.2 11.2a2 2 0 0 1-2 1.8H7.2a2 2 0 0 1-2-1.8z"/><path d="M8.5 8V6a3.5 3.5 0 0 1 7 0v2"/></svg></span>
     </button>
     <button data-v="stats">
       <svg class="ic ico-off" viewBox="0 0 24 24"><rect x="4" y="12" width="4" height="8" rx="1.4"/><rect x="10" y="4" width="4" height="16" rx="1.4"/><rect x="16" y="8" width="4" height="12" rx="1.4"/></svg>
@@ -1549,7 +1571,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.06c';
+var VERSION = '2026.09.07';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var view = 'col';
 var fType = 'all', fGen = '', fArt = '', fTag = '', fDec = '', fPais = '', fSello = '';
@@ -1746,6 +1768,10 @@ function normDisc(d){
     confianza: d.confianza || '',
     valoracion: Number(d.valoracion) || 0,
     ubicacion: d.ubicacion || '',
+    ejemplares: Number(d.ejemplares) || 1,
+    revisado: d.revisado || '',
+    faltan: d.faltan || '',
+    sinFoto: d.sinFoto ? 1 : 0,
     fotoDisco: d.fotoDisco || '',
     enlazado: d.enlazado || '',
     fotoDisco: d.fotoDisco || '',
@@ -3368,7 +3394,7 @@ function fotoParaLeer(file, lado){
     fr.readAsDataURL(file);
   });
 }
-function escanear(){
+function escanear(alLeer){
   var body = '<div id="scanwrap"><video id="vid" playsinline muted autoplay></video>'
     + '<div class="scanbox"><i></i><i></i><i></i><i></i></div><div class="scanline"></div></div>'
     + '<div class="note busy" id="snote" style="margin-top:12px">Preparando la cámara…</div>'
@@ -3390,13 +3416,14 @@ function escanear(){
   var encontrado = function(codigo){
     if(parar) return;
     cerrar(); s.remove();
-    altaPorCodigo(codigo);
+    if(typeof alLeer === 'function') alLeer(codigo);
+    else altaPorCodigo(codigo);
   };
   s.querySelector('#scanCancel').onclick = function(){ cerrar(); s.remove(); };
   s.querySelector('[data-close]').addEventListener('click', cerrar);
   s.querySelector('#cbOk').onclick = function(){
     var v = s.querySelector('#cbMan').value.replace(/\D/g, '');
-    if(v.length >= 8){ cerrar(); s.remove(); altaPorCodigo(v); }
+    if(v.length >= 8) encontrado(v);
     else nota('Ese código no parece válido', 'err');
   };
   s.querySelector('#cbMan').onkeydown = function(e){ if(e.key === 'Enter') s.querySelector('#cbOk').click(); };
@@ -3559,10 +3586,11 @@ function paintBanner(){
   if(!slot) return;
   if(bulk){
     var pct = Math.round(bulk.done / bulk.total * 100);
-    slot.innerHTML = '<div class="banner"><div><div class="t">Completando ' + bulk.done + ' de ' + bulk.total + ' · ' + bulk.ok + ' resueltas</div>'
-      + '<div class="s">' + (bulk.actual ? esc(bulk.actual) : 'Buscando en Apple Music y MusicBrainz') + '</div></div>'
-      + '<div class="rowb"><div class="bar"><div style="width:' + pct + '%"></div></div>'
-      + '<button class="btn sm" id="stopBtn">Detener</button></div></div>';
+    slot.innerHTML = '<div class="banner fino"><div class="txt"><div class="t">' + bulk.done + ' de ' + bulk.total
+      + ' · ' + bulk.ok + ' resueltas</div>'
+      + '<div class="s">' + (bulk.actual ? esc(bulk.actual) : 'Buscando…') + '</div></div>'
+      + '<div class="bar"><div style="width:' + pct + '%"></div></div>'
+      + '<button class="btn sm" id="stopBtn">Parar</button></div>';
     var sb = document.getElementById('stopBtn');
     if(sb) sb.onclick = function(){ cancelBulk = true; toast('Deteniendo…'); };
     return;
@@ -3591,6 +3619,7 @@ function filtrados(base){
     if(fType === 'CD' && d.formato !== 'CD') return false;
     if(fType === 'dup' && !dups[d.id]) return false;
     if(fType === 'rev' && d.confianza !== 'baja') return false;
+    if(fType === 'inc' && !incompleto(d) && !d.faltan && d.mbid) return false;
     if(fType === 'noesc' && totalEscuchas(d) > 0) return false;
     if(fType === 'esc'){
       var a = String(new Date().getFullYear());
@@ -3740,6 +3769,56 @@ function coloresParaEstanteria(items){
   };
   for(var k = 0; k < 4; k++) setTimeout(siguiente, k * 60);
 }
+/* Deslizar una portada hacia la derecha marca la escucha de hoy */
+function montarDeslizarEscucha(root){
+  if(readOnly) return;
+  root.querySelectorAll('.tile').forEach(function(el){
+    var art = el.querySelector('.art');
+    if(!art || el.dataset.desliz) return;
+    el.dataset.desliz = '1';
+    var x0 = null, y0 = 0, dx = 0, activo = false;
+    art.addEventListener('touchstart', function(e){
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; activo = false;
+      art.style.transition = 'none';
+    }, {passive:true});
+    art.addEventListener('touchmove', function(e){
+      if(x0 === null) return;
+      dx = e.touches[0].clientX - x0;
+      var dy = Math.abs(e.touches[0].clientY - y0);
+      if(!activo){
+        if(dx > 14 && dx > dy * 1.6) activo = true;
+        else if(dy > 12){ x0 = null; return; }
+      }
+      if(!activo) return;
+      var d = Math.min(dx, 90);
+      art.style.transform = 'translateX(' + d + 'px)';
+      art.style.opacity = 1 - d / 260;
+      if(e.cancelable) e.preventDefault();
+    }, {passive:false});
+    var soltar = function(){
+      if(x0 === null) return;
+      art.style.transition = 'transform .3s var(--ease),opacity .3s';
+      art.style.transform = '';
+      art.style.opacity = '';
+      if(activo && dx > 70){
+        var puesto = marcarEscucha(el.dataset.id);
+        var d2 = DB.discos.filter(function(z){ return z.id === el.dataset.id; })[0];
+        var y = el.querySelector('.meta .y .txt');
+        if(y && d2) y.textContent = (d2['año'] || '—') + (d2.genero ? ' · ' + d2.genero : '')
+          + (totalEscuchas(d2) ? ' · ▶ ' + totalEscuchas(d2) : '');
+        art.insertAdjacentHTML('beforeend', '<span class="marcado">' + (puesto ? I.check : I.x) + '</span>');
+        setTimeout(function(){
+          var m = art.querySelector('.marcado');
+          if(m) m.remove();
+        }, 900);
+        refrescarContadores();
+      }
+      x0 = null; dx = 0; activo = false;
+    };
+    art.addEventListener('touchend', soltar);
+    art.addEventListener('touchcancel', soltar);
+  });
+}
 function montarPeek(root){
   var peek = document.getElementById('shelfPeek');
   if(!peek){
@@ -3826,8 +3905,9 @@ function paintCol(){
   var res = document.getElementById('resumen');
   if(res){
     var cel = function(icono, valor, etiqueta, clase){
-      return '<div><div class="ri" style="color:var(--txt3)">' + icono + '</div>'
-        + '<div class="v ' + (clase || '') + '">' + valor + '</div><div class="k">' + etiqueta + '</div></div>';
+      return '<div class="rcol"><span class="ri">' + icono + '</span>'
+        + '<span class="v ' + (clase || '') + '">' + valor + '</span>'
+        + '<span class="k">' + etiqueta + '</span></div>';
     };
     res.innerHTML = cel(I.layers, base.length, 'discos')
       + cel(I.vinBadge, nv, 'vinilos', 'vin')
@@ -3909,6 +3989,7 @@ function paintCol(){
   enlazarTiles(board, dups);
   if(modo === 'shelf'){ montarPeek(board); coloresParaEstanteria(list); }
   montarPulsacionLarga(board);
+  montarDeslizarEscucha(board);
   if(modo === 'grid'){
     var tiles = board.querySelectorAll('.tile');
     for(var i = 0; i < tiles.length && i < 40; i++) tiles[i].style.animationDelay = (i * 22) + 'ms';
@@ -4396,6 +4477,7 @@ function openDetail(id, desde){
     + spec('Comprado', d.fechaCompra ? new Date(d.fechaCompra).toLocaleDateString('es-ES') : '—')
     + spec('Precio', d.precioCompra ? d.precioCompra.toFixed(2) + ' €' : '—')
     + spec('Dónde está', d.ubicacion || '—')
+    + ((d.ejemplares || 1) > 1 ? spec('Ejemplares', d.ejemplares) : '')
     + spec('Escuchas', totalEscuchas(d) ? totalEscuchas(d) + (d.ultimaEscucha ? ' · última ' + fechaBonita(d.ultimaEscucha) : '') : '—')
     + '</div>'
     + (d.notas ? '<p style="font-size:14.5px;color:var(--txt2);line-height:1.5;margin:0 3px 16px">' + esc(d.notas) + '</p>' : '')
@@ -4692,9 +4774,9 @@ function menuDisco(d, padre){
           ? accion(I.link, 'Enlazar ediciones', 'Tienes este mismo álbum en '
               + candidatasEnlace(d)[0].formato + '. Enlázalos para saltar de uno a otro.', 'enlazar', '', 'Enlazar')
           : ''))
-    + accion(I.img, 'Foto del disco', d.fotoDisco
-        ? 'Ahora se ve una foto real al girar la portada. Puedes cambiarla o quitarla.'
-        : 'Busca en Discogs la foto del vinilo o el CD de esta edición y elígela tú.', 'foto', '', 'Elegir foto')
+    + accion(I.img, 'Imágenes de la edición', d.fotoDisco
+        ? 'Cambia la carátula o la foto del disco que se ve al girar la portada.'
+        : 'Busca en Discogs las imágenes de esta edición: sirven de carátula o de cara B.', 'foto', '', 'Ver imágenes')
     + accion(I.copy, 'Duplicar ficha', 'Crea una copia, útil si tienes el mismo disco en dos formatos.', 'dup', '', 'Duplicar')
     + '</div>';
   var s = sheet(d.titulo, body);
@@ -4973,6 +5055,7 @@ function openForm(item, listaDestino){
       + fieldRow('Precio (€)', '<input id="fPr" type="number" step="0.01" min="0" value="' + (d.precioCompra || '') + '" placeholder="0,00">')
       + fieldRow('Valor (€)', '<input id="fVm" type="number" step="0.01" min="0" value="' + (d.valorMercado || '') + '" placeholder="Estimado">')
       + fieldRow('Dónde está', '<input id="fUb" type="text" value="' + esc(d.ubicacion) + '" placeholder="Estantería 2, balda alta…">')
+      + fieldRow('Ejemplares', '<input id="fEj" type="number" min="1" max="99" value="' + (d.ejemplares || 1) + '">')
     + '</div>'
     + '<div class="gtit">Personal</div><div class="group">'
       + fieldRow('Etiquetas', '<input id="fEt" type="text" value="' + esc(d.etiquetas.join(', ')) + '" placeholder="firmado, primera edición…">')
@@ -5140,6 +5223,7 @@ function openForm(item, listaDestino){
       notas: $('#fN').value.trim(),
       etiquetas: $('#fEt').value.split(',').map(function(x){ return x.trim(); }).filter(Boolean),
       ubicacion: $('#fUb').value.trim(),
+      ejemplares: Math.max(1, parseInt($('#fEj').value) || 1),
       mbid: (ref && ref.tipo === 'release') ? ref.id : d.mbid,
       rgid: (ref && ref.tipo === 'rg') ? ref.id : d.rgid,
       discogs: (ref && ref.tipo === 'discogs') ? ref.url : d.discogs,
@@ -5186,6 +5270,71 @@ function elegirEdicionTemp(tmp, cb){
   }).catch(function(){ s.querySelector('#cnote').className = 'note err'; s.querySelector('#cnote').textContent = 'No se pudo consultar.'; });
 }
 
+
+/* Galería de imágenes de Discogs: sirve para la carátula y para la cara B */
+function elegirFotoSoporte(d, padre){
+  var s = sheet('Imágenes de esta edición',
+    '<div class="warnb info">' + I.info + '<span>Discogs no dice cuál es cuál, así que elige tú. '
+    + 'La <b>carátula</b> es la portada que se ve en la colección; la <b>cara B</b> es la foto del vinilo '
+    + 'o el CD que aparece al girar la portada.</span></div>'
+    + '<div class="note busy" id="fnote">Buscando imágenes en Discogs…</div><div id="flist"></div>',
+    (d.fotoDisco ? '<button class="btn destr" id="fQuitar">Quitar la cara B</button>' : '<span></span>')
+    + '<button class="btn" data-fx>Cerrar</button>', true);
+  s.querySelector('[data-fx]').onclick = function(){ s.remove(); };
+  if(s.querySelector('#fQuitar')) s.querySelector('#fQuitar').onclick = function(){
+    d.fotoDisco = ''; d.sinFoto = 1;
+    persist();
+    s.remove();
+    if(padre) padre.remove();
+    toast('Se vuelve al disco dibujado');
+    openDetail(d.id);
+  };
+  if(!hayDiscogs()){
+    s.querySelector('#fnote').className = 'note err';
+    s.querySelector('#fnote').textContent = 'Necesitas configurar tu token de Discogs en Ajustes.';
+    return;
+  }
+  imagenesDiscogs(d).then(function(ims){
+    s.querySelector('#fnote').style.display = 'none';
+    s.querySelector('#flist').innerHTML = '<div class="cands imgs">' + ims.map(function(im, i){
+      return '<div class="cand"><img class="cimg" src="' + esc(im.mini || im.uri)
+        + '" alt="" loading="lazy" onerror="this.style.opacity=.2">'
+        + '<div class="cinf"><div class="s">' + (i === 0 ? 'Portada en Discogs' : 'Imagen ' + (i + 1)) + '</div>'
+        + '<div class="dosbtn"><button class="btn xs" data-car="' + i + '">Carátula</button>'
+        + '<button class="btn xs" data-dis="' + i + '">Cara B</button></div></div></div>';
+    }).join('') + '</div>';
+    s.querySelectorAll('[data-car]').forEach(function(b){
+      b.onclick = function(){
+        d.portada = ims[+b.dataset.car].uri;
+        d.color = '';
+        persist();
+        s.remove();
+        if(padre) padre.remove();
+        toast('Carátula cambiada');
+        openDetail(d.id);
+      };
+    });
+    s.querySelectorAll('[data-dis]').forEach(function(b){
+      b.onclick = function(){
+        var elegida = ims[+b.dataset.dis].uri;
+        /* si es la primera imagen, casi seguro que es la portada y no el disco */
+        if(+b.dataset.dis === 0 && !confirm('Esa suele ser la portada, no el disco.\n\n'
+            + '¿Seguro que quieres usarla como cara B? Si lo que querías era cambiar la carátula, '
+            + 'pulsa Cancelar y usa el botón «Carátula».')) return;
+        d.fotoDisco = elegida;
+        d.sinFoto = 0;
+        persist();
+        s.remove();
+        if(padre) padre.remove();
+        toast('Imagen del disco guardada');
+        openDetail(d.id);
+      };
+    });
+  }).catch(function(){
+    s.querySelector('#fnote').className = 'note err';
+    s.querySelector('#fnote').textContent = 'Esta edición no tiene imágenes en Discogs.';
+  });
+}
 
 /* ============================================================
    15. VALORACIÓN, LETRAS, WIKIPEDIA, CRÉDITOS Y CURIOSIDADES
@@ -6919,7 +7068,10 @@ function tocaReintentar(d){
 
 function pantallaRevision(){
   var ds = DB.discos.slice();
-  var pendientes = ds.filter(function(d){ return faltaAlgo(d).length && tocaReintentar(d); });
+  var conFalta = ds.filter(function(d){ return faltaAlgo(d).length; });
+  var nuevos = conFalta.filter(function(d){ return !d.revisado; });
+  var yaVistos = conFalta.filter(function(d){ return d.revisado; });
+  var pendientes = nuevos.concat(yaVistos.filter(tocaReintentar));
   var est = estadoRevision();
   var body =
     '<div class="warnb info">' + I.info + '<span>Recorre tus ' + ds.length + ' discos y rellena '
@@ -6928,20 +7080,25 @@ function pantallaRevision(){
     + '<b>No toca nada de lo que hayas escrito tú</b>, ni tus estrellas, escuchas, etiquetas, notas o precios.</span></div>'
     + '<div class="kpis" style="margin-bottom:16px">'
       + '<div class="kpi"><div class="ico" style="background:color-mix(in srgb,var(--blue) 15%,transparent);color:var(--blue)">'
-        + I.db + '</div><div><div class="lbl">Discos</div><div class="val">' + ds.length + '</div></div></div>'
+        + I.db + '</div><div><div class="lbl">Sin revisar nunca</div><div class="val">' + nuevos.length + '</div></div></div>'
       + '<div class="kpi"><div class="ico" style="background:color-mix(in srgb,var(--orange) 15%,transparent);color:var(--orange)">'
-        + I.warn + '</div><div><div class="lbl">Con algo que falta</div><div class="val">' + pendientes.length + '</div></div></div>'
+        + I.clock + '</div><div><div class="lbl">Revisados sin éxito</div><div class="val">' + yaVistos.length + '</div></div></div>'
     + '</div>'
     + '<p style="font-size:13.5px;color:var(--txt2);line-height:1.5;margin:0 0 6px">'
-    + 'Tarda alrededor de <b style="color:var(--txt)">' + Math.max(1, Math.round(pendientes.length * 2.4 / 60))
-    + ' minutos</b> porque MusicBrainz solo admite una consulta por segundo. '
-    + 'Puedes pararlo cuando quieras y continuar más tarde donde iba.</p>'
+    + (yaVistos.length ? 'De los ya revisados, <b style="color:var(--txt)">'
+        + yaVistos.filter(tocaReintentar).length + '</b> vuelven a intentarse hoy; el resto esperan 45 días '
+        + 'por si aparecen datos nuevos. ' : '')
+    + 'Esta pasada son <b style="color:var(--txt)">' + pendientes.length + ' discos</b>, unos '
+    + Math.max(1, Math.round(pendientes.length * 2 / 60))
+    + ' minutos. Puedes pararla y continuar donde iba.</p>'
     + (est.pos ? '<div class="warnb">' + I.clock + '<span>Hay una revisión a medias: iba por el disco '
         + est.pos + ' de ' + (est.total || ds.length) + '.</span></div>' : '')
     + '<div id="revProg"></div>';
   var pie = '<button class="btn" data-rx>Cerrar</button>'
-    + '<div class="rowb">' + (est.pos ? '<button class="btn" id="revCero">Empezar de cero</button>' : '')
-    + '<button class="btn pri" id="revGo">' + (est.pos ? 'Continuar' : 'Empezar') + '</button></div>';
+    + '<div class="rowb">'
+    + (nuevos.length && yaVistos.length ? '<button class="btn" id="revSoloNuevos">Solo los ' + nuevos.length + ' nuevos</button>' : '')
+    + (est.pos ? '<button class="btn" id="revCero">Empezar de cero</button>' : '')
+    + '<button class="btn pri" id="revGo">' + (est.pos ? 'Continuar' : 'Revisar los ' + pendientes.length) + '</button></div>';
   var s = sheet('Revisar y actualizar todo', body, pie);
   s.querySelector('[data-rx]').onclick = function(){ cancelBulk = true; s.remove(); };
   if(s.querySelector('#revCero')) s.querySelector('#revCero').onclick = function(){
@@ -6949,10 +7106,15 @@ function pantallaRevision(){
     s.remove();
     pantallaRevision();
   };
-  s.querySelector('#revGo').onclick = function(){
+  var arrancar = function(lista){
     s.querySelector('.sheet-ft').innerHTML = '<span></span><button class="btn destr" id="revStop">Parar</button>';
     s.querySelector('#revStop').onclick = function(){ cancelBulk = true; };
-    revisarTodo(s, pendientes);
+    revisarTodo(s, lista);
+  };
+  s.querySelector('#revGo').onclick = function(){ arrancar(pendientes); };
+  if(s.querySelector('#revSoloNuevos')) s.querySelector('#revSoloNuevos').onclick = function(){
+    guardarRevision({});
+    arrancar(nuevos);
   };
 }
 
@@ -6977,11 +7139,9 @@ async function revisarTodo(s, lista){
     }catch(e){ res.fallos++; fallos.push({t:d.titulo, a:d.artista, motivo:String(e.message || e)}); }
     d.revisado = nowISO();
     var falta = faltaAlgo(d);
-    if(falta.length) d.faltan = falta.join(', ');
-    else delete d.faltan;
-    if(JSON.stringify([d.mbid, d.appleUrl, d.fotoDisco, d.sello, d.tracklist.length, !!d.extra, !!d.tecnica]) !== antes){
-      persist(true);
-    }
+    d.faltan = falta.length ? falta.join(', ') : '';
+    /* se guarda siempre: si no, la marca de revisado se pierde al recargar */
+    persist(true);
     guardarRevision({pos:i + 1, total:lista.length, res:res, fallos:fallos.slice(-80)});
   }
   var terminado = !cancelBulk;
@@ -7049,7 +7209,7 @@ async function revisarDisco(d, res){
       }
     }
   }
-  /* 3. Apple Music y portada */
+  /* 3. Apple Music y portada (solo si falta alguna de las dos) */
   if(!d.appleUrl || !d.portada){
     var hit = await itBuscar(d.titulo, d.artista).catch(function(){ return null; });
     if(hit){
@@ -7069,6 +7229,14 @@ async function revisarDisco(d, res){
   }
   if(hayDiscogs() && !d.tecnica){
     await cargarDiscogs(d).then(function(){ res.tecnica++; }).catch(function(){});
+  }
+  /* 6. un doble que sigue sin separar: se insiste con las posiciones de Discogs */
+  var esDoble = /2\s*[x×]/i.test(d.formatoDetalle || '');
+  if(esDoble && d.tracklist.length && !d.tracklist.some(function(t){ return (t.disco || 1) > 1 || t.pos; })){
+    if(hayDiscogs()){
+      await cargarDiscogs(d).catch(function(){});
+      if(d.tracklist.some(function(t){ return t.pos; })) res.caras++;
+    }
   }
 }
 
@@ -7099,6 +7267,29 @@ function analizarReparacion(){
       out.artistas.push({variantes:lista, mejor:mejor, n:por[k].length});
     }
   });
+  /* variantes del mismo sello: A&M Records / A&M Records, Inc. / A&M Records / UMe */
+  var raiz = function(s){
+    return plain(String(s || '').split(/\s*\/\s*/)[0]
+      .replace(/\b(records?|recordings?|inc|ltd|limited|s\.?a|s\.?l|gmbh|music|group|the|company|entertainment)\b/gi, ''));
+  };
+  var porRaiz = {};
+  ds.forEach(function(d){
+    if(!d.sello) return;
+    var k = raiz(d.sello);
+    if(k.length < 3) return;
+    (porRaiz[k] = porRaiz[k] || {})[d.sello] = (porRaiz[k][d.sello] || 0) + 1;
+  });
+  out.sellosVar = [];
+  Object.keys(porRaiz).forEach(function(k){
+    var vs = Object.keys(porRaiz[k]);
+    if(vs.length < 2) return;
+    /* el nombre más usado, y a igualdad el más corto */
+    var mejor = vs.sort(function(a, b){
+      return (porRaiz[k][b] - porRaiz[k][a]) || (a.length - b.length);
+    })[0];
+    out.sellosVar.push({variantes:vs, mejor:mejor, n:vs.reduce(function(a, v){ return a + porRaiz[k][v]; }, 0)});
+  });
+
   /* sellos con restos de Discogs */
   var sellosMal = {};
   ds.forEach(function(d){
@@ -7128,7 +7319,7 @@ function analizarReparacion(){
 }
 function pantallaReparar(){
   var r = analizarReparacion();
-  var total = r.artistas.length + r.sellos.length + r.anios.length + r.enlaces.length;
+  var total = r.artistas.length + r.sellos.length + (r.sellosVar || []).length + r.anios.length + r.enlaces.length;
   if(!total){
     sheet('Reparar la base de datos',
       '<div class="warnb info">' + I.check + '<span>No he encontrado nada que reparar. '
@@ -7145,6 +7336,11 @@ function pantallaReparar(){
     + 'Marca las que quieras aplicar.</p>'
     + bloque('Mismo artista escrito de varias formas', r.artistas, function(x, i){
         return '<label class="trk"><input type="checkbox" class="rep" data-t="art" data-i="' + i + '" checked>'
+          + '<span class="nm">' + esc(x.variantes.join('  ·  ')) + '</span>'
+          + '<span class="dur">→ ' + esc(x.mejor) + '</span></label>';
+      })
+    + bloque('Variantes del mismo sello', r.sellosVar || [], function(x, i){
+        return '<label class="trk"><input type="checkbox" class="rep" data-t="selv" data-i="' + i + '" checked>'
           + '<span class="nm">' + esc(x.variantes.join('  ·  ')) + '</span>'
           + '<span class="dur">→ ' + esc(x.mejor) + '</span></label>';
       })
@@ -7177,6 +7373,11 @@ function pantallaReparar(){
       }else if(c.dataset.t === 'sel'){
         var y = r.sellos[i];
         DB.discos.forEach(function(d){ if(d.sello === y.de){ d.sello = y.a; n++; } });
+      }else if(c.dataset.t === 'selv'){
+        var z = r.sellosVar[i];
+        DB.discos.forEach(function(d){
+          if(z.variantes.indexOf(d.sello) >= 0 && d.sello !== z.mejor){ d.sello = z.mejor; n++; }
+        });
       }else if(c.dataset.t === 'ani'){
         r.anios[i].d['año'] = ''; n++;
       }else if(c.dataset.t === 'enl'){
@@ -7408,58 +7609,10 @@ function modoTienda(){
   };
   t.querySelector('#tCod').onkeydown = function(e){ if(e.key === 'Enter') t.querySelector('#tOk').click(); };
   t.querySelector('#tScan').onclick = function(){
-    escanearEn(function(codigo){ responder(codigo); });
+    escanear(function(codigo){ responder(codigo); });
   };
   montarAyudas(t);
 }
-/* Escáner reutilizable que devuelve el código en lugar de dar de alta */
-function escanearEn(alLeer){
-  var s = sheet('Escanear',
-    '<div id="scanwrap"><video id="vid" playsinline muted autoplay></video>'
-    + '<div class="scanbox"><i></i><i></i><i></i><i></i></div><div class="scanline"></div></div>'
-    + '<div class="note busy" id="snote" style="margin-top:12px">Encuadra el código de barras</div>',
-    '<span></span><button class="btn" data-sx>Cancelar</button>');
-  var video = s.querySelector('#vid'), stream = null, parar = false, lector = null;
-  var cerrar = function(){
-    parar = true;
-    try{ if(lector) lector.reset(); }catch(e){}
-    if(stream) stream.getTracks().forEach(function(x){ x.stop(); });
-  };
-  s.querySelector('[data-sx]').onclick = function(){ cerrar(); s.remove(); };
-  s.querySelector('[data-close]').addEventListener('click', cerrar);
-  var listo = function(codigo){
-    if(parar) return;
-    cerrar(); s.remove();
-    alLeer(codigo);
-  };
-  var restricciones = {video:{facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080}}};
-  var nativo = function(){
-    if(!('BarcodeDetector' in window)) return Promise.reject(new Error('no'));
-    var det = new window.BarcodeDetector({formats:['ean_13','upc_a','ean_8','upc_e']});
-    return navigator.mediaDevices.getUserMedia(restricciones).then(function(st){
-      stream = st; video.srcObject = st;
-      var tick = function(){
-        if(parar) return;
-        det.detect(video).then(function(c){
-          if(c && c.length) return listo(c[0].rawValue);
-          setTimeout(tick, 250);
-        }).catch(function(){ setTimeout(tick, 450); });
-      };
-      video.play().then(function(){ setTimeout(tick, 500); }).catch(function(){ setTimeout(tick, 800); });
-    });
-  };
-  var zx = function(){
-    return cargarZX().then(function(){
-      lector = lectorZX();
-      return lector.decodeFromConstraints(restricciones, video, function(r){ if(r) listo(r.getText()); });
-    });
-  };
-  nativo().catch(zx).catch(function(){
-    var n = s.querySelector('#snote');
-    if(n){ n.className = 'note err'; n.textContent = 'No se pudo abrir la cámara.'; }
-  });
-}
-
 /* ============================================================
    29. MÁQUINA DEL TIEMPO
    ============================================================ */
@@ -8413,10 +8566,8 @@ function montarEventos(){
   byId('btnPal').onclick = abrirPaleta;
   byId('btnDice').onclick = discoAlAzar;
   byId('btnSel').onclick = function(){ modoSeleccion(!selMulti); };
-  byId('btnScan').onclick = escanear;
-  byId('fabScan').onclick = escanear;
-  var bt = byId('btnTienda');
-  if(bt) bt.onclick = modoTienda;
+  byId('btnScan').onclick = function(){ escanear(); };
+  byId('fabTienda').onclick = modoTienda;
   byId('logo').onclick = function(){ setView('col'); };
   byId('syncBadge').onclick = function(){ configurado() ? sincronizarAhora() : pantallaSync(); };
   byId('q').oninput = function(){
