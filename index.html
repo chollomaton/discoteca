@@ -888,6 +888,24 @@ label.trk{cursor:pointer}
   background:rgba(52,199,89,.82);color:#fff;animation:fade .18s var(--ease);border-radius:inherit}
 .marcado .ic{width:44px;height:44px;stroke-width:3}
 
+.wishhd{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.wishhd .wlamp{width:48px;height:48px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;background:linear-gradient(135deg,rgba(175,82,222,.18),rgba(255,149,0,.18));
+  color:var(--purple)}
+.wishhd .wlamp .ic{width:26px;height:26px;stroke-width:1.7}
+.wishhd .wtxt{flex:1;min-width:0}
+.wishhd .wt{font-size:22px;font-weight:650;letter-spacing:-.025em}
+.wishhd .ws{font-size:13.5px;color:var(--txt2);margin-top:2px}
+.blank.wishblank .ic{width:74px;height:74px;color:var(--purple);opacity:.5;stroke-width:1.3}
+@media (max-width:760px){
+  .wishhd .wlamp{width:42px;height:42px;border-radius:12px}
+  .wishhd .wlamp .ic{width:23px;height:23px}
+  .wishhd .wt{font-size:19px}
+}
+
+.tile.amedias .meta .t::after{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;
+  background:var(--orange);margin-left:6px;vertical-align:middle;opacity:.75}
+
 /* país */
 .paishd{display:flex;align-items:center;gap:14px;margin-bottom:16px}
 .paishd .bandera{font-size:42px;line-height:1}
@@ -903,17 +921,17 @@ label.trk{cursor:pointer}
 .calmes:hover{background:var(--fill)}
 .calmes .cm{font-size:11.5px;font-weight:650;color:var(--txt2);text-transform:capitalize;margin-bottom:5px}
 .calmes .cg{display:grid;grid-template-columns:repeat(7,1fr);gap:2.5px}
-.c{width:100%;aspect-ratio:1/1;border-radius:2.5px;display:block;background:var(--fill)}
-.c.vacia{background:transparent}
-.c.n0{background:var(--fill)}
-.c.n1{background:rgba(52,199,89,.35)}
-.c.n2{background:rgba(52,199,89,.58)}
-.c.n3{background:rgba(52,199,89,.78)}
-.c.n4{background:#34c759}
-.c[data-dia]{cursor:pointer}
-.c[data-dia]:hover{outline:2px solid var(--blue);outline-offset:1px}
+.cday{width:100%;aspect-ratio:1/1;border-radius:2.5px;display:block;background:var(--fill)}
+.cday.vacia{background:transparent}
+.cday.n0{background:var(--fill)}
+.cday.n1{background:rgba(52,199,89,.35)}
+.cday.n2{background:rgba(52,199,89,.58)}
+.cday.n3{background:rgba(52,199,89,.78)}
+.cday.n4{background:#34c759}
+.cday[data-dia]{cursor:pointer}
+.cday[data-dia]:hover{outline:2px solid var(--blue);outline-offset:1px}
 .calleyenda{display:flex;align-items:center;gap:5px;justify-content:flex-end;margin-top:14px;font-size:11.5px;color:var(--txt3)}
-.calleyenda .c{width:11px;height:11px;aspect-ratio:auto}
+.calleyenda .cday{width:11px;height:11px;aspect-ratio:auto}
 .calsem{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px}
 .calsem span{text-align:center;font-size:11.5px;font-weight:650;color:var(--txt3)}
 .calmesg{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
@@ -1571,7 +1589,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.07c';
+var VERSION = '2026.09.08';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var view = 'col';
 var fType = 'all', fGen = '', fArt = '', fTag = '', fDec = '', fPais = '', fSello = '';
@@ -1670,6 +1688,13 @@ var I = {
   lupa:'<svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/><line x1="11" y1="8.5" x2="11" y2="13.5"/><line x1="8.5" y1="11" x2="13.5" y2="11"/></svg>',
   apple:'<svg class="ic" viewBox="0 0 24 24"><path d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.8-.9-3-.8c-1.5 0-2.9.9-3.7 2.3-1.6 2.7-.4 6.8 1.1 9 .8 1.1 1.7 2.3 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.2.9-1.3 1.3-2.5 1.3-2.6 0 0-2.5-1-2.5-3.6z"/><path d="M14.2 5.6c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.8 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.8-1.3z"/></svg>',
   personas:'<svg class="ic" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg>',
+  lampara:'<svg class="ic" viewBox="0 0 24 24">'
+    + '<path d="M6.6 12.4c0-1.9 2.3-3.4 5.2-3.4s5.2 1.5 5.2 3.4c0 .8-.4 1.6-1.1 2.2l.6 2.3H7.1l.6-2.3c-.7-.6-1.1-1.4-1.1-2.2z"/>'
+    + '<path d="M17 11.2h2.6c1.1 0 2 .8 2 1.9s-.9 1.9-2 1.9h-.9"/>'
+    + '<path d="M11.8 9V6.6"/><path d="M9.9 6.6h3.8"/>'
+    + '<path d="M6.4 19.4h11.2"/>'
+    + '<path d="M15.6 5.6c.9-.5 1.4-1.3 1.4-2.3M18.6 8c.8 0 1.5-.3 2.1-.9M18.9 3.4c.4-.2.7-.6.8-1" stroke-opacity=".55"/>'
+    + '</svg>',
   save:'<svg class="ic" viewBox="0 0 24 24"><path d="M19.5 21h-15a1.5 1.5 0 0 1-1.5-1.5v-15A1.5 1.5 0 0 1 4.5 3h11L21 8.5v11a1.5 1.5 0 0 1-1.5 1.5z"/><path d="M7.5 3v6h8V3"/><rect x="7.5" y="13" width="9" height="8" rx="1"/></svg>',
   pregunta:'<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.2"/><path d="M9.3 9.3a2.8 2.8 0 0 1 5.4.9c0 1.9-2.7 2.3-2.7 4"/><line x1="12" y1="17.4" x2="12.01" y2="17.4"/></svg>',
   bombilla:'<svg class="ic" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 2a6.5 6.5 0 0 0-3.7 11.9c.6.4 1 1.1 1.1 1.8l.1.8h5l.1-.8c.1-.7.5-1.4 1.1-1.8A6.5 6.5 0 0 0 12 2z"/></svg>',
@@ -1830,6 +1855,36 @@ function marcarEscucha(id, silencioso){
   persist(true);
   if(!silencioso) toast(puesto ? 'Escuchado hoy · ' + totalEscuchas(d) + (totalEscuchas(d) === 1 ? ' vez' : ' veces') : 'Escucha de hoy quitada');
   return puesto;
+}
+/* Copia de la colección sin lo que se puede volver a pedir:
+   los fragmentos de audio caducan, y la ficha técnica repite datos que ya están en el disco. */
+function discosLigeros(){
+  return DB.discos.map(function(d){
+    var o = {}, k;
+    for(k in d) if(Object.prototype.hasOwnProperty.call(d, k)) o[k] = d[k];
+    if(o.tracklist && o.tracklist.length){
+      o.tracklist = o.tracklist.map(function(t){
+        if(!t.preview) return t;
+        var c = {}, j;
+        for(j in t) if(j !== 'preview') c[j] = t[j];
+        return c;
+      });
+    }
+    if(o.tecnica){
+      var t2 = {}, j2;
+      for(j2 in o.tecnica) if(j2 !== 'url' && j2 !== 'cargado') t2[j2] = o.tecnica[j2];
+      o.tecnica = t2;
+    }
+    if(o.extra && o.extra.cargado){
+      var e2 = {}, j3;
+      for(j3 in o.extra) if(j3 !== 'cargado') e2[j3] = o.extra[j3];
+      o.extra = e2;
+    }
+    if(!o.faltan) delete o.faltan;
+    if(!o.sinFoto) delete o.sinFoto;
+    if(o.ejemplares === 1) delete o.ejemplares;
+    return o;
+  });
 }
 function coleccion(){ return DB.discos.filter(function(d){ return d.lista !== 'deseos'; }); }
 function deseos(){ return DB.discos.filter(function(d){ return d.lista === 'deseos'; }); }
@@ -2180,7 +2235,7 @@ function push(){
   if(!configurado() || readOnly) return Promise.resolve(false);
   if(!navigator.onLine){ marcar('off'); return Promise.resolve(false); }
   marcar('busy');
-  var doc = { version:4, actualizado: nowISO(), discos: DB.discos, borrados: DB.borrados || [] };
+  var doc = { version:4, actualizado: nowISO(), discos: discosLigeros(), borrados: DB.borrados || [] };
   var cuerpo = {
     message: 'Discoteca · ' + DB.discos.length + ' discos · ' + new Date().toLocaleString('es-ES'),
     content: b64enc(JSON.stringify(doc, null, 0)),
@@ -3248,7 +3303,7 @@ function exportarCsv(){
   toast('CSV exportado · ' + DB.discos.length + ' discos');
 }
 function exportBackup(){
-  var doc = { version:4, actualizado: nowISO(), discos: DB.discos, borrados: DB.borrados || [] };
+  var doc = { version:4, actualizado: nowISO(), discos: discosLigeros(), borrados: DB.borrados || [] };
   try{ localStorage.setItem('discoteca.ultimaCopia', nowISO()); }catch(e){}
   var texto = JSON.stringify(doc, null, 1);
   var nombre = 'discoteca-' + new Date().toISOString().slice(0, 10) + '.json';
@@ -3675,7 +3730,9 @@ function claveGrupo(d){
 function tileHtml(d, dups){
   var vin = d.formato === 'Vinilo';
   var hoy = escuchadoHoy(d);
-  return '<div class="tile' + (vin ? ' vin' : '') + '" data-id="' + d.id + '"><div class="art">' + coverHtml(d)
+  var falto = !d.portada || !d.tracklist.length || !d['año'] || !d.sello;
+  return '<div class="tile' + (vin ? ' vin' : '') + (falto ? ' amedias' : '') + '" data-id="' + d.id
+    + '"><div class="art">' + coverHtml(d)
     + '<span class="badge ' + (vin ? 'vin' : 'cd') + '" data-tip="' + (vin ? 'Vinilo' : 'CD') + '">' + (vin ? I.vinBadge : I.cdBadge) + '</span>'
     + (dups && dups[d.id] ? '<span class="pill dup">REPETIDO</span>' : (d.confianza === 'baja' ? '<span class="pill low">REVISAR</span>' : ''))
     + (d.prestadoA ? '<span class="pill lend">PRESTADO</span>' : '')
@@ -4076,12 +4133,19 @@ function paintWish(){
   var box = document.getElementById('wishBody');
   if(!box) return;
   var ds = deseos();
-  var head = '<div class="rowb" style="justify-content:space-between;margin-bottom:16px">'
-    + '<div><div style="font-size:22px;font-weight:600;letter-spacing:-.02em">Lista de deseos</div>'
-    + '<div style="font-size:13.5px;color:var(--txt2);margin-top:2px">' + ds.length + ' discos que quieres conseguir</div></div>'
-    + (readOnly ? '' : '<button class="btn pri" id="addWish">' + I.plus + 'Añadir a deseos</button>') + '</div>';
+  var valor = ds.reduce(function(a, d){
+    return a + ((d.tecnica && d.tecnica.valor) || 0);
+  }, 0);
+  var head = '<div class="wishhd">'
+    + '<div class="wlamp">' + I.lampara + '</div>'
+    + '<div class="wtxt"><div class="wt">Lista de deseos</div>'
+    + '<div class="ws">' + (ds.length
+        ? ds.length + (ds.length === 1 ? ' disco que quieres conseguir' : ' discos que quieres conseguir')
+          + (valor ? ' · desde ' + valor.toFixed(0) + ' €' : '')
+        : 'Aquí van los discos que buscas') + '</div></div>'
+    + (readOnly ? '' : '<button class="btn pri" id="addWish">' + I.plus + 'Añadir</button>') + '</div>';
   if(!ds.length){
-    box.innerHTML = head + '<div class="blank">' + I.heart + '<h3>Aún no hay nada</h3><p>Los discos que añadas aquí se completan igual que los de tu colección.</p></div>';
+    box.innerHTML = head + '<div class="blank wishblank">' + I.lampara + '<h3>Aún no hay nada</h3><p>Los discos que añadas aquí se completan igual que los de tu colección.</p></div>';
   }else{
     var gasto = ds.reduce(function(a, d){ return a + (d.valorMercado || 0); }, 0);
     box.innerHTML = head
@@ -6075,20 +6139,20 @@ function calendarioEscuchas(nivel, ref){
       for(var m = 0; m < 12; m++){
         var pri = new Date(anio, m, 1), ult = new Date(anio, m + 1, 0).getDate();
         var hueco = (pri.getDay() + 6) % 7, celdas = '';
-        for(var e = 0; e < hueco; e++) celdas += '<i class="c vacia"></i>';
+        for(var e = 0; e < hueco; e++) celdas += '<i class="cday vacia"></i>';
         for(var d2 = 1; d2 <= ult; d2++){
           var f2 = anio + '-' + ('0' + (m + 1)).slice(-2) + '-' + ('0' + d2).slice(-2);
           var n = porDia[f2] || 0;
           var nv2 = n === 0 ? 0 : Math.min(4, Math.ceil(n / maxd * 4));
-          celdas += '<i class="c n' + nv2 + '" data-dia="' + f2 + '" title="' + d2 + ' de ' + MESES_L[m] + ': '
+          celdas += '<i class="cday n' + nv2 + '" data-dia="' + f2 + '" title="' + d2 + ' de ' + MESES_L[m] + ': '
             + (n || 'sin escuchas') + '"></i>';
         }
         meses += '<div class="calmes" data-mes="' + anio + '-' + ('0' + (m + 1)).slice(-2) + '-01">'
           + '<div class="cm">' + MESES_L[m].slice(0, 3) + '</div><div class="cg">' + celdas + '</div></div>';
       }
       cuerpo = '<div class="calanio">' + meses + '</div>'
-        + '<div class="calleyenda"><span>menos</span><i class="c n0"></i><i class="c n1"></i><i class="c n2"></i>'
-        + '<i class="c n3"></i><i class="c n4"></i><span>más</span></div>';
+        + '<div class="calleyenda"><span>menos</span><i class="cday n0"></i><i class="cday n1"></i><i class="cday n2"></i>'
+        + '<i class="cday n3"></i><i class="cday n4"></i><span>más</span></div>';
     }
     else if(nivel === 'mes'){
       titulo = MESES_L[mes - 1] + ' de ' + anio;
@@ -8348,12 +8412,10 @@ function paintStats(){
         + hbars(artistas.slice(0, 12), null, true) + '</div></div>'
       + '<div class="card"><h3>Top sellos</h3><div class="sub">Pulsa para filtrar</div><div id="topSel">'
         + hbars(sellos.slice(0, 12), function(i){ return PAL[(i + 3) % PAL.length]; }, true) + '</div></div>'
-      + (crec.length > 2 ? '<div class="card full"><h3>Crecimiento de la colección</h3><div class="sub">Discos acumulados según su fecha de alta</div>'
+      + (crec.length > 2 ? '<div class="card full"><h3>Cómo ha crecido</h3><div class="sub">Discos acumulados desde que llevas la cuenta</div>'
         + '<div class="chartwrap">' + areaLine(crec, 'var(--purple)') + '</div></div>' : '')
-      + (compras.length > 1 ? '<div class="card full"><h3>Compras por año</h3><div class="sub">Según la fecha de compra registrada</div>'
-        + '<div class="chartwrap">' + areaLine(compras, 'var(--green)') + '</div></div>' : '')
       + tarjetaQuien()
-      + (valorados.length ? '<div class="card"><h3>Cómo puntúas</h3><div class="sub">Reparto de tus estrellas</div>'
+      + (valorados.length > 6 ? '<div class="card"><h3>Cómo puntúas</h3><div class="sub">Reparto de tus estrellas</div>'
         + hbars(porNota, function(i){ return ['#ffb400','#ffc93a','#c8c8cc','#a1a1a6','#c7c7cc'][i]; }) + '</div>' : '')
       + (favoritos.length ? '<div class="card"><h3>Tus favoritos</h3><div class="sub">Cuatro estrellas o más</div><div class="tl">'
         + favoritos.map(function(d){
@@ -8361,14 +8423,7 @@ function paintStats(){
               + '<span style="color:var(--txt3)"> · ' + esc(d.artista) + '</span></span>'
               + '<span>' + estrellasHtml(d.valoracion) + '</span></div>';
           }).join('') + '</div></div>' : '')
-      + (duraciones.length > 3 ? '<div class="card"><h3>Los más largos</h3><div class="sub">Por duración total del disco</div><div class="tl">'
-        + duraciones.slice(0, 6).map(function(x){
-            return '<div class="trk" data-disco="' + x.d.id + '" style="cursor:pointer"><span class="nm">' + esc(x.d.titulo)
-              + '<span style="color:var(--txt3)"> · ' + esc(x.d.artista) + '</span></span>'
-              + '<span class="dur">' + Math.floor(x.seg / 60) + ' min</span></div>';
-          }).join('') + '</div></div>' : '')
-      + '<div class="card full"><h3>Tu estantería por letra</h3><div class="sub">Cómo se reparte el alfabeto</div>'
-        + '<div class="chartwrap">' + columns(letras, 'var(--indigo)') + '</div></div>'
+
       + (prestados.length ? '<div class="card"><h3>Prestados ahora</h3><div class="sub">Quién tiene qué</div><div class="tl">'
         + prestados.map(function(d){
             return '<div class="trk"><span class="nm">' + esc(d.titulo) + '</span><span class="dur">' + esc(d.prestadoA) + '</span></div>';
@@ -8432,7 +8487,7 @@ function paintStats(){
       var f = new Date(t);
       var iso = f.getFullYear() + '-' + ('0' + (f.getMonth() + 1)).slice(-2) + '-' + ('0' + f.getDate()).slice(-2);
       var n = pd[iso] || 0;
-      celdas += '<i class="c n' + (n ? Math.min(4, Math.ceil(n / mx * 4)) : 0) + '"></i>';
+      celdas += '<i class="cday n' + (n ? Math.min(4, Math.ceil(n / mx * 4)) : 0) + '"></i>';
     }
     mini.innerHTML = '<div style="display:grid;grid-template-columns:repeat(28,1fr);gap:2px">' + celdas + '</div>';
   }
