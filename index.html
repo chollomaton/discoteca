@@ -1649,7 +1649,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.08c';
+var VERSION = '2026.09.11-fase1';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var view = 'col';
 var fType = 'all', fGen = '', fArt = '', fTag = '', fDec = '', fPais = '', fSello = '';
@@ -1842,6 +1842,7 @@ function normDisc(d){
     numeroCatalogo: d.numeroCatalogo || d.catalogNumber || '',
     pais: d.pais || d.country || '',
     estado: d.estado || d.condition || '',
+    estadoFunda: d.estadoFunda || '',
     fechaCompra: d.fechaCompra || '',
     precioCompra: Number(d.precioCompra) || 0,
     valorMercado: Number(d.valorMercado) || 0,
@@ -1860,8 +1861,10 @@ function normDisc(d){
     faltan: d.faltan || '',
     sinFoto: d.sinFoto ? 1 : 0,
     fotoDisco: d.fotoDisco || '',
+    editado: (d.editado && typeof d.editado === 'object') ? d.editado : {},
     enlazado: d.enlazado || '',
     fotoDisco: d.fotoDisco || '',
+    editado: (d.editado && typeof d.editado === 'object') ? d.editado : {},
     appleUrl: d.appleUrl || '',
     enlazado: d.enlazado || '',
     tecnica: d.tecnica && typeof d.tecnica === 'object' ? d.tecnica : null,
@@ -2882,12 +2885,20 @@ function fetchInfo(titulo, artista, formato, faltan){
   }).catch(function(){ return askAI(titulo, artista, formato, ''); });
 }
 
+/* Campos que rellenan automáticamente Apple Music, MusicBrainz y Discogs.
+   Si el usuario ha corregido alguno a mano, «Completar» no debe volver a pisarlo. */
+var CAMPOS_AUTO = ['año', 'sello', 'numeroCatalogo', 'pais', 'formatoDetalle', 'genero',
+  'portada', 'tracklist', 'titulo', 'artista', 'codigoBarras'];
+function protegido(d, campo){ return !!(d.editado && d.editado[campo]); }
 function aplicar(d, r, force){
   if(!r) return false;
   var cambios = false;
-  if(r.portada && (force || !d.portada)){ d.portada = r.portada; d.color = ''; cambios = true; }
-  if(r.tracklist && r.tracklist.length && (force || d.tracklist.length === 0)){ d.tracklist = normTracks(r.tracklist); cambios = true; }
+  if(r.portada && !protegido(d, 'portada') && (force || !d.portada)){ d.portada = r.portada; d.color = ''; cambios = true; }
+  if(r.tracklist && r.tracklist.length && !protegido(d, 'tracklist') && (force || d.tracklist.length === 0)){
+    d.tracklist = normTracks(r.tracklist); cambios = true;
+  }
   ['año','sello','numeroCatalogo','pais','formatoDetalle','genero','mbid','rgid','codigoBarras','appleUrl'].forEach(function(f){
+    if(protegido(d, f)) return;
     if(r[f] && (force || !d[f])){ d[f] = r[f]; cambios = true; }
   });
   if(r.notas && !d.notas){ d.notas = r.notas; cambios = true; }
@@ -3506,6 +3517,17 @@ function lectorZX(){
   hints.set(Z.DecodeHintType.TRY_HARDER, true);
   return new Z.BrowserMultiFormatReader(hints, 200);
 }
+/* Para el vídeo en vivo: sin TRY_HARDER, que es caro por fotograma y aquí
+   compensa más decodificar rápido y a menudo que a fondo y despacio */
+function lectorZXRapido(){
+  var Z = window.ZXing;
+  var hints = new Map();
+  hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [
+    Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.EAN_8,
+    Z.BarcodeFormat.UPC_E, Z.BarcodeFormat.CODE_128, Z.BarcodeFormat.CODE_39
+  ]);
+  return new Z.BrowserMultiFormatReader(hints, 60);
+}
 /* Reduce una foto a un tamaño que el lector maneja bien */
 function fotoParaLeer(file, lado){
   return new Promise(function(res, rej){
@@ -3542,7 +3564,8 @@ function escanear(alLeer){
     + '<div class="scanbox"><i></i><i></i><i></i><i></i></div><div class="scanline"></div></div>'
     + '<div class="note busy" id="snote" style="margin-top:12px">Preparando la cámara…</div>'
     + '<div class="warnb info" style="margin-top:14px">' + I.info
-    + '<span>Acerca el código hasta que llene el recuadro y sujeta firme un par de segundos. '
+    + '<span>Llena el recuadro con el código, plano y sin brillos, y sujétalo firme un momento. '
+    + 'Si la funda tiene una pegatina de precio con otro código, tapa esa pegatina o encuadra solo el original. '
     + 'Con poca luz cuesta: usa la opción de la foto.</span></div>'
     + '<div class="group"><div class="grow"><label>O escríbelo</label>'
     + '<input id="cbMan" type="text" inputmode="numeric" enterkeyhint="search" placeholder="0724384296520"></div></div>';
@@ -3550,6 +3573,7 @@ function escanear(alLeer){
     + '<div class="rowb"><button class="btn" id="scanCancel">Cancelar</button><button class="btn pri" id="cbOk">Buscar</button></div>';
   var s = sheet('Escanear disco', body, pie);
   var video = s.querySelector('#vid'), stream = null, parar = false, lector = null;
+  var lienzo = document.createElement('canvas');
   var nota = function(txt, cls){ var n = s.querySelector('#snote'); if(n){ n.className = 'note ' + (cls || 'busy'); n.textContent = txt; } };
   var cerrar = function(){
     parar = true;
@@ -3595,39 +3619,98 @@ function escanear(alLeer){
 
   /* La cámara necesita resolución alta: con 640x480 las barras finas no se resuelven */
   var restricciones = {
-    video: {
-      facingMode: {ideal:'environment'},
-      width: {ideal: 1920}, height: {ideal: 1080},
-      focusMode: 'continuous', advanced: [{focusMode:'continuous'}]
+    video: { facingMode: {ideal:'environment'}, width: {ideal: 1920}, height: {ideal: 1080} }
+  };
+
+  /* Recorta de cada fotograma solo la región que se ve dentro del recuadro visual
+     (algo más ancha, por margen de error), respetando que el vídeo se muestra con
+     object-fit:cover. Decodificar solo esa zona -en vez del fotograma entero- evita
+     que el lector se distraiga con una segunda pegatina de código, el fondo o los
+     bordes desenfocados, y además va más rápido al tener menos imagen que analizar. */
+  var regionDeVideo = function(fx1, fy1, fx2, fy2){
+    var vw = video.videoWidth, vh = video.videoHeight;
+    var cw = video.clientWidth || vw, ch = video.clientHeight || vh;
+    if(!vw || !vh || !cw || !ch) return null;
+    var contA = cw / ch, vidA = vw / vh, sx1, sy1, sx2, sy2;
+    if(vidA >= contA){
+      var visW = contA / vidA;
+      sx1 = (0.5 - visW / 2 + fx1 * visW) * vw; sx2 = (0.5 - visW / 2 + fx2 * visW) * vw;
+      sy1 = fy1 * vh; sy2 = fy2 * vh;
+    }else{
+      var visH = vidA / contA;
+      sy1 = (0.5 - visH / 2 + fy1 * visH) * vh; sy2 = (0.5 - visH / 2 + fy2 * visH) * vh;
+      sx1 = fx1 * vw; sx2 = fx2 * vw;
     }
+    sx1 = Math.max(0, sx1); sy1 = Math.max(0, sy1); sx2 = Math.min(vw, sx2); sy2 = Math.min(vh, sy2);
+    return {sx:sx1, sy:sy1, sw:sx2 - sx1, sh:sy2 - sy1};
   };
-  var conNativo = function(){
-    if(!('BarcodeDetector' in window)) return Promise.reject(new Error('sin api'));
-    var det = new window.BarcodeDetector({formats:['ean_13','upc_a','ean_8','upc_e','code_128']});
-    return navigator.mediaDevices.getUserMedia(restricciones).then(function(st){
-      stream = st; video.srcObject = st;
-      nota('Encuadra el código de barras de la contraportada');
-      var tick = function(){
-        if(parar) return;
-        det.detect(video).then(function(c){
-          if(c && c.length) return encontrado(c[0].rawValue);
-          setTimeout(tick, 250);
-        }).catch(function(){ setTimeout(tick, 450); });
-      };
-      video.play().then(function(){ setTimeout(tick, 500); }).catch(function(){ setTimeout(tick, 900); });
+  var fotogramaRecortado = function(){
+    var r = regionDeVideo(0.08, 0.16, 0.92, 0.84);
+    if(!r || r.sw < 40 || r.sh < 20) return null;
+    var destW = Math.min(1100, Math.max(500, r.sw));
+    var escala = destW / r.sw;
+    lienzo.width = Math.round(r.sw * escala);
+    lienzo.height = Math.round(r.sh * escala);
+    var ctx = lienzo.getContext('2d');
+    ctx.drawImage(video, r.sx, r.sy, r.sw, r.sh, 0, 0, lienzo.width, lienzo.height);
+    return lienzo;
+  };
+
+  /* Se exigen dos lecturas seguidas iguales antes de dar el código por bueno,
+     para no aceptar una lectura mala por casualidad de una pegatina distinta. */
+  var ultimo = '', repetidas = 0;
+  var registrar = function(codigo){
+    if(codigo === ultimo) repetidas++;
+    else{ ultimo = codigo; repetidas = 1; }
+    if(repetidas >= 2){ encontrado(codigo); return true; }
+    return false;
+  };
+
+  var detNativo = ('BarcodeDetector' in window)
+    ? new window.BarcodeDetector({formats:['ean_13','upc_a','ean_8','upc_e','code_128']}) : null;
+  var inicio = Date.now(), avisado = false;
+  var bucle = function(){
+    if(parar) return;
+    if(!avisado && Date.now() - inicio > 14000){
+      avisado = true;
+      nota('¿Sigue sin leerlo? Prueba «Usar una foto» o escribe el código a mano.', 'err');
+    }
+    var c = fotogramaRecortado();
+    if(!c){ setTimeout(bucle, 200); return; }
+    var conNativo = detNativo ? detNativo.detect(c).then(function(r){
+      return (r && r.length) ? r[0].rawValue : null;
+    }).catch(function(){ return null; }) : Promise.resolve(null);
+    conNativo.then(function(codigo){
+      if(codigo || !lector) return codigo;
+      try{
+        var r = lector.decodeFromCanvas(c);
+        return r ? r.getText() : null;
+      }catch(e){ return null; }
+    }).then(function(codigo){
+      if(parar) return;
+      if(codigo && registrar(codigo)) return;
+      setTimeout(bucle, 180);
     });
   };
-  var conZX = function(){
-    nota('Preparando el lector…');
-    return cargarZX().then(function(){
-      lector = lectorZX();
-      nota('Encuadra el código de barras de la contraportada');
-      return lector.decodeFromConstraints(restricciones, video, function(result, err){
-        if(result) encontrado(result.getText());
-      });
-    });
-  };
-  conNativo().catch(conZX).catch(function(){
+
+  navigator.mediaDevices.getUserMedia(restricciones).then(function(st){
+    stream = st; video.srcObject = st;
+    /* enfoque continuo si el dispositivo lo permite; si no, no pasa nada */
+    try{
+      var track = st.getVideoTracks()[0];
+      var caps = track && track.getCapabilities && track.getCapabilities();
+      if(caps && caps.focusMode && caps.focusMode.indexOf('continuous') >= 0){
+        track.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(function(){});
+      }
+    }catch(e){}
+    /* el lector ZXing se prepara siempre, como respaldo del detector nativo
+       (que en Safari/iPhone no existe) o cuando el nativo no encuentra nada */
+    return cargarZX().catch(function(){ return null; });
+  }).then(function(){
+    if(window.ZXing) lector = lectorZXRapido();
+    nota('Encuadra el código dentro del recuadro');
+    video.play().then(function(){ setTimeout(bucle, 400); }).catch(function(){ setTimeout(bucle, 800); });
+  }).catch(function(){
     nota('No se pudo abrir la cámara. Escribe el código o usa una foto.', 'err');
   });
 }
@@ -4694,12 +4777,15 @@ function openDetail(id, desde){
     + (hermanos.length && !readOnly ? '<div class="warnb">' + I.copy + '<span>Tienes ' + (hermanos.length + 1)
       + ' fichas iguales de este disco. <a href="#" id="fusionar" style="color:var(--blue)">Fusionarlas en una</a></span></div>' : '')
     + (d.confianza === 'baja' && !readOnly ? '<div class="warnb">' + I.warn
-      + '<span>Estos datos se rellenaron con una coincidencia dudosa. Revísalos o <a href="#" id="otraEd" style="color:var(--blue)">elige otra edición</a>.</span></div>' : '')
+      + '<span>Estos datos se rellenaron con una coincidencia dudosa. Revísalos, '
+      + '<a href="#" id="otraEd" style="color:var(--blue)">elige otra edición</a> '
+      + 'o <a href="#" id="darPorBueno" style="color:var(--blue)">da estos por buenos</a>.</span></div>' : '')
     + '<div class="specs">'
     + spec('Soporte', d.formato) + spec('Formato', d.formatoDetalle || '—') + spec('Año', d['año'] || '—')
     + spec('Sello', d.sello || '—') + spec('Catálogo', d.numeroCatalogo || '—')
     + spec('País', d.pais ? (bandera(d.pais) + ' ' + nombrePais(d.pais)) : '—')
-    + spec('Estado', d.estado || '—')
+    + spec('Estado del disco', d.estado || '—')
+    + spec('Estado de la funda', d.estadoFunda || '—')
     + spec('Comprado', d.fechaCompra ? new Date(d.fechaCompra).toLocaleDateString('es-ES') : '—')
     + spec('Precio', d.precioCompra ? d.precioCompra.toFixed(2) + ' €' : '—')
     + spec('Dónde está', d.ubicacion || '—')
@@ -4860,6 +4946,14 @@ function openDetail(id, desde){
   };
   if($('#fusionar')) $('#fusionar').onclick = function(e){ e.preventDefault(); s.remove(); fusionarDuplicados(d); };
   if($('#otraEd')) $('#otraEd').onclick = function(e){ e.preventDefault(); elegirEdicion(d, s); };
+  if($('#darPorBueno')) $('#darPorBueno').onclick = function(e){
+    e.preventDefault();
+    d.confianza = '';
+    persist();
+    toast('Datos confirmados');
+    s.remove();
+    openDetail(d.id);
+  };
   if($('#escuchado')) $('#escuchado').onclick = function(){
     var otra = otraEdicion(d);
     if(otra && d.enlazado && !escuchadoHoy(d) && !escuchadoHoy(otra)){
@@ -5273,9 +5367,13 @@ function openForm(item, listaDestino){
       + fieldRow('País', '<input id="fP" type="text" value="' + esc(d.pais) + '" placeholder="ES, US, GB…">')
     + '</div>'
     + '<div class="gtit">Compra y ubicación</div><div class="group">'
-      + fieldRow('Estado', '<select id="fS"><option value="">Sin indicar</option>'
+      + fieldRow('Estado del disco', '<select id="fS"><option value="">Sin indicar</option>'
         + ESTADOS.map(function(e){ return '<option value="' + esc(e) + '"' + (e === d.estado ? ' selected' : '') + '>' + esc(e) + '</option>'; }).join('')
         + (d.estado && ESTADOS.indexOf(d.estado) < 0 ? '<option value="' + esc(d.estado) + '" selected>' + esc(d.estado) + '</option>' : '')
+        + '</select>' + CHEV)
+      + fieldRow('Estado de la funda', '<select id="fSf"><option value="">Sin indicar</option>'
+        + ESTADOS.map(function(e){ return '<option value="' + esc(e) + '"' + (e === d.estadoFunda ? ' selected' : '') + '>' + esc(e) + '</option>'; }).join('')
+        + (d.estadoFunda && ESTADOS.indexOf(d.estadoFunda) < 0 ? '<option value="' + esc(d.estadoFunda) + '" selected>' + esc(d.estadoFunda) + '</option>' : '')
         + '</select>' + CHEV)
       + fieldRow('Comprado', '<input id="fD" type="date" value="' + esc(d.fechaCompra) + '">')
       + fieldRow('Precio (€)', '<input id="fPr" type="number" step="0.01" min="0" value="' + (d.precioCompra || '') + '" placeholder="0,00">')
@@ -5443,7 +5541,7 @@ function openForm(item, listaDestino){
       titulo: $('#fT').value.trim(), artista: $('#fA').value.trim(),
       genero: $('#fG').value, 'año': $('#fY').value.trim(), formatoDetalle: $('#fF').value.trim(),
       sello: $('#fL').value.trim(), numeroCatalogo: $('#fC').value.trim(), pais: $('#fP').value.trim().toUpperCase(),
-      estado: $('#fS').value.trim(), fechaCompra: $('#fD').value,
+      estado: $('#fS').value.trim(), estadoFunda: $('#fSf').value.trim(), fechaCompra: $('#fD').value,
       precioCompra: parseFloat($('#fPr').value) || 0, valorMercado: parseFloat($('#fVm').value) || 0,
       portada: portada, tracklist: tracks.filter(function(t){ return t.titulo.trim(); }),
       notas: $('#fN').value.trim(),
@@ -5455,9 +5553,16 @@ function openForm(item, listaDestino){
       discogs: (ref && ref.tipo === 'discogs') ? ref.url : d.discogs,
       codigoBarras: d.codigoBarras, color: d.color, escuchas: d.escuchas, ultimaEscucha: d.ultimaEscucha,
       prestadoA: d.prestadoA, prestadoDesde: d.prestadoDesde, confianza: d.confianza,
-      fechaAlta: d.fechaAlta || nowISO()
+      fechaAlta: d.fechaAlta || nowISO(), editado: Object.assign({}, d.editado)
     });
     if(!n.titulo && !n.artista){ toast('Falta el título o el artista', true); return; }
+    /* los campos que rellenan las fuentes externas quedan protegidos si el usuario
+       los ha escrito o cambiado a mano, para que «Completar» no los vuelva a pisar */
+    CAMPOS_AUTO.forEach(function(f){
+      var antes = d[f], ahora = n[f];
+      var cambiado = Array.isArray(ahora) ? JSON.stringify(ahora) !== JSON.stringify(antes) : ahora !== antes;
+      if(cambiado && ahora){ n.editado[f] = true; }
+    });
     if(n.lista === 'deseos'){
       var yaTengo = equivalenteEn(n, 'coleccion');
       if(yaTengo.length && !confirm('Ya tienes «' + yaTengo[0].titulo + '» de ' + yaTengo[0].artista
@@ -7510,14 +7615,16 @@ async function revisarDisco(d, res){
       if(!d.rgid && mb.rgId) d.rgid = mb.rgId;
       var tocado = false;
       ['sello', 'numeroCatalogo', 'pais', 'formatoDetalle', 'codigoBarras'].forEach(function(f){
-        if(!d[f] && mb[f]){ d[f] = mb[f]; tocado = true; }
+        if(!d[f] && !protegido(d, f) && mb[f]){ d[f] = mb[f]; tocado = true; }
       });
-      if(!d['año'] && (mb.anioOriginal || mb['año'])){ d['año'] = mb.anioOriginal || mb['año']; tocado = true; }
+      if(!d['año'] && !protegido(d, 'año') && (mb.anioOriginal || mb['año'])){
+        d['año'] = mb.anioOriginal || mb['año']; tocado = true;
+      }
       if(tocado) res.datos++;
       if(!d.tracklist.length && mb.tracklist.length){
         d.tracklist = normTracks(mb.tracklist);
         res.tracks++;
-      }else if(mb.tracklist.length === d.tracklist.length
+      }else if(!protegido(d, 'tracklist') && mb.tracklist.length === d.tracklist.length
           && !d.tracklist.some(function(t){ return t.disco > 1 || t.pos; })){
         /* mismo número de cortes: añadimos la unidad sin tocar los títulos */
         var hayVarias = mb.tracklist.some(function(t){ return (t.disco || 1) > 1; });
