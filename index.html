@@ -479,6 +479,27 @@ svg.mapa .chip:hover text{fill:#fff}
 .aicard .txt b{color:var(--txt);font-weight:600}
 .note{font-size:12.5px;font-weight:500;margin-top:8px;text-align:center}
 .note.ok{color:var(--green)}.note.err{color:var(--red)}.note.busy{color:var(--txt2)}
+/* tu año en un vistazo */
+.anowrap{position:fixed;inset:0;z-index:170;animation:fade .2s var(--ease)}
+.anoslide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:0 40px;color:#fff;text-align:center}
+.anox{position:absolute;top:calc(18px + var(--sat));right:18px;width:38px;height:38px;border-radius:50%;
+  border:none;background:rgba(0,0,0,.25);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.anox .ic{width:17px;height:17px}
+.anoimg{width:180px;height:180px;border-radius:16px;object-fit:cover;margin-bottom:22px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.anok{font-size:19px;font-weight:600;opacity:.88}
+.anok span{font-weight:400;opacity:.8}
+.anov{font-size:96px;font-weight:750;letter-spacing:-.04em;margin-top:6px;line-height:1.05}
+.anov.txt{font-size:42px;max-width:92%;line-height:1.2}
+.anom{font-size:17px;margin-top:10px;opacity:.85}
+.anodots{position:absolute;top:calc(16px + var(--sat));left:0;right:0;display:flex;gap:6px;justify-content:center;padding:0 60px}
+.anodots i{flex:1;max-width:44px;height:3px;border-radius:99px;background:rgba(255,255,255,.3)}
+.anodots i.on{background:#fff}
+.anonav{position:absolute;bottom:calc(30px + var(--sab));left:0;right:0;display:flex;justify-content:space-between;padding:0 24px}
+.anonav button{background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:999px;padding:12px 24px;
+  font-size:15px;font-weight:600;cursor:pointer;font-family:inherit}
+@media (max-width:760px){ .anov{font-size:72px} .anoimg{width:150px;height:150px} }
+
 .warnb{display:flex;gap:9px;align-items:flex-start;background:rgba(255,149,0,.13);color:var(--txt);font-size:13.2px;padding:11px 13px;
   border-radius:var(--r-sm);margin-bottom:14px;line-height:1.4}
 .warnb .ic{width:16px;height:16px;color:var(--orange);margin-top:1px;flex-shrink:0}
@@ -1645,11 +1666,11 @@ label.trk{cursor:pointer}
 var IDB_NAME = 'discoteca', IDB_STORE = 'kv', K_DATOS = 'datos', K_CFG = 'config';
 var LS_KEY = 'discoteca.local.v4';
 var DB = { version: 4, actualizado: '', discos: [], borrados: [] };
-var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', discogs: '', auto: true };
+var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', discogs: '', anthropic: '', lastfm: '', ticketmaster: '', audd: '', subirADiscogs: false, auto: true };
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.11-fase1';
+var VERSION = '2026.09.12-streaming';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var view = 'col';
 var fType = 'all', fGen = '', fArt = '', fTag = '', fDec = '', fPais = '', fSello = '';
@@ -2427,6 +2448,31 @@ function pantallaSync(){
     + '<div style="font-size:12.5px;color:var(--txt2);line-height:1.5;margin:-4px 0 14px 3px">'
     + 'El token se crea en GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens, '
     + 'con permiso <b>Contents: Read and write</b> sobre ese único repositorio.</div>'
+    + '<div class="warnb">' + I.warn + '<span>Más opcional aún: una <b>clave de API de Anthropic</b> permite identificar '
+    + 'un disco por la foto de su portada cuando el código de barras no se puede leer. Tiene un coste pequeño por foto '
+    + '(unos céntimos) que se cobra en tu cuenta de Anthropic, y queda guardada en este dispositivo igual que los demás '
+    + 'tokens: visible para quien tenga acceso físico a él. Sin ella, esa opción simplemente no aparece.</span></div>'
+    + '<div class="group"><div class="grow"><label>Clave de Anthropic</label>'
+    + '<input id="sAntropic" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.anthropic || '') + '" placeholder="sk-ant-…"></div></div>'
+    + '<div class="warnb info">' + I.info + '<span>Opcional y gratis: una <b>clave de Last.fm</b> da una biografía del '
+    + 'artista cuando Wikipedia en español no tiene artículo sobre él. Se crea en last.fm/api/account/create, '
+    + 'sin coste.</span></div>'
+    + '<div class="group"><div class="grow"><label>Clave de Last.fm</label>'
+    + '<input id="sLastfm" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.lastfm || '') + '" placeholder="opcional"></div></div>'
+    + (hayDiscogs() ? '<div class="fila" style="margin-top:4px"><div><div class="ft">Subir a Discogs al añadir aquí</div>'
+        + '<div class="fs">Cuando des de alta un disco que ya tenga edición de Discogs enlazada, se añade también '
+        + 'a tu colección de Discogs.</div></div>'
+        + '<input type="checkbox" id="sSubir" style="width:20px;height:20px;accent-color:var(--blue)"' + (CFG.subirADiscogs ? ' checked' : '') + '></div>' : '')
+    + '<div class="warnb info">' + I.info + '<span>Opcional y gratis: una <b>clave de Ticketmaster</b> avisa de conciertos '
+    + 'cerca de ti de artistas que ya tienes. Se crea en developer.ticketmaster.com, sin coste, con un límite '
+    + 'generoso de consultas al día.</span></div>'
+    + '<div class="group"><div class="grow"><label>Clave de Ticketmaster</label>'
+    + '<input id="sTM" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.ticketmaster || '') + '" placeholder="opcional"></div></div>'
+    + '<div class="warnb">' + I.warn + '<span>Más opcional aún: una <b>clave de AudD</b> permite reconocer una canción '
+    + 'grabando unos segundos con el micrófono, como Shazam. Su plan gratuito es muy limitado; para usarlo con '
+    + 'cierta frecuencia hace falta un plan de pago en audd.io.</span></div>'
+    + '<div class="group"><div class="grow"><label>Clave de AudD</label>'
+    + '<input id="sAudd" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.audd || '') + '" placeholder="opcional"></div></div>'
     + '<div id="snote"></div>';
   var pie = (configurado()
       ? '<button class="btn destr" id="sOff">Desconectar</button>'
@@ -2438,7 +2484,10 @@ function pantallaSync(){
     return {
       owner: $('#sOwner').value.trim(), repo: $('#sRepo').value.trim(),
       branch: $('#sBranch').value.trim() || 'main', path: $('#sPath').value.trim() || 'datos.json',
-      token: $('#sToken').value.trim(), discogs: $('#sDisc').value.trim(), auto: true
+      token: $('#sToken').value.trim(), discogs: $('#sDisc').value.trim(),
+      anthropic: $('#sAntropic').value.trim(), lastfm: $('#sLastfm').value.trim(),
+      ticketmaster: $('#sTM').value.trim(), audd: $('#sAudd').value.trim(),
+      subirADiscogs: $('#sSubir') ? $('#sSubir').checked : false, auto: true
     };
   };
   var probar = function(cfg){
@@ -2480,7 +2529,7 @@ function pantallaSync(){
   };
   if($('#sOff')) $('#sOff').onclick = function(){
     if(!confirm('¿Desconectar este dispositivo? La colección se quedará solo aquí.')) return;
-    CFG = {owner:'', repo:'', branch:'main', path:'datos.json', token:'', discogs:CFG.discogs || '', auto:true};
+    CFG = {owner:'', repo:'', branch:'main', path:'datos.json', token:'', discogs:CFG.discogs || '', anthropic:CFG.anthropic || '', lastfm:CFG.lastfm || '', ticketmaster:CFG.ticketmaster || '', audd:CFG.audd || '', subirADiscogs:false, auto:true};
     SHA = '';
     guardarCfg();
     readOnly = true;
@@ -2697,18 +2746,6 @@ function coverArchive(relId, rgId, px){
     var v = 'https://coverartarchive.org/release-group/' + rgId + '/front-' + t;
     return headStatus(v).then(function(s2){ return s2 === 1 ? v : ''; });
   }).catch(function(){ return ''; });
-}
-
-/* ---------- foto del disco físico ---------- */
-function fotoDelSoporte(mbid){
-  if(!mbid) return Promise.reject(new Error('sin mbid'));
-  return jget('https://coverartarchive.org/release/' + mbid, 'mb', 900).then(function(j){
-    var medio = (j.images || []).filter(function(im){
-      return (im.types || []).indexOf('Medium') >= 0;
-    })[0];
-    if(!medio) throw new Error('sin foto del soporte');
-    return (medio.thumbnails && (medio.thumbnails.large || medio.thumbnails['500'])) || medio.image;
-  });
 }
 
 /* ---------- foto del disco físico (Cover Art Archive, tipo "Medium") ---------- */
@@ -3018,6 +3055,379 @@ function aplicarCandidato(d, cand){
 
 /* ---------- Discogs (opcional, con token propio) ---------- */
 function hayDiscogs(){ return !!(CFG && CFG.discogs); }
+function hayAnthropic(){ return !!(CFG && CFG.anthropic); }
+function hayLastfm(){ return !!(CFG && CFG.lastfm); }
+function hayTicketmaster(){ return !!(CFG && CFG.ticketmaster); }
+function hayAudd(){ return !!(CFG && CFG.audd); }
+
+/* ============================================================
+   ¿QUÉ ESTÁ SONANDO? (identificación por micrófono, AudD)
+   ============================================================ */
+function queEstaSonando(){
+  if(!hayAudd()){ toast('Configura antes tu clave de AudD en Ajustes', true); return; }
+  var s = sheet('¿Qué está sonando?',
+    '<div style="text-align:center;padding:20px 10px">'
+    + '<div id="qsIco" style="width:90px;height:90px;border-radius:50%;background:var(--blue-s);color:var(--blue);'
+    + 'display:flex;align-items:center;justify-content:center;margin:0 auto 18px">' + I.aguja + '</div>'
+    + '<div id="qsNota" style="font-size:15px;color:var(--txt2)">Pulsa grabar y acerca el móvil a la música, unos 7 segundos.</div>'
+    + '</div>', '<span></span><button class="btn pri" id="qsGo">Grabar</button>', true);
+  var ico = s.querySelector('#qsIco'), nota = s.querySelector('#qsNota');
+  s.querySelector('#qsGo').onclick = function(e){
+    var boton = e.currentTarget;
+    boton.disabled = true;
+    navigator.mediaDevices.getUserMedia({audio: true}).then(function(stream){
+      ico.style.background = 'rgba(255,59,48,.15)'; ico.style.color = 'var(--red)';
+      nota.textContent = 'Grabando… no lo cierres';
+      var chunks = [];
+      var mr = new MediaRecorder(stream);
+      mr.ondataavailable = function(e2){ if(e2.data.size) chunks.push(e2.data); };
+      mr.onstop = function(){
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        nota.textContent = 'Reconociendo…';
+        var blob = new Blob(chunks, {type: mr.mimeType || 'audio/webm'});
+        var fd = new FormData();
+        fd.append('api_token', CFG.audd);
+        fd.append('file', blob, 'audio.webm');
+        fd.append('return', 'apple_music');
+        fetch('https://api.audd.io/', {method: 'POST', body: fd})
+          .then(function(r){ return r.json(); })
+          .then(function(j){
+            var r = j.result;
+            if(!r){ nota.textContent = 'No se ha reconocido nada. Prueba con más volumen y menos ruido de fondo.'; boton.disabled = false; return; }
+            var propio = coleccion().filter(function(d){
+              return plain(d.artista) === plain(r.artist) && (plain(d.titulo) === plain(r.album) || similitud(d.titulo, r.album) >= .7);
+            })[0];
+            var cuerpo = s.querySelector('div[style*="text-align:center"]');
+            cuerpo.innerHTML = '<div style="font-size:13px;color:var(--txt3);text-transform:uppercase;letter-spacing:.06em;font-weight:700">Reconocido</div>'
+              + '<div style="font-size:19px;font-weight:650;margin-top:6px">' + esc(r.title) + '</div>'
+              + '<div style="font-size:15px;color:var(--blue);margin-top:2px">' + esc(r.artist) + '</div>'
+              + (r.album ? '<div style="font-size:13.5px;color:var(--txt2);margin-top:2px">' + esc(r.album) + '</div>' : '')
+              + '<div class="rowb" style="justify-content:center;margin-top:18px">'
+              + (propio
+                ? '<button class="btn pri" id="qsVer">' + I.check + 'Ya lo tienes · ver ficha</button>'
+                : '<button class="btn" id="qsDeseo">' + I.lampara + 'Añadir a deseos</button>')
+              + '</div>';
+            var bv = cuerpo.querySelector('#qsVer');
+            if(bv) bv.onclick = function(){ s.remove(); openDetail(propio.id); };
+            var bd = cuerpo.querySelector('#qsDeseo');
+            if(bd) bd.onclick = function(){
+              DB.discos.push(normDisc({id: uid(), lista: 'deseos', artista: r.artist, titulo: r.album || r.title, fechaAlta: nowISO()}));
+              persist();
+              s.remove();
+              toast('Añadido a deseos');
+            };
+          }).catch(function(){
+            nota.textContent = 'No se pudo consultar AudD. Comprueba tu clave y tu conexión.';
+            boton.disabled = false;
+          });
+      };
+      mr.start();
+      setTimeout(function(){ if(mr.state === 'recording') mr.stop(); }, 7000);
+    }).catch(function(){
+      nota.textContent = 'No se pudo usar el micrófono.';
+      boton.disabled = false;
+    });
+  };
+}
+
+function datosDelAno(){
+  var ds = coleccion();
+  var anio = String(new Date().getFullYear());
+  var nuevos = ds.filter(function(d){ return (d.fechaAlta || '').slice(0, 4) === anio; });
+  var escuchasAno = [];
+  ds.forEach(function(d){
+    (d.escuchasFechas || []).forEach(function(f){ if(f.slice(0, 4) === anio) escuchasAno.push({d:d, f:f}); });
+  });
+  var porArtista = {};
+  escuchasAno.forEach(function(x){ porArtista[x.d.artista] = (porArtista[x.d.artista] || 0) + 1; });
+  var topArtista = Object.keys(porArtista).sort(function(a, b){ return porArtista[b] - porArtista[a]; })[0];
+  var porDisco = {};
+  escuchasAno.forEach(function(x){ porDisco[x.d.id] = (porDisco[x.d.id] || 0) + 1; });
+  var topDiscoId = Object.keys(porDisco).sort(function(a, b){ return porDisco[b] - porDisco[a]; })[0];
+  var topDisco = topDiscoId ? DB.discos.filter(function(x){ return x.id === topDiscoId; })[0] : null;
+  var a = horasAguja ? horasAguja() : {horas: 0};
+  return {
+    anio: anio, total: ds.length, nuevos: nuevos.length,
+    escuchas: escuchasAno.length, topArtista: topArtista, topArtistaN: porArtista[topArtista] || 0,
+    topDisco: topDisco, topDiscoN: topDisco ? porDisco[topDisco.id] : 0, horasAguja: a.horas
+  };
+}
+function tuAnoEnUnVistazo(){
+  var d = datosDelAno();
+  var slides = [
+    {t: 'Tu ' + d.anio, s: 'en Discoteca', v: d.total, k: 'discos en tu colección', c: '#0071e3,#5ac8fa'},
+    {t: 'Este año entraron', s: '', v: d.nuevos, k: d.nuevos === 1 ? 'disco nuevo' : 'discos nuevos', c: '#34c759,#30d158'},
+    {t: 'Has escuchado', s: '', v: d.escuchas, k: d.escuchas === 1 ? 'vez' : 'veces', c: '#ff9500,#ffcc00'},
+    {t: 'Tu artista', s: 'de este año', v: d.topArtista || '—', k: d.topArtistaN ? d.topArtistaN + ' escuchas' : '', c: '#af52de,#ff2d55', texto: true},
+    {t: 'Tu disco', s: 'más puesto', v: d.topDisco ? d.topDisco.titulo : '—', k: d.topDisco ? esc(d.topDisco.artista) : '', c: '#ff3b30,#ff9500', texto: true, img: d.topDisco && d.topDisco.portada},
+    {t: 'Horas de aguja', s: 'este año y siempre', v: Math.round(d.horasAguja), k: 'horas de vinilo', c: '#5856d6,#af52de'}
+  ].filter(function(sl){ return sl.v !== 0 && sl.v !== '—'; });
+  if(!slides.length){ toast('Aún no hay datos suficientes este año', true); return; }
+  var i = 0;
+  var wrap = document.createElement('div');
+  wrap.className = 'anowrap';
+  document.body.appendChild(wrap);
+  var pinta = function(){
+    var sl = slides[i];
+    var grad = sl.c.split(',');
+    wrap.innerHTML = '<div class="anoslide" style="background:linear-gradient(150deg,' + grad[0] + ',' + grad[1] + ')">'
+      + '<button class="anox" id="anoX">' + I.x + '</button>'
+      + (sl.img ? '<img class="anoimg" src="' + esc(sl.img) + '" alt="" onerror="this.remove()">' : '')
+      + '<div class="anok">' + esc(sl.t) + (sl.s ? ' <span>' + esc(sl.s) + '</span>' : '') + '</div>'
+      + '<div class="anov' + (sl.texto ? ' txt' : '') + '">' + (sl.texto ? esc(String(sl.v)) : sl.v) + '</div>'
+      + (sl.k ? '<div class="anom">' + esc(sl.k) + '</div>' : '')
+      + '<div class="anodots">' + slides.map(function(_, j){ return '<i class="' + (j === i ? 'on' : '') + '"></i>'; }).join('') + '</div>'
+      + '<div class="anonav"><button id="anoPrev">‹</button><button id="anoNext">' + (i === slides.length - 1 ? 'Compartir' : '›') + '</button></div>'
+      + '</div>';
+    wrap.querySelector('#anoX').onclick = function(){ wrap.remove(); };
+    wrap.querySelector('#anoPrev').onclick = function(){ if(i > 0){ i--; pinta(); } };
+    wrap.querySelector('#anoNext').onclick = function(){
+      if(i < slides.length - 1){ i++; pinta(); return; }
+      compartirSlide(sl, grad);
+    };
+  };
+  pinta();
+}
+function compartirSlide(sl, grad){
+  var W = 1080, H = 1350;
+  var c = document.createElement('canvas'); c.width = W; c.height = H;
+  var x = c.getContext('2d');
+  var g = x.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, grad[0]); g.addColorStop(1, grad[1]);
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#fff'; x.textAlign = 'center';
+  x.font = '600 40px -apple-system, Helvetica, Arial';
+  x.fillText(sl.t + (sl.s ? ' ' + sl.s : ''), W / 2, 420);
+  x.font = sl.texto ? '700 62px -apple-system, Helvetica, Arial' : '700 150px -apple-system, Helvetica, Arial';
+  var texto = String(sl.v);
+  if(sl.texto && texto.length > 22) texto = texto.slice(0, 20) + '…';
+  x.fillText(texto, W / 2, 620);
+  if(sl.k){ x.font = '500 36px -apple-system, Helvetica, Arial'; x.fillStyle = 'rgba(255,255,255,.85)'; x.fillText(sl.k, W / 2, 690); }
+  x.font = '600 30px -apple-system, Helvetica, Arial'; x.fillStyle = 'rgba(255,255,255,.7)';
+  x.fillText('Discoteca', W / 2, H - 80);
+  c.toBlob(function(blob){
+    if(!blob) return;
+    var file = new File([blob], 'mi-ano.png', {type: 'image/png'});
+    if(navigator.canShare && navigator.canShare({files: [file]})) navigator.share({files: [file]}).catch(function(){});
+    else{ download('mi-ano-en-discoteca.png', blob); toast('Imagen descargada'); }
+  }, 'image/png');
+}
+
+
+/* ============================================================
+   CONCIERTOS CERCA DE TI (Ticketmaster Discovery API)
+   ============================================================ */
+function tmBuscarArtista(nombre, lat, lon){
+  var u = 'https://app.ticketmaster.com/discovery/v2/events.json?apikey=' + encodeURIComponent(CFG.ticketmaster)
+    + '&keyword=' + encodeURIComponent(nombre) + '&classificationName=music&size=5&sort=date,asc';
+  if(lat != null) u += '&latlong=' + lat + ',' + lon + '&radius=150&unit=km';
+  return fetch(u).then(function(r){
+    if(!r.ok) throw new Error('http' + r.status);
+    return r.json();
+  }).then(function(j){
+    var eventos = (j._embedded && j._embedded.events) || [];
+    /* Ticketmaster no filtra por artista exacto: nos quedamos con los que
+       de verdad mencionan a este artista en el cartel. */
+    return eventos.filter(function(ev){
+      var artistas = ((ev._embedded && ev._embedded.attractions) || []).map(function(a){ return plain(a.name); });
+      return artistas.indexOf(plain(nombre)) >= 0;
+    }).map(function(ev){
+      var venue = ((ev._embedded && ev._embedded.venues) || [])[0] || {};
+      return {
+        artista: nombre, nombre: ev.name,
+        fecha: ev.dates && ev.dates.start && ev.dates.start.localDate,
+        ciudad: venue.city && venue.city.name, sala: venue.name,
+        url: ev.url
+      };
+    });
+  }).catch(function(){ return []; });
+}
+async function conciertosCerca(){
+  if(!hayTicketmaster()){ toast('Configura antes tu clave de Ticketmaster en Ajustes', true); return; }
+  var m = {};
+  coleccion().forEach(function(d){ if(d.artista) m[d.artista] = (m[d.artista] || 0) + 1; });
+  var artistas = Object.keys(m).sort(function(a, b){ return m[b] - m[a]; }).slice(0, 25);
+  var s = sheet('Conciertos cerca de ti',
+    '<div class="warnb info">' + I.info + '<span>Se comprueban tus ' + artistas.length
+    + ' artistas con más discos. Puede tardar medio minuto.</span></div>'
+    + '<div class="note busy" id="cnote">Pidiendo tu ubicación…</div><div id="cres"></div>', null, true);
+  var lat = null, lon = null;
+  try{
+    var pos = await new Promise(function(res, rej){
+      if(!navigator.geolocation) return rej(new Error('sin geolocalización'));
+      navigator.geolocation.getCurrentPosition(res, rej, {timeout: 6000});
+    });
+    lat = pos.coords.latitude; lon = pos.coords.longitude;
+  }catch(e){ /* seguimos sin ubicación: Ticketmaster también acepta buscar solo por nombre */ }
+  var nota = s.querySelector('#cnote');
+  var out = [];
+  for(var i = 0; i < artistas.length; i++){
+    nota.textContent = 'Comprobando ' + artistas[i] + '… (' + (i + 1) + '/' + artistas.length + ')';
+    var eventos = await tmBuscarArtista(artistas[i], lat, lon);
+    out = out.concat(eventos);
+    await new Promise(function(r){ setTimeout(r, 120); });
+  }
+  nota.style.display = 'none';
+  var caja = s.querySelector('#cres');
+  if(!out.length){
+    caja.innerHTML = '<div class="tl-empty">' + (lat != null
+      ? 'Ninguno de tus artistas tiene conciertos anunciados cerca en los próximos meses.'
+      : 'Ninguno tiene conciertos anunciados. No se pudo usar tu ubicación, así que la búsqueda ha sido más amplia.') + '</div>';
+    return;
+  }
+  out.sort(function(a, b){ return (a.fecha || '').localeCompare(b.fecha || ''); });
+  caja.innerHTML = '<div class="tl">' + out.map(function(ev){
+    return '<a class="trk" href="' + esc(ev.url) + '" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">'
+      + '<span class="nm">' + esc(ev.artista) + '<span style="color:var(--txt3)"> · ' + esc(ev.sala || '') + ', ' + esc(ev.ciudad || '') + '</span></span>'
+      + '<span class="dur">' + (ev.fecha ? fdate(ev.fecha).split(',')[0] : '') + '</span></a>';
+  }).join('') + '</div>';
+}
+
+/* ============================================================
+   AVISO DE DISCOS NUEVOS DE ARTISTAS QUE YA TIENES
+   ============================================================ */
+var K_NOVEDADES = 'discoteca.novedades';
+function estadoNovedades(){
+  try{ return JSON.parse(localStorage.getItem(K_NOVEDADES) || '{}'); }catch(e){ return {}; }
+}
+function guardarNovedades(o){ try{ localStorage.setItem(K_NOVEDADES, JSON.stringify(o)); }catch(e){} }
+async function buscarNovedades(){
+  var m = {};
+  coleccion().forEach(function(d){
+    if(!d.artista || !parseInt(d['año'])) return;
+    var y = parseInt(d['año']);
+    if(!m[d.artista] || y > m[d.artista]) m[d.artista] = y;
+  });
+  var artistas = Object.keys(m);
+  var s = sheet('Discos nuevos de tus artistas',
+    '<div class="warnb info">' + I.info + '<span>Mira, artista por artista, si hay algo publicado después del año '
+    + 'más reciente que ya tienes suyo. Con ' + artistas.length + ' artistas, tarda unos minutos; se puede cerrar '
+    + 'y seguirá donde iba la próxima vez.</span></div>'
+    + '<div id="nProg"></div><div id="nRes"></div>',
+    '<span></span><button class="btn destr" id="nStop">Parar</button>', true);
+  var parar = false;
+  s.querySelector('#nStop').onclick = function(){ parar = true; };
+  var progreso = s.querySelector('#nProg'), caja = s.querySelector('#nRes');
+  var est = estadoNovedades(), encontrados = [];
+  for(var i = 0; i < artistas.length; i++){
+    if(parar) break;
+    var art = artistas[i];
+    progreso.innerHTML = '<div class="revbar"><div class="revt">' + esc(art) + '</div>'
+      + '<div class="bar" style="width:100%"><div style="width:' + Math.round(i / artistas.length * 100) + '%"></div></div>'
+      + '<div class="revs">' + (i + 1) + ' de ' + artistas.length + '</div></div>';
+    try{
+      var j = await jget('https://musicbrainz.org/ws/2/artist/?query=' + encodeURIComponent('artist:"' + lucene(art) + '"') + '&fmt=json&limit=1', 'mb', 1100);
+      var a = (j.artists || [])[0];
+      if(a){
+        var rgj = await jget('https://musicbrainz.org/ws/2/release-group?artist=' + a.id
+          + '&type=album&limit=25&fmt=json', 'mb', 1100);
+        var nuevos = (rgj['release-groups'] || []).filter(function(rg){
+          var y = parseInt((rg['first-release-date'] || '').slice(0, 4));
+          return y && y > m[art];
+        });
+        if(nuevos.length){
+          nuevos.sort(function(x, y2){ return (y2['first-release-date'] || '').localeCompare(x['first-release-date'] || ''); });
+          encontrados.push({artista: art, tienes: m[art], titulo: nuevos[0].title, año: nuevos[0]['first-release-date'].slice(0, 4)});
+        }
+      }
+    }catch(e){}
+    est[art] = nowISO();
+  }
+  guardarNovedades(est);
+  progreso.innerHTML = '';
+  if(!encontrados.length){
+    caja.innerHTML = '<div class="tl-empty">Nada nuevo por ahora en los ' + (parar ? i : artistas.length) + ' artistas revisados.</div>';
+  }else{
+    caja.innerHTML = '<div class="tl-hd"><h4>Novedades encontradas</h4></div><div class="tl">' + encontrados.map(function(x){
+      return '<div class="trk"><span class="nm">' + esc(x.titulo) + '<span style="color:var(--txt3)"> · ' + esc(x.artista) + '</span></span>'
+        + '<span class="dur">' + x.año + ' · tenías hasta ' + x.tienes + '</span></div>';
+    }).join('') + '</div>';
+  }
+  s.querySelector('.sheet-ft').innerHTML = '<span></span><button class="btn pri" data-nx>Cerrar</button>';
+  s.querySelector('[data-nx]').onclick = function(){ s.remove(); };
+}
+
+/* Respaldo de Wikipedia: la biografía de Last.fm, casi siempre en inglés y
+   escrita por la comunidad, pero mejor que nada cuando no hay artículo. */
+function lastfmBio(artista){
+  return fetch('https://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist='
+      + encodeURIComponent(artista) + '&api_key=' + encodeURIComponent(CFG.lastfm) + '&format=json')
+    .then(function(r){ return r.json(); }).then(function(j){
+      var bio = j && j.artist && j.artist.bio;
+      var texto = bio && (bio.content || bio.summary);
+      if(!texto) throw new Error('sin biografía');
+      texto = texto.replace(/<a href="[^"]*">Read more on Last\.fm<\/a>\.?/i, '').trim();
+      return {
+        titulo: j.artist.name,
+        extracto: texto,
+        img: ((j.artist.image || []).filter(function(im){ return im.size === 'large'; })[0] || {})['#text'] || '',
+        url: j.artist.url
+      };
+    });
+}
+/* Convierte la foto a un JPEG razonable en base64, SIN el tratamiento de
+   blanco y negro que usa fotoParaLeer para los códigos de barras: aquí
+   hace falta el color de verdad de la portada. */
+function fotoParaVision(file, lado){
+  return new Promise(function(res, rej){
+    var fr = new FileReader();
+    fr.onload = function(){
+      var img = new Image();
+      img.onload = function(){
+        var m = lado || 1000, sc = Math.min(1, m / Math.max(img.width, img.height));
+        var c = document.createElement('canvas');
+        c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        res(c.toDataURL('image/jpeg', 0.82).split(',')[1]);
+      };
+      img.onerror = function(){ rej(new Error('imagen no válida')); };
+      img.src = fr.result;
+    };
+    fr.onerror = function(){ rej(new Error('no se pudo leer el archivo')); };
+    fr.readAsDataURL(file);
+  });
+}
+/* Identifica artista y título a partir de la foto de la portada.
+   Respaldo del escáner cuando el código de barras no se puede leer. */
+function identificarPortada(file){
+  if(!hayAnthropic()) return Promise.reject(new Error('sin clave'));
+  return fotoParaVision(file, 1000).then(function(b64){
+    return fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': CFG.anthropic,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 200,
+        messages: [{
+          role: 'user',
+          content: [
+            {type: 'image', source: {type: 'base64', media_type: 'image/jpeg', data: b64}},
+            {type: 'text', text: 'Esto es la portada de un disco (vinilo o CD). Identifica el artista y el título '
+              + 'del álbum tal como aparecen impresos. Responde solo con JSON, sin explicación ni marcado: '
+              + '{"artista":"...", "titulo":"..."}. Si no se distingue con claridad, responde {"artista":"","titulo":""}.'}
+          ]
+        }]
+      })
+    });
+  }).then(function(r){
+    if(!r.ok) return r.json().catch(function(){ return null; }).then(function(j){
+      throw new Error((j && j.error && j.error.message) || ('http' + r.status));
+    });
+    return r.json();
+  }).then(function(j){
+    var texto = ((j.content || [])[0] || {}).text || '{}';
+    var m = texto.match(/\{[\s\S]*\}/);
+    var obj = JSON.parse(m ? m[0] : texto);
+    if(!obj.artista && !obj.titulo) throw new Error('no se distingue la portada');
+    return obj;
+  });
+}
+
 function dgGet(path){
   return jget('https://api.discogs.com/' + path + (path.indexOf('?') >= 0 ? '&' : '?')
     + 'token=' + encodeURIComponent(CFG.discogs), 'dg', 1100);
@@ -3030,6 +3440,67 @@ function dgPorBarcode(codigo){
   }).then(dgNormaliza);
 }
 function dgPorId(id){ return dgGet('releases/' + id).then(dgNormaliza); }
+
+/* ---------- precio en tres niveles ----------
+   Discogs da precios reales por estado de conservación, pero solo si el
+   token pertenece a una cuenta de vendedor dada de alta (aunque sea sin
+   vender nada). Sin eso, el único dato que da a cualquiera es el precio
+   más bajo en venta ahora mismo. Se intenta lo bueno y, si falla, se cae
+   al dato sencillo, dejando claro en la interfaz cuál de los dos es. */
+var TTL_PRECIO_H = 24 * 30; /* un mes; se puede volver a consultar antes a mano */
+function precioCaducado(d){
+  var f = d.tecnica && d.tecnica.precioFecha;
+  if(!f) return true;
+  return (Date.now() - new Date(f).getTime()) > TTL_PRECIO_H * 3600000;
+}
+function idDeRelease(d){
+  var m = String(d.discogs || '').match(/release\/(\d+)/);
+  return m ? m[1] : '';
+}
+function cargarPrecios(d){
+  if(!hayDiscogs()) return Promise.reject(new Error('sin token'));
+  var rid = idDeRelease(d);
+  var conId = rid ? Promise.resolve(rid) : dgGet('database/search?type=release&per_page=1&q='
+      + encodeURIComponent((d.artista || '') + ' ' + (d.titulo || '')))
+    .then(function(j){
+      var r = (j.results || [])[0];
+      if(!r) throw new Error('sin edición');
+      return String(r.id);
+    });
+  return conId.then(function(id){
+    return dgGet('marketplace/price_suggestions/' + id).then(function(precios){
+      var niveles = {
+        bajo: precios['Very Good (VG)'] || precios['Good Plus (G+)'],
+        media: precios['Very Good Plus (VG+)'],
+        alto: precios['Near Mint (NM or M-)'] || precios['Mint (M)']
+      };
+      if(!niveles.bajo && !niveles.media && !niveles.alto) throw new Error('sin niveles');
+      return {
+        tipo: 'suerte',
+        bajo: niveles.bajo ? niveles.bajo.value : null,
+        media: niveles.media ? niveles.media.value : null,
+        alto: niveles.alto ? niveles.alto.value : null,
+        moneda: (niveles.media || niveles.bajo || niveles.alto).currency || 'EUR'
+      };
+    }).catch(function(){
+      /* sin cuenta de vendedor, o sin oferta activa para calcular sugerencias:
+         nos quedamos con el precio más bajo en venta ahora, que sí es público */
+      return dgGet('releases/' + id).then(function(r){
+        if(r.lowest_price == null) throw new Error('sin precio');
+        return {tipo:'simple', bajo: r.lowest_price, media: null, alto: null, moneda: 'USD'};
+      });
+    });
+  }).then(function(p){
+    d.tecnica = d.tecnica || {};
+    d.tecnica.precio = p;
+    d.tecnica.precioFecha = nowISO();
+    /* se mantiene el campo antiguo para no romper lo que ya lee tecnica.valor */
+    d.tecnica.valor = p.media || p.bajo || d.tecnica.valor || null;
+    persist(true);
+    return p;
+  });
+}
+
 function dgNormaliza(r){
   var lab = (r.labels || [])[0] || {};
   var fmt = (r.formats || [])[0] || {};
@@ -3575,6 +4046,7 @@ function escanear(alLeer){
   var video = s.querySelector('#vid'), stream = null, parar = false, lector = null;
   var lienzo = document.createElement('canvas');
   var nota = function(txt, cls){ var n = s.querySelector('#snote'); if(n){ n.className = 'note ' + (cls || 'busy'); n.textContent = txt; } };
+  var notaHtml = function(html, cls){ var n = s.querySelector('#snote'); if(n){ n.className = 'note ' + (cls || 'busy'); n.innerHTML = html; } };
   var cerrar = function(){
     parar = true;
     try{ if(lector) lector.reset(); }catch(e){}
@@ -3611,7 +4083,28 @@ function escanear(alLeer){
       }).then(function(r){
         encontrado(r.getText());
       }).catch(function(){
-        nota('No se distingue el código en esa foto. Prueba más cerca, con buena luz y el código recto.', 'err');
+        if(hayAnthropic()){
+          notaHtml('No se distingue el código en esa foto. '
+            + '<a href="#" id="identPortada" style="color:var(--blue)">Identificar por la portada</a> '
+            + '(consulta de pago, unos céntimos), o prueba más cerca y con buena luz.', 'err');
+          var enlace = s.querySelector('#identPortada');
+          if(enlace) enlace.onclick = function(e){
+            e.preventDefault();
+            nota('Mirando la portada…');
+            identificarPortada(f).then(function(obj){
+              toast('Portada identificada: ' + [obj.artista, obj.titulo].filter(Boolean).join(' — '));
+              cerrar(); s.remove();
+              /* se abre el alta normal con el nombre ya escrito: el usuario revisa
+                 y pulsa «Completar» él mismo, nunca se crea nada solo */
+              openForm(null, (typeof alLeer === 'function') ? 'deseos' : 'coleccion',
+                {titulo: obj.titulo, artista: obj.artista});
+            }).catch(function(e2){
+              nota('No se ha podido identificar la portada: ' + e2.message + '. Prueba con más luz.', 'err');
+            });
+          };
+        }else{
+          nota('No se distingue el código en esa foto. Prueba más cerca, con buena luz y el código recto.', 'err');
+        }
       });
     };
     inp.click();
@@ -4413,7 +4906,7 @@ function abrirPaleta(){
     {t:'Completar fichas', s:'Rellena lo que esté incompleto', k:'Acción', i:I.spark, run:function(){ setView('col'); bulkRun(); }},
     {t:'Revisar y actualizar todo', s:'Repasa la colección entera', k:'Acción', i:I.refresh, run:pantallaRevision},
     {t:'Sorpréndeme', s:'Un disco al azar', k:'Acción', i:I.aleatorio, run:function(){ discoAlAzar(); }},
-    {t:'Estadísticas', s:'Gráficos de la colección', k:'Ir a', i:I.chart, run:function(){ setView('stats'); }},
+    {t:'Estadísticas', s:'Gráficos de la colección', k:'Ir a', i:I.aguja, run:function(){ setView('stats'); }},
     {t:'Ajustes', s:'Sincronía, copias, herramientas', k:'Ir a', i:I.db, run:function(){ setView('db'); }},
     {t:'Catálogo imprimible', s:'Con portadas, listo para PDF', k:'Acción', i:I.hojaDisco, run:catalogoImprimible},
     {t:'Copia de seguridad', s:'Descarga un JSON con todo', k:'Acción', i:I.save, run:exportBackup}
@@ -4763,6 +5256,39 @@ function filaTrack(d, t, i, n){
     + '<a class="lyr" target="_blank" rel="noopener" data-tip="Ver la letra en Genius" href="'
     + esc(urlLetra(d.artista, t.titulo)) + '">' + I.letra + '</a></div>';
 }
+/* Recomienda otros discos de tu propia colección parecidos a uno dado,
+   sin consultar nada fuera: solo con lo que ya tienes catalogado. */
+function similares(d){
+  var candidatos2 = coleccion().filter(function(x){ return x.id !== d.id; });
+  var decD = parseInt(d['año']) ? Math.floor(parseInt(d['año']) / 10) * 10 : null;
+  var puntuados = candidatos2.map(function(x){
+    var p = 0, motivos = [];
+    if(x.sello && d.sello && plain(x.sello) === plain(d.sello)){ p += 3; motivos.push('mismo sello'); }
+    if(x.genero && d.genero && x.genero === d.genero){ p += 2; motivos.push('mismo género'); }
+    if(x.pais && d.pais && x.pais === d.pais){ p += 1; motivos.push('mismo país'); }
+    var decX = parseInt(x['año']) ? Math.floor(parseInt(x['año']) / 10) * 10 : null;
+    if(decD != null && decX === decD){ p += 1; motivos.push('misma década'); }
+    if(x.artista && d.artista && plain(x.artista) === plain(d.artista)) p -= 5; /* ya sale en «Más de este artista» */
+    return {d:x, p:p, motivo:motivos[0] || ''};
+  }).filter(function(x){ return x.p >= 3; })
+    .sort(function(a, b){ return b.p - a.p; });
+  return puntuados.slice(0, 6);
+}
+function pintaSimilares(caja, d, s){
+  if(!caja) return;
+  var lista = similares(d);
+  if(!lista.length){ caja.innerHTML = ''; return; }
+  caja.innerHTML = '<div class="tl-hd" style="margin-top:22px"><h4>Discos parecidos en tu colección</h4></div>'
+    + '<div class="masgrid">' + lista.map(function(x){
+        return '<div class="mastile" data-id="' + x.d.id + '" title="' + esc(x.motivo) + '">'
+          + '<div class="masart">' + coverHtml(x.d) + '</div>'
+          + '<div class="mast">' + esc(x.d.titulo) + '</div>'
+          + '<div class="masy">' + esc(x.motivo) + '</div></div>';
+      }).join('') + '</div>';
+  caja.querySelectorAll('.mastile').forEach(function(el){
+    el.onclick = function(){ s.remove(); openDetail(el.dataset.id); };
+  });
+}
 function openDetail(id, desde){
   var d = DB.discos.filter(function(x){ return x.id === id; })[0];
   if(!d) return;
@@ -4780,6 +5306,14 @@ function openDetail(id, desde){
       + '<span>Estos datos se rellenaron con una coincidencia dudosa. Revísalos, '
       + '<a href="#" id="otraEd" style="color:var(--blue)">elige otra edición</a> '
       + 'o <a href="#" id="darPorBueno" style="color:var(--blue)">da estos por buenos</a>.</span></div>' : '')
+    + (function(){
+        if(window._reciénCompletado === d.id && !readOnly){
+          window._reciénCompletado = '';
+          return '<div class="warnb info">' + I.info + '<span>Ficha rellenada. Si esta edición no es exactamente la tuya, '
+            + '<a href="#" id="otraEdRC" style="color:var(--blue)">elige la edición correcta</a>.</span></div>';
+        }
+        return '';
+      })()
     + '<div class="specs">'
     + spec('Soporte', d.formato) + spec('Formato', d.formatoDetalle || '—') + spec('Año', d['año'] || '—')
     + spec('Sello', d.sello || '—') + spec('Catálogo', d.numeroCatalogo || '—')
@@ -4793,7 +5327,7 @@ function openDetail(id, desde){
     + spec('Escuchas', totalEscuchas(d) ? totalEscuchas(d) + (d.ultimaEscucha ? ' · última ' + fechaBonita(d.ultimaEscucha) : '') : '—')
     + '</div>'
     + (d.notas ? '<p style="font-size:14.5px;color:var(--txt2);line-height:1.5;margin:0 3px 16px">' + esc(d.notas) + '</p>' : '')
-    + '<div id="dExtra"></div><div id="dTecnica"></div><div id="dMas"></div>'
+    + '<div id="dExtra"></div><div id="dTecnica"></div><div id="dMas"></div><div id="dSimilares"></div>'
     + '<div class="tl-hd"><h4>Tracklist<span class="n" id="dN"></span></h4><div class="rowb">'
     + (readOnly ? '' : '<button class="iconbtn" id="loadPrev" data-tip="Cargar fragmentos de audio">' + I.play + '</button>')
     + (readOnly ? '' : '<button class="iconbtn" id="pen" data-tip="Editar el tracklist">' + I.pencil + '</button>') + '</div></div>'
@@ -4916,6 +5450,7 @@ function openDetail(id, desde){
     });
     $('#verArt').onclick = function(){ s.remove(); verArtista(d.artista); };
   })();
+  pintaSimilares($('#dSimilares'), d, s);
   if(d.mbid && (!d.extra || !d.extra.cargado)){
     cargarExtra(d).then(function(){ pintaExtra($('#dExtra'), d); }).catch(function(){});
   }
@@ -4946,6 +5481,7 @@ function openDetail(id, desde){
   };
   if($('#fusionar')) $('#fusionar').onclick = function(e){ e.preventDefault(); s.remove(); fusionarDuplicados(d); };
   if($('#otraEd')) $('#otraEd').onclick = function(e){ e.preventDefault(); elegirEdicion(d, s); };
+  if($('#otraEdRC')) $('#otraEdRC').onclick = function(e){ e.preventDefault(); window._reciénCompletado = ''; elegirEdicion(d, s); };
   if($('#darPorBueno')) $('#darPorBueno').onclick = function(e){
     e.preventDefault();
     d.confianza = '';
@@ -5068,7 +5604,7 @@ function openDetail(id, desde){
   if($('#aiFull')) $('#aiFull').onclick = function(e){
     var b = e.currentTarget; b.disabled = true; b.innerHTML = I.spark + '<span class="txt">Buscando…</span>';
     enrich(d.id, true).then(function(ok){
-      if(ok){ s.remove(); toast('Ficha actualizada'); openDetail(d.id); return; }
+      if(ok){ s.remove(); toast('Ficha actualizada'); window._reciénCompletado = d.id; openDetail(d.id); return; }
       b.disabled = false; b.innerHTML = I.spark + '<span class="txt">Completar</span>';
       toast('Sin coincidencia exacta · mira las ediciones parecidas', true);
       elegirEdicion(d, s);
@@ -5330,9 +5866,9 @@ function fusionarDuplicados(base){
 }
 
 /* ---------- formulario ---------- */
-function openForm(item, listaDestino){
+function openForm(item, listaDestino, preset){
   var ed = !!item;
-  var d = item || normDisc({lista: listaDestino || 'coleccion'});
+  var d = item || normDisc(Object.assign({lista: listaDestino || 'coleccion'}, preset || {}));
   var formato = d.formato || 'Vinilo';
   var tracks = normTracks(d.tracklist);
   var portada = d.portada || '';
@@ -5572,6 +6108,15 @@ function openForm(item, listaDestino){
     else DB.discos.push(n);
     persist();
     s.remove();
+    /* si el disco ya trae una edición de Discogs enlazada y lo tienes activado,
+       se sube también a tu colección de allí; si falla, no interrumpe nada */
+    if(!ed && CFG.subirADiscogs && hayDiscogs() && n.discogs){
+      subirADiscogsColeccion(n).then(function(){
+        toast('Añadido también a tu colección de Discogs');
+      }).catch(function(){
+        toast('No se pudo subir a Discogs · puedes añadirlo tú allí', true);
+      });
+    }
     if(!ed && incompleto(n)){
       toast('Guardado · buscando datos…');
       enrich(n.id, false).then(function(ok){
@@ -5746,6 +6291,25 @@ function verWikipedia(d, sobreAlbum){
       + '<div class="fuente">Extracto de <a href="' + esc(w.url) + '" target="_blank" rel="noopener">'
       + esc(w.titulo) + '</a> en Wikipedia, bajo licencia CC BY-SA.</div></div>';
   }).catch(function(){
+    if(!sobreAlbum && hayLastfm()){
+      $('#wnote').textContent = 'Sin artículo en español. Probando con Last.fm…';
+      lastfmBio(d.artista).then(function(w){
+        $('#wnote').style.display = 'none';
+        $('#wLink').href = w.url || ('https://es.wikipedia.org/w/index.php?search=' + encodeURIComponent(termino));
+        var parrafos = w.extracto.split('\n').filter(function(p){ return p.trim().length > 20; }).slice(0, 3);
+        $('#wbody').innerHTML =
+          '<div class="wikihd">' + (w.img ? '<img src="' + esc(w.img) + '" alt="">' : '')
+          + '<div><div class="n">' + esc(w.titulo) + '</div><div class="d">Biografía de la comunidad de Last.fm</div></div></div>'
+          + '<div class="wiki">' + parrafos.map(function(p){ return '<p>' + esc(p) + '</p>'; }).join('')
+          + '<div class="fuente">De <a href="' + esc(w.url) + '" target="_blank" rel="noopener">Last.fm</a>, '
+          + 'escrita por su comunidad de usuarios; puede estar en inglés.</div></div>';
+      }).catch(function(){
+        $('#wnote').className = 'note err';
+        $('#wnote').textContent = 'No hay artículo en español ni biografía en Last.fm sobre este artista.';
+        $('#wLink').href = 'https://es.wikipedia.org/w/index.php?search=' + encodeURIComponent(termino);
+      });
+      return;
+    }
     $('#wnote').className = 'note err';
     $('#wnote').textContent = 'No hay artículo en español sobre ' + (sobreAlbum ? 'este disco' : 'este artista') + '.';
     $('#wLink').href = 'https://es.wikipedia.org/w/index.php?search=' + encodeURIComponent(termino);
@@ -6145,6 +6709,7 @@ function pintaTecnica(caja, d){
   if(!caja) return;
   var t = d.tecnica;
   if(!t){ caja.innerHTML = ''; return; }
+  t.ids = t.ids || {}; t.companias = t.companias || {}; t.creditos = t.creditos || {};
   var filas = [];
   var f = function(k, v, credito){
     if(!v) return;
@@ -6162,7 +6727,17 @@ function pintaTecnica(caja, d){
   Object.keys(t.creditos).forEach(function(k){ f(k, t.creditos[k], true); });
   if(t.nota) f('Nota en Discogs', t.nota.toFixed(2) + ' / 5 (' + t.votos + ' votos)');
   if(t.tienen) f('En Discogs', t.tienen + ' lo tienen · ' + t.quieren + ' lo buscan');
-  if(t.valor != null && t.valor > 0) f('Desde', t.valor.toFixed(2) + ' €');
+  if(t.precio && t.precio.tipo === 'suerte'){
+    var s2 = t.precio.moneda === 'EUR' ? '€' : (t.precio.moneda || 'EUR');
+    var niveles = [
+      t.precio.bajo != null ? t.precio.bajo.toFixed(0) + ' ' + s2 : null,
+      t.precio.media != null ? t.precio.media.toFixed(0) + ' ' + s2 : null,
+      t.precio.alto != null ? t.precio.alto.toFixed(0) + ' ' + s2 : null
+    ].filter(Boolean);
+    f('Precio bajo / medio / alto', niveles.join(' · '));
+  }else if(t.valor != null && t.valor > 0){
+    f('Desde', t.valor.toFixed(2) + ' €');
+  }
   if(!filas.length){ caja.innerHTML = ''; return; }
   caja.innerHTML = '<details class="plega"><summary>Ficha técnica'
     + '<svg class="ic ch" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></summary>'
@@ -6667,11 +7242,19 @@ var ESTADOS = ['Mint (M)', 'Near Mint (NM or M-)', 'Very Good Plus (VG+)', 'Very
 function valorColeccion(){
   var ds = coleccion();
   var con = ds.filter(function(d){ return d.tecnica && d.tecnica.valor != null && d.tecnica.valor > 0; });
+  var conNiveles = con.filter(function(d){ return d.tecnica.precio && d.tecnica.precio.tipo === 'suerte'; });
   var suma = con.reduce(function(a, d){ return a + d.tecnica.valor; }, 0);
   var pagado = ds.reduce(function(a, d){ return a + (d.precioCompra || 0); }, 0);
   var body =
-    '<div class="warnb info">' + I.info + '<span>Es el <b>precio más bajo al que se vende</b> cada disco en Discogs. '
-    + 'Orientativo y algo optimista: es lo que piden los vendedores, no lo que se paga.</span></div>'
+    '<div class="warnb info">' + I.info + '<span>'
+    + (conNiveles.length
+        ? 'Cuando Discogs sabe que eres vendedor registrado da un precio sugerido por cada estado de '
+          + 'conservación (bajo/medio/alto). Si no, se usa <b>el precio más bajo en venta ahora</b>, que es lo único '
+          + 'que da a cualquiera. En ambos casos es orientativo, no lo que realmente se paga.'
+        : 'Es el <b>precio más bajo al que se vende</b> cada disco en Discogs. Orientativo y algo optimista: '
+          + 'es lo que piden los vendedores, no lo que se paga. Si tu cuenta de Discogs está dada de alta como '
+          + 'vendedora, se consiguen tres niveles por estado de conservación en vez de uno solo.')
+    + '</span></div>'
     + (con.length
       ? '<div class="resumen" style="display:flex;margin-bottom:18px">'
         + '<div><div class="v">' + suma.toFixed(0) + '<small>€</small></div><div class="k">valor estimado</div></div>'
@@ -6684,23 +7267,28 @@ function valorColeccion(){
             + '</div>' : '')
         + '<div class="tl-hd"><h4>Los más valiosos</h4></div><div class="tl">'
         + con.slice().sort(function(a, b){ return b.tecnica.valor - a.tecnica.valor; }).slice(0, 15).map(function(d){
+            var p = d.tecnica.precio;
+            var cifra = (p && p.tipo === 'suerte')
+              ? [p.bajo, p.media, p.alto].filter(function(x){ return x != null; })
+                  .map(function(x){ return x.toFixed(0); }).join(' / ') + ' ' + (p.moneda === 'EUR' ? '€' : p.moneda)
+              : d.tecnica.valor.toFixed(2) + ' €';
             return '<div class="trk" data-disco="' + d.id + '" style="cursor:pointer"><span class="nm">' + esc(d.titulo)
               + '<span style="color:var(--txt3)"> · ' + esc(d.artista) + '</span></span>'
-              + '<span class="dur">' + d.tecnica.valor.toFixed(2) + ' €</span></div>';
+              + '<span class="dur">' + cifra + '</span></div>';
           }).join('') + '</div>'
       : '<div class="tl-empty">Todavía no hay precios. Abre fichas de discos para que se consulten en Discogs, '
         + 'o pulsa el botón de abajo para revisarlos todos.</div>');
-  var pie = '<span></span><button class="btn pri" id="valTodos">Consultar precios</button>';
+  var pie = '<span></span><button class="btn pri" id="valTodos">' + (con.length ? 'Actualizar precios' : 'Consultar precios') + '</button>';
   var s = sheet('Valor de la colección', body, pie, true);
   s.querySelectorAll('[data-disco]').forEach(function(el){
     el.onclick = function(){ s.remove(); openDetail(el.dataset.disco); };
   });
   s.querySelector('#valTodos').onclick = function(){
     if(!hayDiscogs()){ toast('Configura antes tu token de Discogs', true); return; }
-    var faltan = ds.filter(function(d){ return !d.tecnica || d.tecnica.valor == null; });
-    if(!faltan.length){ toast('Ya están todos consultados'); return; }
+    var pendientes = ds.filter(function(d){ return !d.tecnica || d.tecnica.valor == null || precioCaducado(d); });
+    if(!pendientes.length){ toast('Ya están todos consultados y al día'); return; }
     s.remove();
-    consultarPrecios(faltan);
+    consultarPrecios(pendientes);
   };
 }
 async function consultarPrecios(lista){
@@ -6708,17 +7296,23 @@ async function consultarPrecios(lista){
   bulk = {done:0, total:lista.length, ok:0, actual:''};
   setView('col');
   paintBanner();
+  var conNiveles = 0;
   for(var i = 0; i < lista.length; i++){
     if(cancelBulk) break;
     bulk.actual = lista[i].artista + ' — ' + lista[i].titulo;
     paintBanner();
-    try{ await cargarDiscogs(lista[i]); bulk.ok++; }catch(e){}
+    try{
+      var p = await cargarPrecios(lista[i]);
+      bulk.ok++;
+      if(p.tipo === 'suerte') conNiveles++;
+    }catch(e){}
     bulk.done++;
     paintBanner();
   }
   bulk = null;
   renderAll();
-  toast('Precios consultados en ' + lista.length + ' discos');
+  toast('Precios consultados en ' + lista.length + ' discos'
+    + (conNiveles ? ' · ' + conNiveles + ' con los tres niveles' : ''));
 }
 
 /* ============================================================
@@ -7318,53 +7912,6 @@ function soporteGenerado(d){
     + '<circle cx="200" cy="200" r="22" fill="none" stroke="rgba(0,0,0,.14)" stroke-width="1.5"/></svg>';
 }
 /* Elegir a mano la foto del soporte entre las imágenes de Discogs */
-function elegirFotoSoporte(d, padre){
-  var s = sheet('Foto del disco',
-    '<div class="note busy" id="fnote">Buscando imágenes de esta edición en Discogs…</div><div id="flist"></div>',
-    '<button class="btn destr" id="fQuitar">Quitar la foto</button><button class="btn" data-fx>Cerrar</button>');
-  s.querySelector('[data-fx]').onclick = function(){ s.remove(); };
-  s.querySelector('#fQuitar').onclick = function(){
-    d.fotoDisco = ''; d.fotoGenerada = false;
-    persist();
-    s.remove();
-    if(padre) padre.remove();
-    toast('Foto quitada');
-    openDetail(d.id);
-  };
-  if(!hayDiscogs()){
-    s.querySelector('#fnote').className = 'note err';
-    s.querySelector('#fnote').textContent = 'Necesitas configurar tu token de Discogs en Ajustes.';
-    return;
-  }
-  imagenesDiscogs(d).then(function(ims){
-    s.querySelector('#fnote').style.display = 'none';
-    s.querySelector('#flist').innerHTML =
-      '<p style="font-size:13.5px;color:var(--txt2);line-height:1.5;margin:0 0 14px">'
-      + 'Discogs no dice cuál es el disco, así que elígelo tú. Suele ser la tercera o la cuarta.</p>'
-      + '<div class="cands">' + ims.map(function(im, i){
-          return '<div class="cand" data-i="' + i + '"><img class="cimg" src="' + esc(im.mini || im.uri)
-            + '" alt="" loading="lazy" onerror="this.style.opacity=.2">'
-            + '<div class="cinf"><div class="s">' + (i === 0 ? 'Portada' : 'Imagen ' + (i + 1)) + '</div></div></div>';
-        }).join('') + '</div>';
-    s.querySelectorAll('.cand').forEach(function(el){
-      el.onclick = function(){
-        d.fotoDisco = ims[+el.dataset.i].uri;
-        d.fotoGenerada = false;
-        d.sinFoto = false;
-        persist();
-        s.remove();
-        if(padre) padre.remove();
-        toast('Foto del disco guardada');
-        openDetail(d.id);
-      };
-    });
-  }).catch(function(){
-    s.querySelector('#fnote').className = 'note err';
-    s.querySelector('#fnote').textContent = 'Esta edición no tiene imágenes en Discogs.';
-  });
-}
-
-
 /* ============================================================
    25. REVISAR Y ACTUALIZAR TODO
    Solo rellena lo que está vacío. Nunca pisa nada escrito.
@@ -7842,6 +8389,20 @@ function dgUsuario(){
 function dgColeccion(user, pagina){
   return dgGet('users/' + encodeURIComponent(user) + '/collection/folders/0/releases?per_page=100&page='
     + (pagina || 1) + '&sort=added&sort_order=desc');
+}
+/* Añade un disco ya enlazado con Discogs a tu colección de allí,
+   sin bloquear el guardado: si falla, no pasa nada grave, solo no sube. */
+function subirADiscogsColeccion(d){
+  var m = String(d.discogs || '').match(/release\/(\d+)/);
+  if(!m) return Promise.reject(new Error('sin edición de Discogs enlazada'));
+  return dgUsuario().then(function(user){
+    return fetch('https://api.discogs.com/users/' + encodeURIComponent(user)
+        + '/collection/folders/1/releases/' + m[1] + '?token=' + encodeURIComponent(CFG.discogs),
+      {method: 'POST'}).then(function(r){
+        if(!r.ok) throw new Error('http' + r.status);
+        return true;
+      });
+  });
 }
 async function traerDeDiscogs(silencioso){
   if(!hayDiscogs()){
@@ -8454,6 +9015,41 @@ function tarjetaNacional(){
     + '</div>';
 }
 
+/* Huecos por sello y década, mirando solo tu propia colección: entre el año
+   más antiguo y el más nuevo que tienes de cada sello, qué décadas están
+   vacías. No compara con lo que tengan otros coleccionistas, solo con tu
+   propia línea de tiempo. */
+function huecosPorSello(){
+  var ds = coleccion().filter(function(d){ return d.sello && parseInt(d['año']); });
+  var por = {};
+  ds.forEach(function(d){ (por[d.sello] = por[d.sello] || []).push(parseInt(d['año'])); });
+  var out = [];
+  Object.keys(por).forEach(function(sello){
+    var años = por[sello];
+    if(años.length < 3) return;
+    var min = Math.min.apply(null, años), max = Math.max.apply(null, años);
+    var decMin = Math.floor(min / 10) * 10, decMax = Math.floor(max / 10) * 10;
+    if(decMax === decMin) return;
+    var tienes = {};
+    años.forEach(function(a){ tienes[Math.floor(a / 10) * 10] = true; });
+    var huecos = [];
+    for(var dd = decMin; dd <= decMax; dd += 10) if(!tienes[dd]) huecos.push(dd);
+    if(huecos.length) out.push({sello:sello, n:años.length, desde:decMin, hasta:decMax, huecos:huecos});
+  });
+  return out.sort(function(a, b){ return b.huecos.length - a.huecos.length; });
+}
+function tarjetaHuecosSello(){
+  var lista = huecosPorSello();
+  if(!lista.length) return '';
+  return '<div class="card"><h3>Huecos por sello</h3>'
+    + '<div class="sub">Décadas sin discos entre lo más antiguo y lo más nuevo que tienes de cada sello</div>'
+    + '<div class="tl">' + lista.slice(0, 8).map(function(x){
+        return '<div class="trk"><span class="nm">' + esc(x.sello)
+          + '<span style="color:var(--txt3)"> · ' + x.n + ' discos</span></span>'
+          + '<span class="dur">' + x.huecos.map(function(h){ return String(h).slice(2) + 's'; }).join(', ') + '</span></div>';
+      }).join('') + '</div></div>';
+}
+
 
 /* ============================================================
    11. GRÁFICOS
@@ -8901,6 +9497,7 @@ function paintStats(){
       + tarjetaNacional()
       + tarjetaDuraciones()
       + tarjetaPaleta()
+      + tarjetaHuecosSello()
       + (valorados.length > 6 ? '<div class="card"><h3>Cómo puntúas</h3><div class="sub">Reparto de tus estrellas</div>'
         + hbars(porNota, function(i){ return ['#ffb400','#ffc93a','#c8c8cc','#a1a1a6','#c7c7cc'][i]; }) + '</div>' : '')
       + (favoritos.length ? '<div class="card"><h3>Tus favoritos</h3><div class="sub">Cuatro estrellas o más</div><div class="tl">'
@@ -9080,6 +9677,15 @@ function paintDb(){
       + accion(I.copy, 'Buscar repetidos', 'Revisa si hay fichas duplicadas del mismo disco y te deja fusionarlas.', 'dups', '', 'Revisar')
     + '</div>'
 
+    /* ---- lo que hacen las apps de streaming, adaptado a una colección física ---- */
+    + seccion(I.aguja, 'Más allá del catálogo')
+    + '<div class="dbact">'
+      + accion(I.playF, 'Tu año en un vistazo', 'Un resumen de tu año en formato de historias, para compartir. No necesita ninguna clave.', 'anorepaso', '', 'Ver')
+      + (hayTicketmaster() ? accion(I.globe, 'Conciertos cerca de ti', 'Mira si tus artistas con más discos tocan cerca en los próximos meses.', 'conciertos', '', 'Buscar') : '')
+      + accion(I.calDisco, 'Discos nuevos de tus artistas', 'Busca si algún artista tuyo ha sacado algo después de lo último que tienes suyo.', 'novedades', '', 'Buscar')
+      + (hayAudd() ? accion(I.aguja, '¿Qué está sonando?', 'Graba unos segundos con el micrófono para reconocer una canción y ver si ya la tienes.', 'sonando', '', 'Escuchar') : '')
+    + '</div>'
+
     /* ---- instalación ---- */
     + (instalada ? '' : seccion(I.cloud, 'Instalar en el iPhone')
       + '<div class="card"><div style="font-size:13.5px;line-height:1.6;color:var(--txt2)">'
@@ -9151,6 +9757,10 @@ function paintDb(){
   on('reparar', pantallaReparar);
   on('dgcol', pantallaDiscogs);
   on('maquina', maquinaDelTiempo);
+  on('anorepaso', tuAnoEnUnVistazo);
+  on('conciertos', conciertosCerca);
+  on('novedades', buscarNovedades);
+  on('sonando', queEstaSonando);
   on('dups', function(){
     var dups = dupSet();
     var n = Object.keys(dups).length;
