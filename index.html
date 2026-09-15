@@ -500,6 +500,28 @@ svg.mapa .chip:hover text{fill:#fff}
   font-size:15px;font-weight:600;cursor:pointer;font-family:inherit}
 @media (max-width:760px){ .anov{font-size:72px} .anoimg{width:150px;height:150px} }
 
+/* radar de la colección */
+/* adn musical */
+.adngrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.adnfila{background:var(--elev);border-radius:var(--r-md);padding:14px;box-shadow:var(--sh1)}
+.adnfila .ak{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--txt3)}
+.adnfila .av{font-size:22px;font-weight:700;margin-top:4px;letter-spacing:-.02em}
+.adnfila .as{font-size:12px;color:var(--txt2);margin-top:2px}
+@media (max-width:600px){ .adngrid{grid-template-columns:1fr} }
+
+.radarlist{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.radaritem{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--elev);
+  border:none;border-radius:var(--r-md);padding:12px 14px;cursor:pointer;font-family:inherit;
+  box-shadow:var(--sh1);transition:transform .12s var(--ease)}
+.radaritem:active{transform:scale(.98)}
+.radaritem .ri{width:34px;height:34px;border-radius:10px;background:var(--fill);color:var(--txt2);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.radaritem .ri .ic{width:17px;height:17px}
+.radaritem .rt{flex:1;min-width:0}
+.radaritem .rn{font-size:14px;font-weight:600}
+.radaritem .rd{font-size:12px;color:var(--txt3);margin-top:1px}
+.radaritem .rv{font-size:17px;font-weight:700;color:var(--txt2);flex-shrink:0}
+
 .warnb{display:flex;gap:9px;align-items:flex-start;background:rgba(255,149,0,.13);color:var(--txt);font-size:13.2px;padding:11px 13px;
   border-radius:var(--r-sm);margin-bottom:14px;line-height:1.4}
 .warnb .ic{width:16px;height:16px;color:var(--orange);margin-top:1px;flex-shrink:0}
@@ -892,6 +914,14 @@ label.trk{cursor:pointer}
 .tcard{border-radius:20px;padding:26px 20px;text-align:center;margin-top:18px}
 .tcard.si{background:rgba(52,199,89,.18);box-shadow:inset 0 0 0 2px rgba(52,199,89,.5)}
 .tcard.no{background:rgba(255,149,0,.16);box-shadow:inset 0 0 0 2px rgba(255,149,0,.45)}
+.tcard.otra{background:rgba(0,113,227,.14);box-shadow:inset 0 0 0 2px rgba(0,113,227,.4)}
+.tcard.otra .tico{background:rgba(0,113,227,.26)}
+.tcomp{text-align:left;margin-top:16px;background:var(--elev);border-radius:14px;overflow:hidden}
+.tcompfila{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:9px 12px;border-bottom:.5px solid var(--sep);font-size:13px}
+.tcompfila:last-child{border-bottom:none}
+.tcompfila.tchd{font-weight:700;color:var(--txt3);font-size:11px;text-transform:uppercase;letter-spacing:.04em;background:var(--fill)}
+.tcompfila .tck{color:var(--txt2)}
+.tcompfila.dif .tcv{color:var(--orange);font-weight:600}
 .tcard .tico{width:56px;height:56px;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center}
 .tcard.si .tico{background:rgba(52,199,89,.3)}
 .tcard.no .tico{background:rgba(255,149,0,.28)}
@@ -1670,7 +1700,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.12-streaming';
+var VERSION = '2026.09.15-evolucion';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var view = 'col';
 var fType = 'all', fGen = '', fArt = '', fTag = '', fDec = '', fPais = '', fSello = '';
@@ -2749,6 +2779,11 @@ function coverArchive(relId, rgId, px){
 }
 
 /* ---------- foto del disco físico (Cover Art Archive, tipo "Medium") ---------- */
+/* Cover Art Archive a veces devuelve sus propias URLs en http:// aunque el
+   mismo dominio funciona igual de bien en https://; como la app se sirve en
+   https, esas imágenes podían no cargar. Se sube el esquema aquí, en el único
+   sitio por el que pasa esta fuente. */
+function aHttps(url){ return String(url || '').replace(/^http:\/\//, 'https://'); }
 function fotoDelSoporte(relId, rgId){
   var mira = function(id, tipo){
     return jget('https://coverartarchive.org/' + tipo + '/' + id, 'mb', 900).then(function(j){
@@ -2757,7 +2792,7 @@ function fotoDelSoporte(relId, rgId){
       });
       if(!imgs.length) throw new Error('sin medium');
       var im = imgs[0];
-      return (im.thumbnails && (im.thumbnails['500'] || im.thumbnails.large)) || im.image;
+      return aHttps((im.thumbnails && (im.thumbnails['500'] || im.thumbnails.large)) || im.image);
     });
   };
   if(!relId && !rgId) return Promise.reject(new Error('sin id'));
@@ -2778,7 +2813,7 @@ function imagenesDiscogs(d){
         return dgGet('releases/' + r.id);
       });
   return busca.then(function(r){
-    var im = (r.images || []).map(function(x){ return {uri:x.uri, mini:x.uri150, tipo:x.type}; });
+    var im = (r.images || []).map(function(x){ return {uri: aHttps(x.uri), mini: aHttps(x.uri150), tipo:x.type}; });
     if(!im.length) throw new Error('sin imágenes');
     return im;
   });
@@ -3308,7 +3343,7 @@ async function buscarNovedades(){
   var parar = false;
   s.querySelector('#nStop').onclick = function(){ parar = true; };
   var progreso = s.querySelector('#nProg'), caja = s.querySelector('#nRes');
-  var est = estadoNovedades(), encontrados = [];
+  var est = estadoNovedades(), encontrados = [], saltados = 0;
   for(var i = 0; i < artistas.length; i++){
     if(parar) break;
     var art = artistas[i];
@@ -3318,6 +3353,10 @@ async function buscarNovedades(){
     try{
       var j = await jget('https://musicbrainz.org/ws/2/artist/?query=' + encodeURIComponent('artist:"' + lucene(art) + '"') + '&fmt=json&limit=1', 'mb', 1100);
       var a = (j.artists || [])[0];
+      /* si el grupo se disolvió o la persona falleció, MusicBrainz ya lo dice en
+         esta misma respuesta (life-span.ended): no tiene sentido preguntarle por
+         discos nuevos, así que se salta sin gastar la consulta siguiente */
+      if(a && a['life-span'] && a['life-span'].ended){ saltados++; est[art] = nowISO(); continue; }
       if(a){
         var rgj = await jget('https://musicbrainz.org/ws/2/release-group?artist=' + a.id
           + '&type=album&limit=25&fmt=json', 'mb', 1100);
@@ -3336,9 +3375,11 @@ async function buscarNovedades(){
   guardarNovedades(est);
   progreso.innerHTML = '';
   if(!encontrados.length){
-    caja.innerHTML = '<div class="tl-empty">Nada nuevo por ahora en los ' + (parar ? i : artistas.length) + ' artistas revisados.</div>';
+    caja.innerHTML = '<div class="tl-empty">Nada nuevo por ahora en los ' + (parar ? i : artistas.length) + ' artistas revisados'
+      + (saltados ? ' · ' + saltados + ' ya no están en activo, no se les pregunta' : '') + '.</div>';
   }else{
-    caja.innerHTML = '<div class="tl-hd"><h4>Novedades encontradas</h4></div><div class="tl">' + encontrados.map(function(x){
+    caja.innerHTML = '<div class="tl-hd"><h4>Novedades encontradas'
+      + (saltados ? '<span class="n"> · ' + saltados + ' artistas ya no activos, saltados</span>' : '') + '</h4></div><div class="tl">' + encontrados.map(function(x){
       return '<div class="trk"><span class="nm">' + esc(x.titulo) + '<span style="color:var(--txt3)"> · ' + esc(x.artista) + '</span></span>'
         + '<span class="dur">' + x.año + ' · tenías hasta ' + x.tienes + '</span></div>';
     }).join('') + '</div>';
@@ -3516,7 +3557,7 @@ function dgNormaliza(r){
     formatoDetalle: [fmt.name, (fmt.descriptions || []).join(', ')].filter(Boolean).join(', '),
     codigoBarras: ((r.identifiers || []).filter(function(i){ return /barcode/i.test(i.type); })[0] || {}).value || '',
     portada: (r.images && r.images[0] && (r.images[0].uri || r.images[0].resource_url)) || '',
-    tracklist: tl, tags: estilos, sec: '', discogsUrl: r.uri ? ('https://www.discogs.com' + r.uri) : ''
+    tracklist: tl, tags: estilos, sec: '', discogsUrl: r.uri || ''
   };
 }
 
@@ -3862,9 +3903,9 @@ function exportarCsv(){
   var lines = [cab.join(',')];
   DB.discos.forEach(function(d){
     lines.push([
-      d.numeroCatalogo, d.artista, d.titulo, d.sello, d.formatoDetalle || d.formato, '', d['año'], d.mbid,
+      d.numeroCatalogo, d.artista, d.titulo, d.sello, d.formatoDetalle || d.formato, d.valoracion || '', d['año'], d.mbid,
       d.lista === 'deseos' ? 'Wishlist' : 'Uncategorized', (d.fechaAlta || '').slice(0, 10),
-      d.estado, '', d.notas, d.genero, d.pais, d.precioCompra || '', d.etiquetas.join(' | ')
+      d.estado, d.estadoFunda, d.notas, d.genero, d.pais, d.precioCompra || '', d.etiquetas.join(' | ')
     ].map(csvCell).join(','));
   });
   download('discoteca-' + new Date().toISOString().slice(0, 10) + '.csv', '\uFEFF' + lines.join('\n'), 'text/csv;charset=utf-8');
@@ -4907,6 +4948,10 @@ function abrirPaleta(){
     {t:'Revisar y actualizar todo', s:'Repasa la colección entera', k:'Acción', i:I.refresh, run:pantallaRevision},
     {t:'Sorpréndeme', s:'Un disco al azar', k:'Acción', i:I.aleatorio, run:function(){ discoAlAzar(); }},
     {t:'Estadísticas', s:'Gráficos de la colección', k:'Ir a', i:I.aguja, run:function(){ setView('stats'); }},
+    {t:'Radar de la colección', s:'Lo que merece tu atención', k:'Acción', i:I.warn, run:radarColeccion},
+    {t:'Qué escucho ahora', s:'Sesión por tiempo disponible', k:'Acción', i:I.playF, run:sesionEscucha},
+    {t:'El ADN de tu colección', s:'Perfil sacado de tus propios datos', k:'Acción', i:I.vinResumen, run:adnMusical},
+    {t:'Tendencia de escucha', s:'Cómo ha cambiado mes a mes', k:'Acción', i:I.aguja, run:tendenciaEscucha},
     {t:'Ajustes', s:'Sincronía, copias, herramientas', k:'Ir a', i:I.db, run:function(){ setView('db'); }},
     {t:'Catálogo imprimible', s:'Con portadas, listo para PDF', k:'Acción', i:I.hojaDisco, run:catalogoImprimible},
     {t:'Copia de seguridad', s:'Descarga un JSON con todo', k:'Acción', i:I.save, run:exportBackup}
@@ -6072,7 +6117,12 @@ function openForm(item, listaDestino, preset){
   $('#save').onclick = function(){
     var u2 = $('#fU2').value.trim();
     var ref = idDesdeUrl(u2);
-    var n = normDisc({
+    /* Se parte de una copia completa de la ficha tal como estaba (d ya tiene
+       la forma canónica entera, la ponga openForm al abrir editando o creando)
+       y solo se sobrescriben los campos que vienen del formulario. Así ningún
+       dato que no se edita aquí —valoración, escuchas, foto del disco, ficha
+       técnica, enlaces— puede perderse al guardar. */
+    var n = normDisc(Object.assign({}, d, {
       id: d.id || uid(), formato: formato, lista: listaSel,
       titulo: $('#fT').value.trim(), artista: $('#fA').value.trim(),
       genero: $('#fG').value, 'año': $('#fY').value.trim(), formatoDetalle: $('#fF').value.trim(),
@@ -6087,10 +6137,8 @@ function openForm(item, listaDestino, preset){
       mbid: (ref && ref.tipo === 'release') ? ref.id : d.mbid,
       rgid: (ref && ref.tipo === 'rg') ? ref.id : d.rgid,
       discogs: (ref && ref.tipo === 'discogs') ? ref.url : d.discogs,
-      codigoBarras: d.codigoBarras, color: d.color, escuchas: d.escuchas, ultimaEscucha: d.ultimaEscucha,
-      prestadoA: d.prestadoA, prestadoDesde: d.prestadoDesde, confianza: d.confianza,
       fechaAlta: d.fechaAlta || nowISO(), editado: Object.assign({}, d.editado)
-    });
+    }));
     if(!n.titulo && !n.artista){ toast('Falta el título o el artista', true); return; }
     /* los campos que rellenan las fuentes externas quedan protegidos si el usuario
        los ha escrito o cambiado a mano, para que «Completar» no los vuelva a pisar */
@@ -6676,7 +6724,7 @@ function cargarDiscogs(d){
         .filter(Boolean).join(' · '),
       pais: r.country || '', publicado: r.released || String(r.year || ''),
       estilos: (r.styles || []).join(', '),
-      versiones: 0, url: r.uri ? ('https://www.discogs.com' + r.uri) : '',
+      versiones: 0, url: r.uri || '',
       valor: (r.lowest_price != null ? r.lowest_price : null),
       nota: (r.community && r.community.rating && r.community.rating.average) || 0,
       votos: (r.community && r.community.rating && r.community.rating.count) || 0,
@@ -6705,12 +6753,35 @@ function cargarDiscogs(d){
     return tec;
   });
 }
+/* Compara el país y el año que tienes tú con lo que dice Discogs de esa
+   misma edición. No decide cuál es el correcto -eso lo sabes tú, que
+   tienes el disco en la mano-, solo avisa cuando no coinciden. */
+function consistenciaIdentificadores(d){
+  var t = d.tecnica;
+  if(!t) return [];
+  var out = [];
+  if(d.pais && t.pais && d.pais !== t.pais && nombrePais(d.pais) !== t.pais){
+    out.push({campo: 'País', tuyo: nombrePais(d.pais) || d.pais, discogs: t.pais});
+  }
+  var añoDg = String(t.publicado || '').match(/^\d{4}/);
+  if(d['año'] && añoDg && String(d['año']) !== añoDg[0]){
+    out.push({campo: 'Año', tuyo: d['año'], discogs: añoDg[0]});
+  }
+  return out;
+}
 function pintaTecnica(caja, d){
   if(!caja) return;
   var t = d.tecnica;
   if(!t){ caja.innerHTML = ''; return; }
   t.ids = t.ids || {}; t.companias = t.companias || {}; t.creditos = t.creditos || {};
+  var aviso = consistenciaIdentificadores(d);
   var filas = [];
+  if(aviso.length){
+    filas.push('<div class="warnb" style="margin-bottom:10px">' + I.warn + '<span>'
+      + aviso.map(function(x){ return x.campo + ': tú tienes ' + esc(x.tuyo) + ', Discogs dice ' + esc(x.discogs); }).join('. ')
+      + '. Puede que esta no sea exactamente tu edición, o que uno de los dos esté equivocado. Tú, con el disco en la mano, lo sabes mejor.'
+      + '</span></div>');
+  }
   var f = function(k, v, credito){
     if(!v) return;
     var val = credito
@@ -7239,6 +7310,48 @@ var ESTADOS = ['Mint (M)', 'Near Mint (NM or M-)', 'Very Good Plus (VG+)', 'Very
 /* ============================================================
    21. VALOR ESTIMADO DE LA COLECCIÓN
    ============================================================ */
+/* ============================================================
+   EVOLUCIÓN DEL VALOR
+   No hay forma fiable de capturar el valor en segundo plano: iOS no
+   soporta Periodic Background Sync en una PWA instalada, así que esto
+   es necesariamente manual u "oportunista" -se guarda una foto nueva
+   cuando abres esta pantalla, si ha pasado más de un mes desde la
+   última-, nunca automático de verdad. */
+var K_VALOR_HIST = 'discoteca.valorHistorico';
+function historicoValor(){
+  try{ return JSON.parse(localStorage.getItem(K_VALOR_HIST) || '[]'); }catch(e){ return []; }
+}
+function guardarSnapshotValor(suma, n){
+  var h = historicoValor();
+  var hoy = hoyISO();
+  if(h.length && h[h.length - 1].fecha === hoy) h[h.length - 1] = {fecha: hoy, valor: suma, n: n};
+  else h.push({fecha: hoy, valor: suma, n: n});
+  if(h.length > 60) h = h.slice(-60);
+  try{ localStorage.setItem(K_VALOR_HIST, JSON.stringify(h)); }catch(e){}
+  return h;
+}
+function pintaEvolucionValor(caja, suma, n){
+  var h = historicoValor();
+  var ultimo = h[h.length - 1];
+  var diasDesde = ultimo ? Math.floor((Date.now() - new Date(ultimo.fecha + 'T12:00:00').getTime()) / 86400000) : 999;
+  if(!ultimo || diasDesde >= 28) h = guardarSnapshotValor(suma, n);
+  if(h.length < 2){
+    caja.innerHTML = '<div class="tl-hd" style="margin-top:20px"><h4>Evolución del valor</h4></div>'
+      + '<div class="warnb info">' + I.info + '<span>Se ha guardado la primera foto de hoy. Con una nueva '
+      + 'foto dentro de un tiempo se podrá ver cómo cambia. En iPhone no hay forma de hacerlo del todo sola: '
+      + 'se guarda una nueva cada vez que abras esta pantalla, como mucho una vez al mes.</span></div>';
+    return;
+  }
+  var datos = h.map(function(x){ return {k: x.fecha.slice(5), v: Math.round(x.valor)}; });
+  var primero = h[0], cambio = primero.valor ? Math.round((suma - primero.valor) / primero.valor * 100) : null;
+  caja.innerHTML = '<div class="tl-hd" style="margin-top:20px"><h4>Evolución del valor</h4>'
+    + '<span class="n">' + h.length + ' fotos desde ' + fdate(h[0].fecha).split(',')[0] + '</span></div>'
+    + (cambio != null ? '<div class="warnb info">' + I.info + '<span>' + (cambio > 0 ? '+' + cambio + '% desde la primera foto.'
+        : cambio < 0 ? cambio + '% desde la primera foto.' : 'Sin cambios desde la primera foto.')
+        + ' Recuerda que es una estimación con ruido de mercado, no el precio real de venta.</span></div>' : '')
+    + '<div class="chartwrap">' + columns(datos, 'var(--purple)') + '</div>';
+}
+
 function valorColeccion(){
   var ds = coleccion();
   var con = ds.filter(function(d){ return d.tecnica && d.tecnica.valor != null && d.tecnica.valor > 0; });
@@ -7280,6 +7393,11 @@ function valorColeccion(){
         + 'o pulsa el botón de abajo para revisarlos todos.</div>');
   var pie = '<span></span><button class="btn pri" id="valTodos">' + (con.length ? 'Actualizar precios' : 'Consultar precios') + '</button>';
   var s = sheet('Valor de la colección', body, pie, true);
+  if(con.length){
+    var cEvol = document.createElement('div');
+    s.querySelector('.sheet-bd').appendChild(cEvol);
+    pintaEvolucionValor(cEvol, suma, con.length);
+  }
   s.querySelectorAll('[data-disco]').forEach(function(el){
     el.onclick = function(){ s.remove(); openDetail(el.dataset.disco); };
   });
@@ -8290,11 +8408,282 @@ function analizarReparacion(){
       if(vistos[k].formato !== d.formato) out.enlaces.push({a:vistos[k], b:d});
     }else vistos[k] = d;
   });
+  /* enlaces de Discogs con el dominio duplicado, de una versión anterior con ese fallo */
+  out.urlsRotas = ds.filter(function(d){ return String(d.discogs || '').indexOf('discogs.comhttps://') >= 0; });
+  /* fotos del disco en http:// en vez de https:// */
+  out.fotosHttp = ds.filter(function(d){ return String(d.fotoDisco || '').indexOf('http://') === 0; });
+  /* dos ediciones enlazadas (formato distinto a propósito) que comparten el mismo
+     identificador de MusicBrainz o el mismo código de barras: eso identifica una
+     prensación física concreta, así que un CD y un vinilo no deberían compartirlo */
+  out.idsCompartidos = [];
+  var vistosLink = {};
+  ds.forEach(function(d){
+    if(!d.enlazado || vistosLink[d.id]) return;
+    var otro = ds.filter(function(x){ return x.id === d.enlazado; })[0];
+    if(!otro || otro.formato === d.formato) return;
+    vistosLink[d.id] = vistosLink[otro.id] = 1;
+    if(d.mbid && d.mbid === otro.mbid) out.idsCompartidos.push({a:d, b:otro, campo:'mbid'});
+    if(d.codigoBarras && d.codigoBarras === otro.codigoBarras) out.idsCompartidos.push({a:d, b:otro, campo:'codigoBarras'});
+  });
   return out;
 }
+/* ============================================================
+   RADAR DE LA COLECCIÓN
+   Un único sitio que agrega señales que ya se calculan por separado
+   en otras pantallas, para no tener que visitar cuatro sitios distintos.
+   No hace ninguna consulta nueva a ningún servidor: todo sale de datos
+   que ya están cargados o de funciones que ya existían.
+   ============================================================ */
+function radarColeccion(){
+  var ds = coleccion();
+  var incompletas = ds.filter(function(d){ return faltaEsencial(d).length; });
+  var reparar = analizarReparacion();
+  var totalReparar = reparar.artistas.length + reparar.sellos.length + (reparar.sellosVar || []).length
+    + reparar.anios.length + reparar.enlaces.length + (reparar.urlsRotas || []).length
+    + (reparar.fotosHttp || []).length + (reparar.idsCompartidos || []).length;
+  var sinFoto = ds.filter(function(d){ return !d.portada; });
+  var dup = Object.keys(dupSet()).length;
+  var deseos2 = deseos();
+  var olvidados = ds.filter(function(d){
+    return d.ultimaEscucha && (Date.now() - new Date(d.ultimaEscucha + 'T12:00:00').getTime()) > 180 * 86400000;
+  });
+  var fallos = fallosGuardados();
+
+  var fila = function(icono, titulo, n, detalle, accion){
+    if(!n) return '';
+    return '<button class="radaritem" data-accion="' + accion + '">'
+      + '<div class="ri">' + icono + '</div>'
+      + '<div class="rt"><div class="rn">' + titulo + '</div><div class="rd">' + detalle + '</div></div>'
+      + '<div class="rv">' + n + '</div></button>';
+  };
+  var body = (!incompletas.length && !totalReparar && !sinFoto.length && !dup && !fallos.length
+      ? '<div class="warnb info">' + I.check + '<span>Tu colección está sana: sin fichas incompletas, sin nada '
+        + 'pendiente de reparar, sin duplicados y sin fallos recientes.</span></div>'
+      : '<p style="font-size:13.5px;color:var(--txt2);margin:0 0 4px">Lo que puede merecer tu atención, reunido en un sitio.</p>')
+    + '<div class="radarlist">'
+    + fila(I.warn, 'Fichas incompletas', incompletas.length, 'Les falta algún dato esencial', 'revision')
+    + fila(I.spark, 'Cosas para reparar', totalReparar, 'Nombres, sellos, años o enlaces por limpiar', 'reparar')
+    + fila(I.img, 'Sin portada', sinFoto.length, 'Discos sin ninguna imagen', 'sinfoto')
+    + fila(I.copy, 'Posibles duplicados', dup, 'Fichas que podrían ser el mismo disco', 'dups')
+    + fila(I.reloj2, 'Llevan tiempo sin sonar', olvidados.length, 'Más de 6 meses sin marcar una escucha', 'olvidados')
+    + fila(I.lampara, 'En tu lista de deseos', deseos2.length, 'Discos que buscas', 'deseos')
+    + fila(I.bug || I.warn, 'Fallos recientes de la app', fallos.length, 'Registrados en Ajustes', 'fallos')
+    + '</div>';
+  var s = sheet('Radar de la colección', body, null, true);
+  s.querySelectorAll('[data-accion]').forEach(function(b){
+    b.onclick = function(){
+      var a = b.dataset.accion;
+      s.remove();
+      if(a === 'revision') pantallaRevision();
+      else if(a === 'reparar') pantallaReparar();
+      else if(a === 'dups'){
+        fType = 'dup';
+        document.querySelectorAll('#segType button').forEach(function(x){ x.className = x.dataset.f === 'dup' ? 'on' : ''; });
+        setView('col'); paintCol();
+      }else if(a === 'deseos') setView('wish');
+      else if(a === 'fallos') setView('db');
+      else if(a === 'sinfoto' || a === 'olvidados'){
+        var lista = a === 'sinfoto' ? sinFoto : olvidados;
+        listaPendientesGenerica(a === 'sinfoto' ? 'Discos sin portada' : 'Llevan tiempo sin sonar', lista);
+      }
+    };
+  });
+}
+/* Lista simple y pulsable, reutilizada por el radar para los dos casos
+   que no tenían ya su propia pantalla dedicada */
+function listaPendientesGenerica(titulo, lista){
+  var s = sheet(titulo, '<div class="tl">' + lista.map(function(d){
+    return '<div class="trk" data-disco="' + d.id + '" style="cursor:pointer"><span class="nm">' + esc(d.titulo)
+      + '<span style="color:var(--txt3)"> · ' + esc(d.artista) + '</span></span>'
+      + '<span class="dur">' + (d.ultimaEscucha ? 'último ' + fdate(d.ultimaEscucha).split(',')[0] : '') + '</span></div>';
+  }).join('') + '</div>');
+  s.querySelectorAll('[data-disco]').forEach(function(el){
+    el.onclick = function(){ s.remove(); openDetail(el.dataset.disco); };
+  });
+}
+
+/* ============================================================
+   QUÉ ESCUCHO AHORA (fusiona "no escuchados" y "sesión por tiempo")
+   Construye una selección de discos que se ajusta al tiempo que
+   digas, usando la duración real de sus pistas, con los filtros que
+   elijas. Todo con datos que ya hay, sin ninguna consulta externa.
+   ============================================================ */
+function duracionSegundos(d){
+  var seg = 0;
+  (d.tracklist || []).forEach(function(t){
+    var m = String(t.duracion || '').match(/^(\d+):(\d{2})$/);
+    if(m) seg += (+m[1]) * 60 + (+m[2]);
+  });
+  return seg;
+}
+function candidatosSesion(filtro){
+  var ds = coleccion().filter(function(d){ return duracionSegundos(d) > 0; });
+  if(filtro === 'noescuchados') ds = ds.filter(function(d){ return totalEscuchas(d) === 0; });
+  else if(filtro === 'favoritos') ds = ds.filter(function(d){ return d.valoracion >= 4; });
+  else if(filtro === 'vinilo') ds = ds.filter(function(d){ return d.formato === 'Vinilo'; });
+  else if(filtro === 'cd') ds = ds.filter(function(d){ return d.formato === 'CD'; });
+  return ds;
+}
+/* Selección voraz: mezcla al azar y va añadiendo discos mientras quepan
+   en el tiempo disponible, con un margen razonable de sobra. No es un
+   ajuste perfecto (eso sería una mochila NP-completa por un minuto de
+   diferencia, no merece la pena); es sencillo y funciona bien en la
+   práctica con álbumes de 20 a 70 minutos. */
+function construirSesion(minutos, filtro){
+  var candidatos = rngShuffle(candidatosSesion(filtro), Date.now() % 99991);
+  var objetivo = minutos * 60, elegidos = [], total = 0;
+  var margen = Math.max(300, objetivo * 0.12); /* hasta un 12% de margen o 5 min */
+  candidatos.forEach(function(d){
+    var dur = duracionSegundos(d);
+    if(total + dur <= objetivo + margen) { elegidos.push(d); total += dur; }
+  });
+  return {discos: elegidos, segundos: total, objetivo: objetivo};
+}
+function sesionEscucha(){
+  var body = '<p style="font-size:14px;color:var(--txt2);margin:0 0 14px">¿Cuánto tiempo tienes?</p>'
+    + '<div class="rowb" id="sesMin" style="flex-wrap:wrap;margin-bottom:16px">'
+    + [20, 30, 45, 60, 90].map(function(m){ return '<button class="btn sm" data-min="' + m + '">' + m + ' min</button>'; }).join('')
+    + '</div>'
+    + '<p style="font-size:14px;color:var(--txt2);margin:0 0 10px">¿Algún filtro?</p>'
+    + '<div class="rowb" id="sesFiltro" style="flex-wrap:wrap;margin-bottom:18px">'
+    + [['todos', 'Cualquiera'], ['noescuchados', 'No escuchados'], ['favoritos', 'Favoritos'],
+       ['vinilo', 'Vinilo'], ['cd', 'CD']].map(function(f){
+        return '<button class="btn sm' + (f[0] === 'todos' ? ' on' : '') + '" data-f="' + f[0] + '">' + f[1] + '</button>';
+      }).join('')
+    + '</div><div id="sesRes"></div>';
+  var s = sheet('Qué escucho ahora', body, null, true);
+  var minSel = 45, filtroSel = 'todos';
+  var construir = function(){
+    var r = construirSesion(minSel, filtroSel === 'todos' ? '' : filtroSel);
+    var caja = s.querySelector('#sesRes');
+    if(!r.discos.length){
+      caja.innerHTML = '<div class="tl-empty">No hay discos que encajen con ese filtro y ese tiempo.</div>';
+      return;
+    }
+    var h = Math.floor(r.segundos / 3600), m = Math.round(r.segundos % 3600 / 60);
+    caja.innerHTML = '<div class="tl-hd"><h4>' + r.discos.length + (r.discos.length === 1 ? ' disco' : ' discos')
+      + '</h4><span class="n">' + (h ? h + ' h ' : '') + m + ' min en total</span></div>'
+      + '<div class="grid paisgrid">' + r.discos.map(function(d){ return tileHtml(d, null); }).join('') + '</div>'
+      + '<div class="rowb" style="margin-top:16px"><button class="btn" id="sesOtra">' + I.refresh + 'Otra selección</button></div>';
+    enlazarTiles(caja, {});
+    caja.querySelector('#sesOtra').onclick = construir;
+  };
+  s.querySelectorAll('#sesMin button').forEach(function(b){
+    b.onclick = function(){
+      s.querySelectorAll('#sesMin button').forEach(function(x){ x.className = 'btn sm'; });
+      b.className = 'btn sm on';
+      minSel = +b.dataset.min;
+      construir();
+    };
+  });
+  s.querySelectorAll('#sesFiltro button').forEach(function(b){
+    b.onclick = function(){
+      s.querySelectorAll('#sesFiltro button').forEach(function(x){ x.className = 'btn sm'; });
+      b.className = 'btn sm on';
+      filtroSel = b.dataset.f;
+      construir();
+    };
+  });
+  s.querySelector('#sesMin [data-min="45"]').className = 'btn sm on';
+  construir();
+}
+
+/* ============================================================
+   ADN MUSICAL DE LA COLECCIÓN
+   Síntesis de datos que ya se calculan en otras tarjetas de Estadísticas,
+   reunidos en un único perfil. Nada de frases genéricas: solo porcentajes
+   y cifras sacadas directamente de tu colección.
+   ============================================================ */
+function adnMusical(){
+  var ds = coleccion();
+  if(ds.length < 8){ toast('Hace falta algo más de colección para sacar un perfil', true); return; }
+  var contar = function(campo){
+    var m = {};
+    ds.forEach(function(d){ var v = d[campo]; if(v) m[v] = (m[v] || 0) + 1; });
+    return Object.keys(m).sort(function(a, b){ return m[b] - m[a]; }).map(function(k){ return {k:k, n:m[k]}; });
+  };
+  var decadas = {};
+  ds.forEach(function(d){
+    var y = parseInt(d['año']);
+    if(y){ var dec = Math.floor(y / 10) * 10; decadas[dec] = (decadas[dec] || 0) + 1; }
+  });
+  var decOrden = Object.keys(decadas).sort(function(a, b){ return decadas[b] - decadas[a]; });
+  var generos = contar('genero'), paises = contar('pais'), sellos = contar('sello');
+  var porArtista = {};
+  ds.forEach(function(d){ if(d.artista) porArtista[d.artista] = (porArtista[d.artista] || 0) + 1; });
+  var artistasOrd = Object.keys(porArtista).sort(function(a, b){ return porArtista[b] - porArtista[a]; });
+  var top10 = artistasOrd.slice(0, 10).reduce(function(a, k){ return a + porArtista[k]; }, 0);
+  var vin = ds.filter(function(d){ return d.formato === 'Vinilo'; }).length;
+  var anios = ds.map(function(d){ return parseInt(d['año']); }).filter(Boolean);
+  var anioMedio = anios.length ? Math.round(anios.reduce(function(a, b){ return a + b; }, 0) / anios.length) : null;
+
+  var linea = function(k, v, sub){
+    return '<div class="adnfila"><div class="ak">' + esc(k) + '</div><div class="av">' + v + '</div>'
+      + (sub ? '<div class="as">' + esc(sub) + '</div>' : '') + '</div>';
+  };
+  var body = '<div class="adngrid">'
+    + (decOrden.length ? linea('Década dominante', decOrden[0] + 's',
+        Math.round(decadas[decOrden[0]] / ds.length * 100) + '% de tu colección') : '')
+    + (generos.length ? linea('Género principal', generos[0].k,
+        Math.round(generos[0].n / ds.length * 100) + '% de tu colección') : '')
+    + (paises.length ? linea('País más presente', nombrePais(paises[0].k) || paises[0].k,
+        Math.round(paises[0].n / ds.length * 100) + '%') : '')
+    + (sellos.length ? linea('Sello con más discos tuyos', sellos[0].k, sellos[0].n + ' discos') : '')
+    + linea('Vinilo frente a CD', Math.round(vin / ds.length * 100) + '% / ' + Math.round((ds.length - vin) / ds.length * 100) + '%', '')
+    + (anioMedio ? linea('Año medio de tu colección', anioMedio, '') : '')
+    + linea('Artistas distintos', artistasOrd.length, 'para ' + ds.length + ' discos')
+    + linea('Concentración', Math.round(top10 / ds.length * 100) + '%',
+        'de tu colección son tus 10 artistas con más discos')
+    + '</div>';
+  sheet('El ADN de tu colección', body, null, true);
+}
+
+/* ============================================================
+   TENDENCIA DE ESCUCHA
+   El calendario ya existe; esto añade la evolución mes a mes, algo
+   que el calendario no muestra: si escuchas más o menos que antes, y
+   si el formato que más pones ha ido cambiando.
+   ============================================================ */
+function tendenciaEscucha(){
+  var ds = coleccion();
+  var porMes = {}, meses = [];
+  var hoy = new Date();
+  for(var i = 11; i >= 0; i--){
+    var f = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    var k = f.getFullYear() + '-' + String(f.getMonth() + 1).padStart(2, '0');
+    meses.push(k);
+    porMes[k] = {total: 0, vinilo: 0};
+  }
+  ds.forEach(function(d){
+    (d.escuchasFechas || []).forEach(function(fecha){
+      var k = String(fecha).slice(0, 7);
+      if(porMes[k]){ porMes[k].total++; if(d.formato === 'Vinilo') porMes[k].vinilo++; }
+    });
+  });
+  var totalEsc = meses.reduce(function(a, k){ return a + porMes[k].total; }, 0);
+  if(!totalEsc){
+    sheet('Tendencia de escucha', '<div class="tl-empty">Todavía no hay escuchas registradas en los últimos '
+      + '12 meses. Marca alguna desde una ficha o deslizando una portada, y vuelve aquí más adelante.</div>');
+    return;
+  }
+  var ultimos3 = meses.slice(-3).reduce(function(a, k){ return a + porMes[k].total; }, 0);
+  var anteriores3 = meses.slice(-6, -3).reduce(function(a, k){ return a + porMes[k].total; }, 0);
+  var cambio = anteriores3 ? Math.round((ultimos3 - anteriores3) / anteriores3 * 100) : null;
+  var datosGrafico = meses.map(function(k){
+    return {k: k.slice(5) + '/' + k.slice(2, 4), v: porMes[k].total};
+  });
+  var body = '<div class="warnb info">' + I.info + '<span>' + (cambio == null ? 'Con más meses de historial se podrá comparar la tendencia.'
+      : cambio > 0 ? 'Has escuchado un ' + cambio + '% más en los últimos tres meses que en los tres anteriores.'
+      : cambio < 0 ? 'Has escuchado un ' + Math.abs(cambio) + '% menos en los últimos tres meses que en los tres anteriores.'
+      : 'Escuchas al mismo ritmo que hace tres meses.') + '</span></div>'
+    + '<div class="chartwrap">' + columns(datosGrafico, 'var(--green)') + '</div>';
+  sheet('Tendencia de escucha', body, null, true);
+}
+
 function pantallaReparar(){
   var r = analizarReparacion();
-  var total = r.artistas.length + r.sellos.length + (r.sellosVar || []).length + r.anios.length + r.enlaces.length;
+  var total = r.artistas.length + r.sellos.length + (r.sellosVar || []).length + r.anios.length + r.enlaces.length
+    + (r.urlsRotas || []).length + (r.fotosHttp || []).length + (r.idsCompartidos || []).length;
   if(!total){
     sheet('Reparar la base de datos',
       '<div class="warnb info">' + I.check + '<span>No he encontrado nada que reparar. '
@@ -8309,6 +8698,9 @@ function pantallaReparar(){
   var body = '<p style="font-size:14.5px;color:var(--txt2);line-height:1.5;margin:0 0 8px">'
     + 'He encontrado <b style="color:var(--txt)">' + total + ' cosas</b> que se pueden arreglar. '
     + 'Marca las que quieras aplicar.</p>'
+    + ((r.idsCompartidos || []).length ? '<div class="warnb info">' + I.info + '<span>Cuando dos ediciones enlazadas '
+        + '(mismo álbum, distinto formato) comparten identificador o código de barras, se vacía en una de las dos '
+        + 'para que la próxima revisión le busque uno propio. No se toca nada más de la ficha.</span></div>' : '')
     + bloque('Mismo artista escrito de varias formas', r.artistas, function(x, i){
         return '<label class="trk"><input type="checkbox" class="rep" data-t="art" data-i="' + i + '" checked>'
           + '<span class="nm">' + esc(x.variantes.join('  ·  ')) + '</span>'
@@ -8331,6 +8723,22 @@ function pantallaReparar(){
         return '<label class="trk"><input type="checkbox" class="rep" data-t="enl" data-i="' + i + '" checked>'
           + '<span class="nm">' + esc(x.a.titulo) + '</span>'
           + '<span class="dur">' + x.a.formato + ' + ' + x.b.formato + '</span></label>';
+      })
+    + bloque('Enlaces de Discogs con el dominio duplicado', r.urlsRotas || [], function(x, i){
+        return '<label class="trk"><input type="checkbox" class="rep" data-t="url" data-i="' + i + '" checked>'
+          + '<span class="nm">' + esc(x.titulo) + '<span style="color:var(--txt3)"> · ' + esc(x.artista) + '</span></span>'
+          + '<span class="dur">se corrige sola</span></label>';
+      })
+    + bloque('Fotos del disco en http:// en vez de https://', r.fotosHttp || [], function(x, i){
+        return '<label class="trk"><input type="checkbox" class="rep" data-t="foto" data-i="' + i + '" checked>'
+          + '<span class="nm">' + esc(x.titulo) + '<span style="color:var(--txt3)"> · ' + esc(x.artista) + '</span></span>'
+          + '<span class="dur">se corrige sola</span></label>';
+      })
+    + bloque('Ediciones distintas con el mismo identificador', r.idsCompartidos || [], function(x, i){
+        return '<label class="trk"><input type="checkbox" class="rep" data-t="idc" data-i="' + i + '" checked>'
+          + '<span class="nm">' + esc(x.a.titulo) + '<span style="color:var(--txt3)"> · ' + esc(x.a.artista)
+          + ' · ' + x.a.formato + ' + ' + x.b.formato + '</span></span>'
+          + '<span class="dur">vacía ' + (x.campo === 'mbid' ? 'el identificador' : 'el código de barras') + '</span></label>';
       });
   var s = sheet('Reparar la base de datos', body,
     '<button class="btn" data-px>Cerrar</button><button class="btn pri" id="repOk">Aplicar lo marcado</button>', true);
@@ -8357,6 +8765,22 @@ function pantallaReparar(){
         r.anios[i].d['año'] = ''; n++;
       }else if(c.dataset.t === 'enl'){
         enlazarEdiciones(r.enlaces[i].a, r.enlaces[i].b); n++;
+      }else if(c.dataset.t === 'url'){
+        var du = r.urlsRotas[i];
+        du.discogs = du.discogs.replace('https://www.discogs.comhttps://www.discogs.com', 'https://www.discogs.com');
+        n++;
+      }else if(c.dataset.t === 'foto'){
+        var df = r.fotosHttp[i];
+        df.fotoDisco = aHttps(df.fotoDisco);
+        n++;
+      }else if(c.dataset.t === 'idc'){
+        var xi = r.idsCompartidos[i];
+        /* se conserva el de la primera ficha y se vacía el de la segunda, para que
+           la próxima «Revisar y actualizar todo» le busque uno propio, sin tocar
+           ninguna otra cosa de la ficha */
+        xi.b[xi.campo] = '';
+        xi.b.revisado = '';
+        n++;
       }
     });
     persist();
@@ -8576,8 +9000,8 @@ function modoTienda(){
     var caja = t.querySelector('#tRes');
     caja.innerHTML = '<div class="tbuscando">' + I.search + 'Buscando ' + esc(codigo) + '…</div>';
     var mio = DB.discos.filter(function(d){ return d.codigoBarras === codigo; })[0];
-    var pinta = function(d, encontrado, info){
-      if(encontrado && d){
+    var pinta = function(d, encontrado, info, otraEdicion){
+      if(encontrado && d && !otraEdicion){
         caja.innerHTML = '<div class="tcard si"><div class="tico">' + I.check + '</div>'
           + '<div class="tt">YA LO TIENES</div>'
           + '<div class="tsub">' + esc(d.titulo) + ' · ' + esc(d.artista) + '</div>'
@@ -8587,6 +9011,28 @@ function modoTienda(){
           + '<button class="btn" id="tVer">Ver la ficha</button></div>';
         var b = caja.querySelector('#tVer');
         if(b) b.onclick = function(){ cerrar(); openDetail(d.id); };
+      }else if(encontrado && d && otraEdicion){
+        /* mismo álbum, pero la edición que tienes no es exactamente esta:
+           se enseñan las dos una al lado de la otra, sin decir cuál comprar */
+        var fila2 = function(k, tuya, esta){
+          if(!tuya && !esta) return '';
+          var distinto = tuya && esta && String(tuya) !== String(esta);
+          return '<div class="tcompfila' + (distinto ? ' dif' : '') + '"><span class="tck">' + k + '</span>'
+            + '<span class="tcv">' + esc(tuya || '—') + '</span><span class="tcv">' + esc(esta || '—') + '</span></div>';
+        };
+        caja.innerHTML = '<div class="tcard otra"><div class="tico">' + I.layers + '</div>'
+          + '<div class="tt">TIENES ESTE ÁLBUM, OTRA EDICIÓN</div>'
+          + '<div class="tsub">' + esc(d.titulo) + ' · ' + esc(d.artista) + '</div>'
+          + '<div class="tcomp"><div class="tcompfila tchd"><span class="tck"></span><span class="tcv">La tuya</span><span class="tcv">Esta</span></div>'
+          + fila2('Formato', d.formato, info && (/cd/i.test(info.formatoDetalle || '') ? 'CD' : 'Vinilo'))
+          + fila2('Año', d['año'], info && info['año'])
+          + fila2('Sello', d.sello, info && info.sello)
+          + fila2('País', d.pais && nombrePais(d.pais), info && info.pais && nombrePais(info.pais))
+          + fila2('Catálogo', d.numeroCatalogo, info && info.numeroCatalogo)
+          + '</div>'
+          + '<button class="btn" id="tVer2">Ver tu ficha</button></div>';
+        var b2 = caja.querySelector('#tVer2');
+        if(b2) b2.onclick = function(){ cerrar(); openDetail(d.id); };
       }else{
         caja.innerHTML = '<div class="tcard no"><div class="tico">' + I.plus + '</div>'
           + '<div class="tt">NO LO TIENES</div>'
@@ -8614,7 +9060,7 @@ function modoTienda(){
       var igual = DB.discos.filter(function(d){
         return plain(d.artista) === plain(info.artista) && plain(d.titulo) === plain(info.titulo);
       })[0];
-      pinta(igual || null, !!igual, info);
+      pinta(igual || null, !!igual, info, !!igual);
     }).catch(function(){ pinta(null, false, null); });
   };
   t.querySelector('#tOk').onclick = function(){
@@ -8825,7 +9271,14 @@ function sugerenciasDelDia(){
     mete(v0, 'de ' + v0['año'] + ', ' + (new Date().getFullYear() - parseInt(v0['año'])) + ' años ya'
       + (v0.ultimaEscucha ? ' · último ' + fdate(v0.ultimaEscucha).split(',')[0] : ''));
   }
-  while(out.length < 4 && ds.length) mete(rngShuffle(ds, semilla + out.length * 17)[0], 'al azar, por probar');
+  /* Si la tirada aleatoria coincide con un disco ya elegido, mete() no hace
+     nada y el bucle no avanzaría nunca con la misma semilla: se limita el
+     número de intentos para que termine siempre, pase lo que pase. */
+  var intentos = 0;
+  while(out.length < 4 && ds.length && intentos < 60){
+    mete(rngShuffle(ds, semilla + out.length * 17 + intentos)[0], 'al azar, por probar');
+    intentos++;
+  }
   return out;
 }
 function pintarSugerencias(){
@@ -8904,7 +9357,8 @@ function firmaSonora(){
     + '<div class="fv">' + esc(gen.k) + ' de <b>' + nombreDec + '</b>, en ' + sop + '</div>'
     + '<div class="fs">' + gen.pct + '% de tu colección es ' + esc(gen.k).toLowerCase()
     + ' · ' + dec.pct + '% son discos de ' + nombreDec
-    + (pais && PAISES[pais.k] ? ' · la mayoría prensados en ' + nombrePais(pais.k) : '') + '</div></div>';
+    + (pais && PAISES[pais.k] ? ' · la mayoría prensados en ' + nombrePais(pais.k) : '') + '</div>'
+    + '<button class="btn xs" id="verAdn" style="margin-top:10px">Ver el perfil completo</button></div>';
 }
 
 /* ============================================================
@@ -9583,6 +10037,8 @@ function paintStats(){
   box.querySelectorAll('[data-gen]').forEach(function(el){
     el.onclick = function(){ fGen = el.dataset.gen; setView('col'); paintCol(); };
   });
+  var va = box.querySelector('#verAdn');
+  if(va) va.onclick = adnMusical;
 }
 
 /* ============================================================
@@ -9669,6 +10125,9 @@ function paintDb(){
     /* ---- poner al día ---- */
     + seccion(I.spark, 'Poner los datos al día', 'Lo que rellena y arregla tu colección')
     + '<div class="dbact">'
+      + accion(I.aguja, 'Radar de la colección', 'Todo lo que merece tu atención, reunido en un sitio: fichas incompletas, '
+          + 'reparaciones pendientes, duplicados y más.', 'radar', 'pri', 'Ver')
+      + accion(I.playF, 'Qué escucho ahora', 'Dime cuánto tiempo tienes y te armo una selección que encaje, con tus filtros.', 'sesion', '', 'Elegir')
       + accion(I.refresh, 'Revisar y actualizar todo', 'Recorre los ' + DB.discos.length
           + ' discos y rellena lo que falte: caras del tracklist, créditos, foto del disco, Apple Music. No pisa nada tuyo.', 'revisar', 'pri', 'Revisar')
       + accion(I.warn, 'Reparar la base de datos', 'Busca variantes del mismo artista, sellos sucios y años imposibles.', 'reparar', '', 'Analizar')
@@ -9756,6 +10215,7 @@ function paintDb(){
   on('revisar', pantallaRevision);
   on('reparar', pantallaReparar);
   on('dgcol', pantallaDiscogs);
+  on('radar', radarColeccion);
   on('maquina', maquinaDelTiempo);
   on('anorepaso', tuAnoEnUnVistazo);
   on('conciertos', conciertosCerca);
