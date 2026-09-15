@@ -1703,7 +1703,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.15-rendimiento';
+var VERSION = '2026.09.15-numeros';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var view = 'col';
 var fType = 'all', fGen = '', fArt = '', fTag = '', fDec = '', fPais = '', fSello = '';
@@ -5381,9 +5381,10 @@ function duracionLista(ts){
 }
 function filaTrack(d, t, i, n){
   return '<div class="trk' + (t.fav ? ' fav' : '') + '">'
+    + '<span class="' + (t.pos ? 'pos' : 'num') + '">' + (t.pos ? esc(t.pos) : n) + '</span>'
     + (t.preview
         ? '<button class="play" data-prev="' + d.id + ':' + i + '" data-url="' + esc(t.preview) + '">' + I.play + '</button>'
-        : '<span class="' + (t.pos ? 'pos' : 'num') + '">' + (t.pos ? esc(t.pos) : n) + '</span>')
+        : '')
     + '<span class="nm">' + esc(t.titulo) + '</span>'
     + (t.duracion ? '<span class="dur">' + esc(t.duracion) + '</span>' : '<span class="dur"></span>')
     + (readOnly ? '' : '<button class="cora' + (t.fav ? ' on' : '') + '" data-fav="' + i
