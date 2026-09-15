@@ -1704,7 +1704,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.15-token';
+var VERSION = '2026.09.15-probarclaves';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var view = 'col';
 var fType = 'all', fGen = '', fArt = '', fTag = '', fDec = '', fPais = '', fSello = '';
@@ -2340,7 +2340,6 @@ function fusionar(locales, borrLoc, remotos, borrRem){
 /* ---------- descarga ---------- */
 function pull(silencioso){
   if(!configurado()) return Promise.resolve(false);
-  if(!navigator.onLine){ marcar('off'); return Promise.resolve(false); }
   marcar('busy');
   return fetch(ghUrl() + '?ref=' + encodeURIComponent(CFG.branch) + '&t=' + Date.now(), {headers: ghHeaders(), cache:'no-store'})
     .then(function(r){
@@ -2376,6 +2375,12 @@ function pull(silencioso){
       return fetch(j.download_url, {cache:'no-store'}).then(function(r2){ return r2.text(); }).then(seguir);
     })
     .catch(function(e){
+      /* un fallo de red de verdad (sin conexión) llega aquí como TypeError,
+         distinto de los errores que la propia app lanza a propósito;
+         navigator.onLine no se usa para bloquear el intento porque en
+         Safari, sobre todo en la app instalada, puede decir que no hay
+         red aunque sí la haya */
+      if(e instanceof TypeError){ marcar('off'); return false; }
       marcar('err', String(e.message) === 'token' ? 'Token no válido' : '');
       return false;
     });
@@ -2384,7 +2389,6 @@ function pull(silencioso){
 /* ---------- subida ---------- */
 function push(){
   if(!configurado() || readOnly) return Promise.resolve(false);
-  if(!navigator.onLine){ marcar('off'); return Promise.resolve(false); }
   marcar('busy');
   var doc = { version:4, actualizado: nowISO(), discos: discosLigeros(), borrados: DB.borrados || [] };
   var cuerpo = {
@@ -2413,6 +2417,7 @@ function push(){
       });
     })
     .catch(function(e){
+      if(e instanceof TypeError){ marcar('off'); return false; }
       marcar('err', String(e.message) === 'token' ? 'Token no válido' : '');
       return false;
     });
@@ -2472,6 +2477,77 @@ function boot(){
 }
 
 /* ---------- pantalla de configuración ---------- */
+/* ---------- comprobar cada clave opcional, antes de guardarla ---------- */
+function probarDiscogs(valor){
+  return fetch('https://api.discogs.com/database/search?q=queen&type=artist&per_page=1&token=' + encodeURIComponent(valor))
+    .then(function(r){
+      if(r.status === 401) throw new Error('Token no válido');
+      if(!r.ok) throw new Error('Discogs respondió con un error (http' + r.status + ')');
+      return 'Funciona correctamente';
+    });
+}
+function probarAnthropic(valor){
+  return fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {'content-type':'application/json', 'x-api-key':valor, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true'},
+    body: JSON.stringify({model:'claude-haiku-4-5-20251001', max_tokens:1, messages:[{role:'user', content:'hola'}]})
+  }).then(function(r){
+    if(r.status === 401) throw new Error('Clave no válida');
+    if(!r.ok) return r.json().catch(function(){ return {}; }).then(function(j){
+      throw new Error((j.error && j.error.message) || ('http' + r.status));
+    });
+    return 'Funciona correctamente';
+  });
+}
+function probarLastfm(valor){
+  return fetch('https://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=queen&api_key=' + encodeURIComponent(valor) + '&format=json')
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if(j.error) throw new Error(j.message || 'Clave no válida');
+      return 'Funciona correctamente';
+    });
+}
+function probarTicketmaster(valor){
+  return fetch('https://app.ticketmaster.com/discovery/v2/events.json?apikey=' + encodeURIComponent(valor) + '&size=1')
+    .then(function(r){
+      if(r.status === 401) throw new Error('Clave no válida');
+      if(!r.ok) return r.json().catch(function(){ return {}; }).then(function(j){
+        throw new Error((j.fault && j.fault.faultstring) || ('http' + r.status));
+      });
+      return 'Funciona correctamente';
+    });
+}
+function probarAudd(valor){
+  /* sin mandar ningún archivo: AudD devuelve un código distinto si el
+     problema es el token (900) que si el problema es que falta el
+     archivo (700, esperado aquí), así que esto no gasta ninguna consulta
+     de las limitadas de tu plan */
+  var fd = new FormData();
+  fd.append('api_token', valor);
+  return fetch('https://api.audd.io/', {method:'POST', body:fd})
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      var codigo = j.error && j.error.error_code;
+      if(codigo === 900 || codigo === 901) throw new Error('Token no válido');
+      return 'La clave funciona (no se ha gastado ninguna consulta)';
+    });
+}
+function probarClave(fn, valor, elBoton, elResultado){
+  if(!valor){ elResultado.style.display = 'none'; return; }
+  elResultado.style.display = '';
+  elResultado.className = 'note busy';
+  elResultado.textContent = 'Comprobando…';
+  elBoton.disabled = true;
+  fn(valor).then(function(msg){
+    elResultado.className = 'note ok';
+    elResultado.textContent = msg;
+    elBoton.disabled = false;
+  }).catch(function(e){
+    elResultado.className = 'note err';
+    elResultado.textContent = (e instanceof TypeError) ? 'No se pudo conectar con el servidor' : e.message;
+    elBoton.disabled = false;
+  });
+}
 function pantallaSync(){
   var body =
     '<div class="warnb info">' + I.cloud + '<span>Tu colección se guarda en un archivo <b>' + esc(CFG.path)
@@ -2488,7 +2564,8 @@ function pantallaSync(){
     + 'y el relleno de fichas, porque su base de datos de discos físicos es la más completa. '
     + 'Se crea en Discogs → Settings → Developers → Generate token.</span></div>'
     + '<div class="group"><div class="grow"><label>Token Discogs</label>'
-    + '<input id="sDisc" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.discogs || '') + '" placeholder="opcional"></div></div>'
+    + '<input id="sDisc" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.discogs || '') + '" placeholder="opcional"></div>'
+    + '<button class="btn sm" type="button" id="pDisc">Probar</button></div><div id="rDisc" class="note" style="display:none;margin:-6px 0 14px"></div>'
     + '<div style="font-size:12.5px;color:var(--txt2);line-height:1.5;margin:-4px 0 14px 3px">'
     + 'El token se crea en GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens, '
     + 'con permiso <b>Contents: Read and write</b> sobre ese único repositorio.</div>'
@@ -2497,12 +2574,15 @@ function pantallaSync(){
     + '(unos céntimos) que se cobra en tu cuenta de Anthropic, y queda guardada en este dispositivo igual que los demás '
     + 'tokens: visible para quien tenga acceso físico a él. Sin ella, esa opción simplemente no aparece.</span></div>'
     + '<div class="group"><div class="grow"><label>Clave de Anthropic</label>'
-    + '<input id="sAntropic" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.anthropic || '') + '" placeholder="sk-ant-…"></div></div>'
+    + '<input id="sAntropic" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.anthropic || '') + '" placeholder="sk-ant-…"></div>'
+    + '<button class="btn sm" type="button" id="pAntropic" data-tip="La prueba también tiene un coste mínimo">Probar</button></div>'
+    + '<div id="rAntropic" class="note" style="display:none;margin:-6px 0 14px"></div>'
     + '<div class="warnb info">' + I.info + '<span>Opcional y gratis: una <b>clave de Last.fm</b> da una biografía del '
     + 'artista cuando Wikipedia en español no tiene artículo sobre él. Se crea en last.fm/api/account/create, '
     + 'sin coste.</span></div>'
     + '<div class="group"><div class="grow"><label>Clave de Last.fm</label>'
-    + '<input id="sLastfm" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.lastfm || '') + '" placeholder="opcional"></div></div>'
+    + '<input id="sLastfm" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.lastfm || '') + '" placeholder="opcional"></div>'
+    + '<button class="btn sm" type="button" id="pLastfm">Probar</button></div><div id="rLastfm" class="note" style="display:none;margin:-6px 0 14px"></div>'
     + (hayDiscogs() ? '<div class="fila" style="margin-top:4px"><div><div class="ft">Subir a Discogs al añadir aquí</div>'
         + '<div class="fs">Cuando des de alta un disco que ya tenga edición de Discogs enlazada, se añade también '
         + 'a tu colección de Discogs.</div></div>'
@@ -2511,12 +2591,14 @@ function pantallaSync(){
     + 'cerca de ti de artistas que ya tienes. Se crea en developer.ticketmaster.com, sin coste, con un límite '
     + 'generoso de consultas al día.</span></div>'
     + '<div class="group"><div class="grow"><label>Clave de Ticketmaster</label>'
-    + '<input id="sTM" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.ticketmaster || '') + '" placeholder="opcional"></div></div>'
+    + '<input id="sTM" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.ticketmaster || '') + '" placeholder="opcional"></div>'
+    + '<button class="btn sm" type="button" id="pTM">Probar</button></div><div id="rTM" class="note" style="display:none;margin:-6px 0 14px"></div>'
     + '<div class="warnb">' + I.warn + '<span>Más opcional aún: una <b>clave de AudD</b> permite reconocer una canción '
     + 'grabando unos segundos con el micrófono, como Shazam. Su plan gratuito es muy limitado; para usarlo con '
     + 'cierta frecuencia hace falta un plan de pago en audd.io.</span></div>'
     + '<div class="group"><div class="grow"><label>Clave de AudD</label>'
-    + '<input id="sAudd" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.audd || '') + '" placeholder="opcional"></div></div>'
+    + '<input id="sAudd" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.audd || '') + '" placeholder="opcional"></div>'
+    + '<button class="btn sm" type="button" id="pAudd">Probar</button></div><div id="rAudd" class="note" style="display:none;margin:-6px 0 14px"></div>'
     + '<div id="snote"></div>';
   var pie = (configurado()
       ? '<button class="btn destr" id="sOff">Desconectar</button>'
@@ -2571,6 +2653,11 @@ function pantallaSync(){
       pull().then(function(){ if(syncState !== 'ok') return push(); });
     }).catch(function(e){ $('#snote').innerHTML = '<div class="note err">' + esc(e.message) + '</div>'; });
   };
+  $('#pDisc').onclick = function(e){ probarClave(probarDiscogs, $('#sDisc').value.trim(), e.currentTarget, $('#rDisc')); };
+  $('#pAntropic').onclick = function(e){ probarClave(probarAnthropic, $('#sAntropic').value.trim(), e.currentTarget, $('#rAntropic')); };
+  $('#pLastfm').onclick = function(e){ probarClave(probarLastfm, $('#sLastfm').value.trim(), e.currentTarget, $('#rLastfm')); };
+  $('#pTM').onclick = function(e){ probarClave(probarTicketmaster, $('#sTM').value.trim(), e.currentTarget, $('#rTM')); };
+  $('#pAudd').onclick = function(e){ probarClave(probarAudd, $('#sAudd').value.trim(), e.currentTarget, $('#rAudd')); };
   if($('#sOff')) $('#sOff').onclick = function(){
     if(!confirm('¿Desconectar este dispositivo? La colección se quedará solo aquí.')) return;
     CFG = {owner:'', repo:'', branch:'main', path:'datos.json', token:'', discogs:CFG.discogs || '', anthropic:CFG.anthropic || '', lastfm:CFG.lastfm || '', ticketmaster:CFG.ticketmaster || '', audd:CFG.audd || '', subirADiscogs:false, auto:true};
@@ -10475,7 +10562,7 @@ function montarEventos(){
     if(syncState === 'pend' && configurado()){ e.preventDefault(); e.returnValue = ''; }
   });
   setInterval(function(){
-    if(configurado() && !document.hidden && navigator.onLine && Date.now() - ultimoPull > 300000) pull(true);
+    if(configurado() && !document.hidden && Date.now() - ultimoPull > 300000) pull(true);
   }, 60000);
 
   document.addEventListener('keydown', function(e){
