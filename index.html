@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; connect-src 'self' https://api.github.com https://api.discogs.com https://musicbrainz.org https://coverartarchive.org https://itunes.apple.com https://es.wikipedia.org https://ws.audioscrobbler.com https://app.ticketmaster.com https://api.audd.io https://api.anthropic.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
@@ -502,6 +503,8 @@ svg.mapa .chip:hover text{fill:#fff}
 
 /* radar de la colección */
 /* adn musical */
+.mas-discos{grid-column:1/-1;text-align:center;padding:22px;font-size:13px;color:var(--txt3)}
+
 .adngrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
 .adnfila{background:var(--elev);border-radius:var(--r-md);padding:14px;box-shadow:var(--sh1)}
 .adnfila .ak{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--txt3)}
@@ -1700,7 +1703,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.15-evolucion';
+var VERSION = '2026.09.15-rendimiento';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var view = 'col';
 var fType = 'all', fGen = '', fArt = '', fTag = '', fDec = '', fPais = '', fSello = '';
@@ -3865,12 +3868,20 @@ function revisarDudosos(dudosos, yaAnadidos){
   function decidir(acc){
     var par = dudosos[i], a = par.actual, b = par.nuevo;
     if(acc === 'sustituir'){
-      b.id = a.id; b.fechaAlta = a.fechaAlta;
-      b.portada = b.portada || a.portada;
-      b.tracklist = b.tracklist.length ? b.tracklist : a.tracklist;
-      b.etiquetas = a.etiquetas; b.escuchas = a.escuchas; b.prestadoA = a.prestadoA; b.prestadoDesde = a.prestadoDesde;
-      DB.discos = DB.discos.map(function(x){ return x.id === a.id ? b : x; });
-      nuevosCompletar.push(b);
+      /* mismo patrón que en el formulario: se parte de una copia completa de
+         la ficha que ya tenías (a) y solo se sobrescribe con lo que de verdad
+         viene del CSV, para no perder nada que el CSV no toca -ficha técnica,
+         escuchas, foto del disco, enlaces entre ediciones, etc. */
+      var fusionado = normDisc(Object.assign({}, a, {
+        titulo: b.titulo, artista: b.artista, 'año': b['año'], formato: b.formato,
+        formatoDetalle: b.formatoDetalle, genero: b.genero, sello: b.sello,
+        numeroCatalogo: b.numeroCatalogo, estado: b.estado || a.estado,
+        notas: b.notas || a.notas, lista: b.lista,
+        portada: a.portada || b.portada,
+        tracklist: a.tracklist.length ? a.tracklist : b.tracklist
+      }));
+      DB.discos = DB.discos.map(function(x){ return x.id === a.id ? fusionado : x; });
+      nuevosCompletar.push(fusionado);
       res.sustituir++;
     }else if(acc === 'ambos'){
       DB.discos.push(b);
@@ -4013,6 +4024,12 @@ function cargarZX(){
   zxCargando = new Promise(function(res, rej){
     var s = document.createElement('script');
     s.src = ZX_URL;
+    /* comprobación de integridad: si alguna vez el CDN sirviera un archivo
+       distinto del que se revisó -por un ataque a la cadena de suministro,
+       por ejemplo-, el navegador se niega a ejecutarlo en vez de correr
+       código no verificado */
+    s.integrity = 'sha384-BzBxP10ZE72aitqj5UMmUsbKFliP/DZqA8Wq+BNNhlIJDGoEd1tpkMYXOg9+n6sB';
+    s.crossOrigin = 'anonymous';
     s.onload = function(){ res(window.ZXing); };
     s.onerror = function(){ zxCargando = null; rej(new Error('cdn')); };
     document.head.appendChild(s);
@@ -4448,27 +4465,28 @@ function tileHtml(d, dups){
     + (totalEscuchas(d) ? ' · ▶ ' + totalEscuchas(d) : '') + '</span>'
     + (d.valoracion ? estrellasHtml(d.valoracion) : '') + '</div></div></div>';
 }
+function filaListaHtml(d, dups){
+  /* la información que antes faltaba llena el centro de la fila */
+  var medio = [
+    d.genero || '',
+    d.sello || '',
+    d.pais && PAISES[d.pais] ? nombrePais(d.pais) : '',
+    totalEscuchas(d) ? totalEscuchas(d) + (totalEscuchas(d) === 1 ? ' escucha' : ' escuchas') : '',
+    d.tracklist.length ? d.tracklist.length + ' temas' : '',
+    duracionTotal(d) || '',
+    d.ubicacion || ''
+  ].filter(Boolean).slice(0, 4).join('  ·  ');
+  return '<div class="lrow" data-id="' + d.id + '"><div class="mini">' + coverHtml(d) + '</div>'
+    + '<div class="c1"><div class="t">' + (esc(d.titulo) || 'Sin título') + '</div>'
+      + '<div class="a">' + esc(d.artista) + '</div></div>'
+    + '<div class="cm">' + esc(medio) + '</div>'
+    + (d.valoracion ? '<div class="cs">' + estrellasHtml(d.valoracion) + '</div>' : '')
+    + '<div class="c3">' + (d['año'] || '') + '</div>'
+    + '<div class="c4"><span class="sop ' + (d.formato === 'Vinilo' ? 'vin' : 'cd') + '">'
+    + (d.formato === 'Vinilo' ? I.vinBadge : I.cdBadge) + '</span></div></div>';
+}
 function listHtml(items, dups){
-  return '<div class="lista">' + items.map(function(d){
-    /* la información que antes faltaba llena el centro de la fila */
-    var medio = [
-      d.genero || '',
-      d.sello || '',
-      d.pais && PAISES[d.pais] ? nombrePais(d.pais) : '',
-      totalEscuchas(d) ? totalEscuchas(d) + (totalEscuchas(d) === 1 ? ' escucha' : ' escuchas') : '',
-      d.tracklist.length ? d.tracklist.length + ' temas' : '',
-      duracionTotal(d) || '',
-      d.ubicacion || ''
-    ].filter(Boolean).slice(0, 4).join('  ·  ');
-    return '<div class="lrow" data-id="' + d.id + '"><div class="mini">' + coverHtml(d) + '</div>'
-      + '<div class="c1"><div class="t">' + (esc(d.titulo) || 'Sin título') + '</div>'
-        + '<div class="a">' + esc(d.artista) + '</div></div>'
-      + '<div class="cm">' + esc(medio) + '</div>'
-      + (d.valoracion ? '<div class="cs">' + estrellasHtml(d.valoracion) + '</div>' : '')
-      + '<div class="c3">' + (d['año'] || '') + '</div>'
-      + '<div class="c4"><span class="sop ' + (d.formato === 'Vinilo' ? 'vin' : 'cd') + '">'
-      + (d.formato === 'Vinilo' ? I.vinBadge : I.cdBadge) + '</span></div></div>';
-  }).join('') + '</div>';
+  return '<div class="lista">' + items.map(function(d){ return filaListaHtml(d, dups); }).join('') + '</div>';
 }
 function shelfHtml(items){
   var vinilos = items.filter(function(d){ return d.formato === 'Vinilo'; });
@@ -4698,6 +4716,7 @@ function paintCol(){
 
   var board = document.getElementById('board');
   if(!list.length){
+    pararCargaIncremental();
     board.innerHTML = '<div class="blank">' + I.music + '<h3>' + (base.length ? 'Sin resultados' : 'Tu discoteca está vacía')
       + '</h3><p>' + (base.length ? 'Prueba con otra búsqueda o quita algún filtro.' : 'Añade un disco o importa tu CSV de Discogs.') + '</p></div>';
     pintarAZ([]);
@@ -4705,9 +4724,19 @@ function paintCol(){
   }
 
   if(grupo === 'none'){
-    board.innerHTML = bloque(list, dups);
+    if((modo === 'grid' || modo === 'list') && list.length > LOTE_TAM){
+      var primerLote = list.slice(0, LOTE_TAM);
+      board.innerHTML = (modo === 'list')
+        ? '<div class="lista">' + primerLote.map(function(d){ return filaListaHtml(d, dups); }).join('') + '</div>'
+        : '<div class="grid">' + primerLote.map(function(d){ return tileHtml(d, dups); }).join('') + '</div>';
+      configurarCargaIncremental(board, list, dups);
+    }else{
+      pararCargaIncremental();
+      board.innerHTML = bloque(list, dups);
+    }
     pintarAZ(sortBy === 'artist' || sortBy === 'title' ? list.map(function(d){ return (sortBy === 'artist' ? d.artista : d.titulo); }) : []);
   }else{
+    pararCargaIncremental();
     var orden = [], mapa = {};
     list.forEach(function(d){
       var k = claveGrupo(d);
@@ -4762,6 +4791,66 @@ function kpi(icon, label, val, color, filtro){
     + '<div class="ico" style="background:color-mix(in srgb,' + color + ' 15%, transparent);color:' + color + '">' + icon + '</div>'
     + '<div style="min-width:0"><div class="lbl">' + label + '</div><div class="val">' + val + '</div></div></div>';
 }
+/* ============================================================
+   CARGA INCREMENTAL DE LA REJILLA Y LA LISTA
+   Con colecciones grandes, meter todas las fichas en la pantalla de
+   golpe es lo que hacía que pintar la colección se volviera lento e
+   incluso llegara a colgarse. Se pintan solo las primeras y el resto
+   se añade solo cuando de verdad hace falta, al acercarte al final.
+   Nada de esto toca los datos ni cambia cómo se ven grupos, listas
+   pequeñas o el modo estantería, que se quedan igual que siempre.
+   ============================================================ */
+var LOTE_TAM = 80;
+var _paginacion = {observer: null, lista: [], dups: null, mostrados: 0};
+function pararCargaIncremental(){
+  if(_paginacion.observer){ _paginacion.observer.disconnect(); _paginacion.observer = null; }
+}
+function configurarCargaIncremental(board, listaCompleta, dups){
+  pararCargaIncremental();
+  _paginacion.lista = listaCompleta;
+  _paginacion.dups = dups;
+  _paginacion.mostrados = Math.min(LOTE_TAM, listaCompleta.length);
+  if(listaCompleta.length <= LOTE_TAM) return;
+  if(typeof IntersectionObserver === 'undefined') return; /* por si acaso: se ve todo de golpe, como antes */
+  var centinela = document.createElement('div');
+  centinela.id = 'masDiscos';
+  centinela.className = 'mas-discos';
+  centinela.textContent = 'Cargando más…';
+  board.appendChild(centinela);
+  var cargarSiguienteLote = function(){
+    var antes = _paginacion.mostrados;
+    var siguiente = _paginacion.lista.slice(antes, antes + LOTE_TAM);
+    if(!siguiente.length) return;
+    var html = (modo === 'list')
+      ? siguiente.map(function(d){ return filaListaHtml(d, _paginacion.dups); }).join('')
+      : siguiente.map(function(d){ return tileHtml(d, _paginacion.dups); }).join('');
+    var previos = board.querySelectorAll('.tile,.lrow').length;
+    centinela.insertAdjacentHTML('beforebegin', html);
+    var todos = board.querySelectorAll('.tile,.lrow');
+    var nuevosEl = Array.prototype.slice.call(todos, previos);
+    var raizNueva = {querySelectorAll: function(sel){
+      return nuevosEl.filter(function(el){ return el.matches(sel); });
+    }};
+    enlazarTiles(board, _paginacion.dups);
+    montarPulsacionLarga(raizNueva);
+    montarDeslizarEscucha(raizNueva);
+    _paginacion.mostrados = antes + siguiente.length;
+    if(_paginacion.mostrados >= _paginacion.lista.length){
+      pararCargaIncremental();
+      centinela.remove();
+    }
+  };
+  _paginacion.cargarHasta = function(indice){
+    /* usado por el índice A-Z: si saltas a una letra que aún no está
+       cargada, se completa hasta ahí antes de desplazar la pantalla */
+    while(_paginacion.mostrados <= indice && _paginacion.mostrados < _paginacion.lista.length) cargarSiguienteLote();
+  };
+  _paginacion.observer = new IntersectionObserver(function(entradas){
+    if(entradas[0].isIntersecting) cargarSiguienteLote();
+  }, {rootMargin: '600px'});
+  _paginacion.observer.observe(centinela);
+}
+
 function enlazarTiles(root, dups){
   root.querySelectorAll('.tile,.lrow,.spine').forEach(function(t){
     t.onclick = function(e){
@@ -4841,6 +4930,7 @@ function pintarAZ(claves, esGrupo){
     b.onclick = function(){
       var t = dest[b.dataset.l];
       if(t === undefined) return;
+      if(!esGrupo && _paginacion.cargarHasta) _paginacion.cargarHasta(t);
       var el = esGrupo ? document.getElementById(t) : document.querySelectorAll('.tile,.lrow')[t];
       if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
     };
@@ -5372,7 +5462,7 @@ function openDetail(id, desde){
     + spec('Escuchas', totalEscuchas(d) ? totalEscuchas(d) + (d.ultimaEscucha ? ' · última ' + fechaBonita(d.ultimaEscucha) : '') : '—')
     + '</div>'
     + (d.notas ? '<p style="font-size:14.5px;color:var(--txt2);line-height:1.5;margin:0 3px 16px">' + esc(d.notas) + '</p>' : '')
-    + '<div id="dExtra"></div><div id="dTecnica"></div><div id="dMas"></div><div id="dSimilares"></div>'
+    + '<div id="dConsistencia"></div><div id="dExtra"></div><div id="dTecnica"></div><div id="dMas"></div><div id="dSimilares"></div>'
     + '<div class="tl-hd"><h4>Tracklist<span class="n" id="dN"></span></h4><div class="rowb">'
     + (readOnly ? '' : '<button class="iconbtn" id="loadPrev" data-tip="Cargar fragmentos de audio">' + I.play + '</button>')
     + (readOnly ? '' : '<button class="iconbtn" id="pen" data-tip="Editar el tracklist">' + I.pencil + '</button>') + '</div></div>'
@@ -5459,6 +5549,7 @@ function openDetail(id, desde){
   });
   pintaExtra($('#dExtra'), d);
   pintaTecnica($('#dTecnica'), d);
+  pintaConsistencia($('#dConsistencia'), d);
   (function(){
     var hermanos = DB.discos.filter(function(x){
       return x.id !== d.id && x.lista === d.lista && plain(x.artista) === plain(d.artista);
@@ -5503,6 +5594,7 @@ function openDetail(id, desde){
     cargarDiscogs(d).then(function(){
       if(!document.body.contains(s)) return;
       pintaTecnica($('#dTecnica'), d);
+      pintaConsistencia($('#dConsistencia'), d);
       if(d.tracklist.some(function(t){ return t.pos; })) paintTL();
     }).catch(function(){});
   }
@@ -6769,19 +6861,21 @@ function consistenciaIdentificadores(d){
   }
   return out;
 }
+function pintaConsistencia(caja, d){
+  if(!caja) return;
+  var aviso = consistenciaIdentificadores(d);
+  if(!aviso.length){ caja.innerHTML = ''; return; }
+  caja.innerHTML = '<div class="warnb" style="margin-bottom:14px">' + I.warn + '<span>'
+    + aviso.map(function(x){ return x.campo + ': tú tienes ' + esc(x.tuyo) + ', Discogs dice ' + esc(x.discogs); }).join('. ')
+    + '. Puede que esta no sea exactamente tu edición, o que uno de los dos esté equivocado. Tú, con el disco en la mano, lo sabes mejor.'
+    + '</span></div>';
+}
 function pintaTecnica(caja, d){
   if(!caja) return;
   var t = d.tecnica;
   if(!t){ caja.innerHTML = ''; return; }
   t.ids = t.ids || {}; t.companias = t.companias || {}; t.creditos = t.creditos || {};
-  var aviso = consistenciaIdentificadores(d);
   var filas = [];
-  if(aviso.length){
-    filas.push('<div class="warnb" style="margin-bottom:10px">' + I.warn + '<span>'
-      + aviso.map(function(x){ return x.campo + ': tú tienes ' + esc(x.tuyo) + ', Discogs dice ' + esc(x.discogs); }).join('. ')
-      + '. Puede que esta no sea exactamente tu edición, o que uno de los dos esté equivocado. Tú, con el disco en la mano, lo sabes mejor.'
-      + '</span></div>');
-  }
   var f = function(k, v, credito){
     if(!v) return;
     var val = credito
@@ -6912,6 +7006,8 @@ function menuRapido(id){
 }
 function montarPulsacionLarga(root){
   root.querySelectorAll('.tile,.lrow').forEach(function(el){
+    if(el.dataset.pulsa) return;
+    el.dataset.pulsa = '1';
     var t = null, movido = false;
     var arranca = function(){
       movido = false;

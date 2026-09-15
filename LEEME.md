@@ -43,11 +43,21 @@ pero no editar.
 
 1. Entra en [github.com/settings/personal-access-tokens/new](https://github.com/settings/personal-access-tokens/new)
 2. **Token name**: `discoteca`
-3. **Expiration**: elige **No expiration** para no tener que renovarlo nunca.
+3. **Expiration**: elige **1 año**, no *No expiration*. Cuesta un minuto renovarlo cuando toque, y así, si alguna vez
+   se filtrara sin que te dieras cuenta, deja de servir por sí solo en vez de quedar abierto para siempre.
 4. **Repository access**: *Only select repositories* → selecciona **discoteca**.
 5. **Permissions › Repository permissions**: busca **Contents** y ponlo en **Read and write**.
 6. Pulsa **Generate token** y **copia el código** que aparece. Solo se muestra una vez.
    Guárdalo en tu gestor de contraseñas: lo necesitarás también en el iPhone.
+
+**Qué puede hacer alguien que consiguiera este token, con honestidad:** solo puede leer y escribir en el
+repositorio `discoteca`, nada más de tu cuenta de GitHub; el token está limitado a ese único repositorio.
+Con eso podría leer tu colección entera, o reescribir el `index.html` que se sirve a quien abra la web —tú
+incluido, la próxima vez—. No puede tocar tus otros repositorios ni la configuración de tu cuenta. El riesgo
+real no está en la aplicación: revisé dónde se usa el token en las peticiones y nunca se cuela en ningún mensaje
+de error ni en el registro de fallos de Ajustes. El riesgo está en el dispositivo donde lo escribas: se guarda
+en claro en ese Mac o ese iPhone, así que si alguna vez pierdes o vendes uno de los dos, revoca el token desde
+GitHub antes.
 
 ---
 
