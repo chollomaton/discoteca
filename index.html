@@ -18,6 +18,9 @@
 <title>Discoteca</title>
 
 <style>
+/* red de seguridad: ninguna imagen de la app, venga de donde venga, puede
+   salirse nunca de su sitio ni romper el ancho de la página */
+img{max-width:100%}
 :root{
   --blue:#0071e3; --blue-h:#0077ed; --blue-s:rgba(0,113,227,.10);
   --bg:#f5f5f7; --elev:#fff; --sunk:#fbfbfd; --glass:rgba(245,245,247,.82);
@@ -1550,13 +1553,25 @@ label.trk{cursor:pointer}
   <div class="nav-in">
     <div class="logo" id="logo" data-tip="Volver a la colección">
       <svg class="disc" viewBox="0 0 32 32" aria-hidden="true">
-        <circle cx="16" cy="16" r="15.4" fill="url(#gVin)"/>
-        <g fill="none" stroke="#fff" stroke-opacity=".13" stroke-width=".7">
-          <circle cx="16" cy="16" r="12.8"/><circle cx="16" cy="16" r="11.3"/><circle cx="16" cy="16" r="9.8"/><circle cx="16" cy="16" r="8.3"/>
-        </g>
-        <path d="M5.4 6.2A14.8 14.8 0 0 1 16 .6" stroke="#fff" stroke-opacity=".45" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-        <circle cx="16" cy="16" r="6.5" fill="#f3eee5"/>
-        <path d="M16 19.9c-2.4-1.7-3.9-3-3.9-4.6a2.1 2.1 0 0 1 3.9-1.1 2.1 2.1 0 0 1 3.9 1.1c0 1.6-1.5 2.9-3.9 4.6z" fill="#e21d2d"/>
+        <defs>
+          <radialGradient id="gVin2" cx="32%" cy="28%" r="80%">
+            <stop offset="0%" stop-color="#3a3a42"/><stop offset="55%" stop-color="#18181c"/><stop offset="100%" stop-color="#050506"/>
+          </radialGradient>
+          <linearGradient id="gCromo2" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#fdfdfd"/><stop offset="50%" stop-color="#9aa0a6"/><stop offset="100%" stop-color="#e8ebee"/>
+          </linearGradient>
+          <linearGradient id="gRojo2" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#ff6f61"/><stop offset="100%" stop-color="#c8202f"/>
+          </linearGradient>
+        </defs>
+        <circle cx="14" cy="16.5" r="12.4" fill="url(#gVin2)"/>
+        <circle cx="14" cy="16.5" r="9.6" fill="none" stroke="#fff" stroke-opacity=".1" stroke-width=".5"/>
+        <circle cx="14" cy="16.5" r="7.4" fill="none" stroke="#fff" stroke-opacity=".08" stroke-width=".5"/>
+        <path d="M4.6 11.2A12.4 12.4 0 0 1 12 4.4" stroke="#fff" stroke-opacity=".28" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        <circle cx="14" cy="16.5" r="4.4" fill="url(#gRojo2)"/>
+        <circle cx="14" cy="16.5" r=".8" fill="#050506"/>
+        <path d="M22.6 15.4c-2 0-2.6-2.6-1.1-3.9 1.1-.9 2.6-.8 3.4.4.8-1.2 2.3-1.3 3.4-.4 1.5 1.3.9 3.9-1.1 3.9-1.1 0-2-.9-2.3-1.6-.3.7-1.2 1.6-2.3 1.6z" fill="url(#gCromo2)"/>
+        <path d="M22.3 15.3c-2.2 3-4.3 4.7-5.6 5.6" stroke="url(#gCromo2)" stroke-width="1.7" stroke-linecap="round" fill="none"/>
       </svg>
       <div>
         <h1>Discoteca</h1>
@@ -1704,7 +1719,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.15-probarclaves';
+var VERSION = '2026.09.16-final';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var view = 'col';
 var fType = 'all', fGen = '', fArt = '', fTag = '', fDec = '', fPais = '', fSello = '';
@@ -3063,12 +3078,25 @@ function fetchInfo(titulo, artista, formato, faltan){
 var CAMPOS_AUTO = ['año', 'sello', 'numeroCatalogo', 'pais', 'formatoDetalle', 'genero',
   'portada', 'tracklist', 'titulo', 'artista', 'codigoBarras'];
 function protegido(d, campo){ return !!(d.editado && d.editado[campo]); }
+/* Al traer una lista de canciones nueva, se conservan los corazones de
+   favorita que ya tenías puestos, emparejando por título -no por
+   posición, que puede cambiar si aparece o desaparece una pista extra. */
+function conservarFavoritas(nuevas, viejas){
+  if(!viejas || !viejas.length) return nuevas;
+  var favPorTitulo = {};
+  viejas.forEach(function(t){ if(t.fav) favPorTitulo[plain(t.titulo)] = true; });
+  if(!Object.keys(favPorTitulo).length) return nuevas;
+  return nuevas.map(function(t){
+    if(favPorTitulo[plain(t.titulo)]) return Object.assign({}, t, {fav: true});
+    return t;
+  });
+}
 function aplicar(d, r, force){
   if(!r) return false;
   var cambios = false;
   if(r.portada && !protegido(d, 'portada') && (force || !d.portada)){ d.portada = r.portada; d.color = ''; cambios = true; }
   if(r.tracklist && r.tracklist.length && !protegido(d, 'tracklist') && (force || d.tracklist.length === 0)){
-    d.tracklist = normTracks(r.tracklist); cambios = true;
+    d.tracklist = conservarFavoritas(normTracks(r.tracklist), d.tracklist); cambios = true;
   }
   ['año','sello','numeroCatalogo','pais','formatoDetalle','genero','mbid','rgid','codigoBarras','appleUrl'].forEach(function(f){
     if(protegido(d, f)) return;
@@ -3180,7 +3208,7 @@ function aplicarCandidato(d, cand){
   if(cand.origen === 'mb') return porMbid(d, cand.id, true);
   return itTracks(cand.id).then(function(tr){
     d.portada = artBig(String(cand.portada).replace('200x200bb', '100x100bb'), 600);
-    if(tr.length) d.tracklist = tr;
+    if(tr.length) d.tracklist = conservarFavoritas(tr, d.tracklist);
     if(cand['año']) d['año'] = cand['año'];
     d.confianza = '';
     d.color = '';
@@ -4449,11 +4477,22 @@ function colorDe(d){
   for(var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
   return 'hsl(' + h + ',42%,42%)';
 }
+/* Si una portada falla al cargar, se reintenta una vez -muchas veces es un
+   fallo pasajero de red, no que el enlace esté roto- antes de rendirse y
+   mostrar el disco genérico. */
+window.reintentarImg = function(img, placeholder){
+  if(img.dataset.reintento){ img.outerHTML = window[placeholder]; return; }
+  img.dataset.reintento = '1';
+  var base = img.src;
+  var sep = base.indexOf('?') >= 0 ? '&' : '?';
+  setTimeout(function(){ img.src = base + sep + '_r=' + Date.now(); }, 900);
+};
 function coverHtml(d, cls){
   var ph = d.formato === 'Vinilo' ? I.disc : I.cd;
   if(!d.portada) return ph;
-  return '<img src="' + esc(d.portada) + '" alt="" loading="lazy" class="' + (cls || '') + '" onerror="this.outerHTML=window.PH_'
-    + (d.formato === 'Vinilo' ? 'V' : 'C') + '">';
+  var cual = d.formato === 'Vinilo' ? 'PH_V' : 'PH_C';
+  return '<img src="' + esc(d.portada) + '" alt="" loading="lazy" class="' + (cls || '')
+    + '" onerror="window.reintentarImg(this,\'' + cual + '\')">';
 }
 
 function paintBanner(){
@@ -6939,11 +6978,31 @@ function cargarDiscogs(d){
       if(cambio) d.tracklist = d.tracklist.slice();
     }
     if(!d.discogs && tec.url) d.discogs = tec.url;
+    /* Si el país no coincide con lo que tenías y no lo has corregido tú a
+       mano, se actualiza con el de Discogs, en vez de dejar el aviso
+       repitiéndose disco tras disco sin que nada lo resuelva nunca. */
+    if(tec.pais && !protegido(d, 'pais')){
+      var codigo = codigoDePaisDiscogs(tec.pais);
+      if(codigo && codigo !== d.pais) d.pais = codigo;
+    }
     d.tecnica = tec;
     persist(true);
     return tec;
   });
 }
+/* Discogs escribe el país en inglés ("Europe", "UK", "Germany"…), no con
+   el código de dos letras que usa el resto de la app; aquí se traduce. */
+var PAISES_DISCOGS = {
+  'Europe':'XE', 'UK':'GB', 'United Kingdom':'GB', 'US':'US', 'USA':'US', 'US & Canada':'US',
+  'Germany':'DE', 'France':'FR', 'Italy':'IT', 'Netherlands':'NL', 'Spain':'ES', 'Canada':'CA',
+  'Australia':'AU', 'Japan':'JP', 'Brazil':'BR', 'Argentina':'AR', 'Mexico':'MX',
+  'South Africa':'ZA', 'Sweden':'SE', 'Norway':'NO', 'Denmark':'DK', 'Finland':'FI',
+  'Ireland':'IE', 'Portugal':'PT', 'Belgium':'BE', 'Switzerland':'CH', 'Austria':'AT',
+  'Greece':'GR', 'Poland':'PL', 'Russia':'RU', 'Cuba':'CU', 'Chile':'CL', 'Colombia':'CO',
+  'New Zealand':'NZ', 'India':'IN', 'South Korea':'KR', 'China':'CN', 'Israel':'IL',
+  'Turkey':'TR', 'Jamaica':'JM', 'Worldwide':'XW'
+};
+function codigoDePaisDiscogs(nombre){ return PAISES_DISCOGS[String(nombre || '').trim()] || ''; }
 /* Compara el país y el año que tienes tú con lo que dice Discogs de esa
    misma edición. No decide cuál es el correcto -eso lo sabes tú, que
    tienes el disco en la mano-, solo avisa cuando no coinciden. */
@@ -6951,8 +7010,12 @@ function consistenciaIdentificadores(d){
   var t = d.tecnica;
   if(!t) return [];
   var out = [];
-  if(d.pais && t.pais && d.pais !== t.pais && nombrePais(d.pais) !== t.pais){
-    out.push({campo: 'País', tuyo: nombrePais(d.pais) || d.pais, discogs: t.pais});
+  if(d.pais && t.pais){
+    var codigoDg = codigoDePaisDiscogs(t.pais);
+    /* si Discogs escribe un país que no sabemos traducir, se compara el
+       texto tal cual, para no dejar de avisar solo porque no lo conocemos */
+    var coincide = codigoDg ? (codigoDg === d.pais) : (nombrePais(d.pais) === t.pais);
+    if(!coincide) out.push({campo: 'País', tuyo: nombrePais(d.pais) || d.pais, discogs: t.pais});
   }
   var añoDg = String(t.publicado || '').match(/^\d{4}/);
   if(d['año'] && añoDg && String(d['año']) !== añoDg[0]){
