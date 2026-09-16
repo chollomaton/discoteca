@@ -206,7 +206,7 @@ button{font-family:inherit}
 :root[data-tema="oscuro"] .art{box-shadow:var(--sh2),0 0 0 1px rgba(255,255,255,.08) inset}
 .tile:hover .art{transform:translateY(-7px) scale(1.035);box-shadow:var(--sh3)}
 .tile:active .art{transform:scale(.97)}
-.art img{width:100%;height:100%;object-fit:cover;display:block}
+.art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;max-width:100%;max-height:100%}
 .art .ph{width:46%;height:46%;color:var(--txt3);stroke-width:1.3}
 .badge{position:absolute;top:8px;left:8px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
   background:rgba(255,255,255,.94);backdrop-filter:blur(12px) saturate(180%);-webkit-backdrop-filter:blur(12px) saturate(180%);
@@ -278,9 +278,9 @@ button{font-family:inherit}
 .lrow:last-child{border-bottom:none}
 .lrow:hover{background:var(--fill)}
 .lrow:active{background:var(--fill2)}
-.lrow .mini{width:40px;height:40px;border-radius:7px;background:var(--fill);flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.lrow .mini{width:40px;height:40px;border-radius:7px;background:var(--fill);flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
 .lrow .mini .ic{width:20px;height:20px;color:var(--txt3)}
-.lrow .mini img{width:100%;height:100%;object-fit:cover}
+.lrow .mini img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;max-width:100%;max-height:100%}
 .lrow .c1{flex:1;min-width:0}
 .lrow .c1{flex:0 1 300px;min-width:0}
 .lrow .c1 .t{font-size:14.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.01em}
@@ -536,18 +536,18 @@ svg.mapa .chip:hover text{fill:#fff}
 
 .covrow{display:flex;gap:14px;align-items:flex-start;margin-bottom:15px}
 .covbox{width:96px;height:96px;border-radius:var(--r-sm);background:var(--fill);flex-shrink:0;overflow:hidden;display:flex;
-  align-items:center;justify-content:center;box-shadow:var(--sh1)}
-.covbox img{width:100%;height:100%;object-fit:cover}
+  align-items:center;justify-content:center;box-shadow:var(--sh1);position:relative}
+.covbox img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;max-width:100%;max-height:100%}
 .covbox .ph{width:44%;height:44%;color:var(--txt3);stroke-width:1.3}
 
 /* ---------- ficha ---------- */
 .dhero{position:relative;padding:26px 22px 20px;text-align:center;border-bottom:.5px solid var(--sep);overflow:hidden}
 .dhero::before{content:'';position:absolute;inset:0;background:var(--herobg,var(--sunk));z-index:0}
 .dhero>*{position:relative;z-index:1}
-.dhero .cov{width:210px;height:210px;margin:0 auto 18px;border-radius:var(--r-md);overflow:hidden;box-shadow:var(--sh3);background:var(--fill);
+.dhero .cov{width:210px;height:210px;margin:0 auto 18px;border-radius:var(--r-md);overflow:hidden;box-shadow:var(--sh3);background:var(--fill);position:relative;
   display:flex;align-items:center;justify-content:center;cursor:zoom-in;transition:transform .25s var(--ease)}
 .dhero .cov:active{transform:scale(.97)}
-.dhero .cov img{width:100%;height:100%;object-fit:cover}
+.dhero .cov img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;max-width:100%;max-height:100%}
 .dhero .cov .ph{width:42%;height:42%;color:var(--txt3);stroke-width:1.3}
 .dhero h3{font-size:23px;font-weight:700;margin:0;letter-spacing:-.026em;line-height:1.2}
 .dhero .art2{font-size:16.5px;color:var(--blue);margin-top:4px;font-weight:550;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
@@ -1719,7 +1719,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.16-final';
+var VERSION = '2026.09.16-blindado';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var view = 'col';
 var fType = 'all', fGen = '', fArt = '', fTag = '', fDec = '', fPais = '', fSello = '';
