@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; connect-src 'self' https://api.github.com https://api.discogs.com https://musicbrainz.org https://coverartarchive.org https://itunes.apple.com https://es.wikipedia.org https://ws.audioscrobbler.com https://app.ticketmaster.com https://api.audd.io https://api.anthropic.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; media-src 'self' https: blob:; connect-src 'self' https://api.github.com https://api.discogs.com https://musicbrainz.org https://coverartarchive.org https://itunes.apple.com https://es.wikipedia.org https://ws.audioscrobbler.com https://app.ticketmaster.com https://api.audd.io https://api.anthropic.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
@@ -1719,7 +1719,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.16-sinlazy';
+var VERSION = '2026.09.16-estructural';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var view = 'col';
 var fType = 'all', fGen = '', fArt = '', fTag = '', fDec = '', fPais = '', fSello = '';
@@ -1849,6 +1849,22 @@ var CHEV = '<svg class="ic cv" viewBox="0 0 24 24"><polyline points="6 9 12 15 1
    2. UTILIDADES
    ============================================================ */
 function esc(s){ return (s == null ? '' : String(s)).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+/* Un color mal formado -por ejemplo, si viniera de una copia editada a
+   mano- no debe poder colarse dentro de un atributo style, aunque esc()
+   ya evite que rompa el propio atributo. Solo se acepta "R,G,B" con cada
+   canal entre 0 y 255. */
+function colorSeguro(c){
+  var m = String(c || '').match(/^\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*$/);
+  if(!m) return '';
+  var r = +m[1], g = +m[2], b = +m[3];
+  if(r > 255 || g > 255 || b > 255) return '';
+  return r + ',' + g + ',' + b;
+}
+/* Una URL externa que se va a usar como href/src debe empezar por http(s);
+   cualquier otra cosa -un "javascript:", por ejemplo- se descarta */
+function urlSegura(u){
+  return /^https?:\/\//i.test(String(u || '').trim()) ? u : '';
+}
 function uid(){ return 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function nowISO(){ return new Date().toISOString(); }
 function fdate(iso){
@@ -1933,10 +1949,7 @@ function normDisc(d){
     fotoDisco: d.fotoDisco || '',
     editado: (d.editado && typeof d.editado === 'object') ? d.editado : {},
     enlazado: d.enlazado || '',
-    fotoDisco: d.fotoDisco || '',
-    editado: (d.editado && typeof d.editado === 'object') ? d.editado : {},
     appleUrl: d.appleUrl || '',
-    enlazado: d.enlazado || '',
     tecnica: d.tecnica && typeof d.tecnica === 'object' ? d.tecnica : null,
     extra: d.extra && typeof d.extra === 'object' ? d.extra : null,
     escuchas: Number(d.escuchas) || 0,
@@ -2234,7 +2247,9 @@ function sellarCambios(){
       n++;
     }
   });
-  if(DB.borrados && DB.borrados.length > 400) DB.borrados = DB.borrados.slice(-400);
+  if(DB.borrados && DB.borrados.length > 400){
+    DB.borrados = DB.borrados.slice().sort(function(a, b){ return fechaMasReciente(a.fecha, b.fecha) ? 1 : -1; }).slice(-400);
+  }
   return n;
 }
 function indexarFirmas(){
@@ -2304,11 +2319,20 @@ function marcar(estado, msg){
 }
 
 /* ---------- fusión ---------- */
+/* Compara dos fechas de verdad, no como texto: un ISO con otro huso horario
+   compararía mal como texto aunque sea correcto cronológicamente. Si algo
+   no se puede interpretar como fecha, cae de vuelta a comparar el texto,
+   para no romperse con un valor antiguo o raro. */
+function fechaMasReciente(a, b){
+  var ta = Date.parse(a || ''), tb = Date.parse(b || '');
+  if(!isNaN(ta) && !isNaN(tb)) return ta >= tb;
+  return String(a || '') >= String(b || '');
+}
 function fusionar(locales, borrLoc, remotos, borrRem){
   var mapa = {}, out = [], cambiosLocales = 0, cambiosRemotos = 0;
   var borrados = {};
   (borrLoc || []).concat(borrRem || []).forEach(function(b){
-    if(!borrados[b.id] || b.fecha > borrados[b.id]) borrados[b.id] = b.fecha;
+    if(!borrados[b.id] || fechaMasReciente(b.fecha, borrados[b.id])) borrados[b.id] = b.fecha;
   });
   (remotos || []).forEach(function(d){ mapa[d.id] = {r: normDisc(d)}; });
   (locales || []).forEach(function(d){
@@ -2318,10 +2342,10 @@ function fusionar(locales, borrLoc, remotos, borrRem){
   Object.keys(mapa).forEach(function(id){
     var par = mapa[id], l = par.l, r = par.r;
     var elegido = null;
-    if(l && r) elegido = (String(l.mod || '') >= String(r.mod || '')) ? l : r;
+    if(l && r) elegido = fechaMasReciente(l.mod, r.mod) ? l : r;
     else elegido = l || r;
     var borr = borrados[id];
-    if(borr && String(borr) >= String(elegido.mod || '')){
+    if(borr && fechaMasReciente(borr, elegido.mod)){
       if(l) cambiosLocales++;
       if(r) cambiosRemotos++;
       return;
@@ -2348,7 +2372,9 @@ function fusionar(locales, borrLoc, remotos, borrRem){
     if(!r || (l && elegido === l)) cambiosRemotos++;
     out.push(elegido);
   });
-  var listaBorrados = Object.keys(borrados).map(function(id){ return {id:id, fecha:borrados[id]}; }).slice(-400);
+  var listaBorrados = Object.keys(borrados).map(function(id){ return {id:id, fecha:borrados[id]}; })
+    .sort(function(a, b){ return fechaMasReciente(a.fecha, b.fecha) ? 1 : -1; })
+    .slice(-400);
   return { discos: out, borrados: listaBorrados, aLocal: cambiosLocales, aRemoto: cambiosRemotos };
 }
 
@@ -2439,7 +2465,15 @@ function push(){
 }
 function sincronizarAhora(){
   if(!configurado()){ pantallaSync(); return; }
-  pull().then(function(){ if(syncState === 'pend') return push(); });
+  pull().then(function(){
+    if(syncState === 'pend'){
+      /* pull() puede haber programado ya una subida para dentro de unos
+         segundos; como se va a subir ahora mismo, se cancela esa, para
+         que no lleguen las dos y generen un segundo commit de más */
+      clearTimeout(saveTimer);
+      return push();
+    }
+  });
 }
 
 /* ---------- arranque ---------- */
@@ -3755,6 +3789,9 @@ function aseguraColor(d){
 
 /* ---------- último recurso: modelo de lenguaje ---------- */
 function askAI(titulo, artista, formato, pistas){
+  /* este es el último recurso, después de que MusicBrainz y Apple Music
+     ya hayan fallado los dos; sin clave configurada, ni se intenta */
+  if(!hayAnthropic()) return Promise.reject(new Error('sin clave de Anthropic'));
   var L = [];
   L.push('Busca información verificada de este disco y responde solo con JSON.');
   L.push('Álbum: "' + titulo + '" · Artista: "' + artista + '" · Soporte: ' + formato);
@@ -3765,7 +3802,8 @@ function askAI(titulo, artista, formato, pistas){
   L.push('Formato: {"portada":"","tracklist":[],"anio":"","sello":"","numeroCatalogo":"","pais":"","formatoDetalle":"","genero":"","notas":""}');
   L.push('No inventes: si no verificas un dato, deja "" o [].');
   return fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST', headers:{'Content-Type':'application/json'},
+    method:'POST',
+    headers:{'content-type':'application/json', 'x-api-key':CFG.anthropic, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true'},
     body: JSON.stringify({
       model:'claude-sonnet-4-6', max_tokens:2000,
       messages:[{role:'user', content:L.join('\n')}],
@@ -4142,7 +4180,10 @@ function catalogoImprimible(){
       En iPhone se carga un lector en JavaScript que sí funciona
       sobre el motor de Safari.
    ============================================================ */
-var ZX_URL = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+/* Alojado en el propio repositorio en vez de en un CDN externo: como esta
+   app guarda tu token de GitHub, es mejor no depender de código remoto de
+   terceros en tiempo de ejecución si se puede evitar. */
+var ZX_URL = './zxing-0.21.3.js';
 var zxCargando = null;
 function cargarZX(){
   if(window.ZXing) return Promise.resolve(window.ZXing);
@@ -4150,14 +4191,8 @@ function cargarZX(){
   zxCargando = new Promise(function(res, rej){
     var s = document.createElement('script');
     s.src = ZX_URL;
-    /* comprobación de integridad: si alguna vez el CDN sirviera un archivo
-       distinto del que se revisó -por un ataque a la cadena de suministro,
-       por ejemplo-, el navegador se niega a ejecutarlo en vez de correr
-       código no verificado */
-    s.integrity = 'sha384-BzBxP10ZE72aitqj5UMmUsbKFliP/DZqA8Wq+BNNhlIJDGoEd1tpkMYXOg9+n6sB';
-    s.crossOrigin = 'anonymous';
     s.onload = function(){ res(window.ZXing); };
-    s.onerror = function(){ zxCargando = null; rej(new Error('cdn')); };
+    s.onerror = function(){ zxCargando = null; rej(new Error('zxing')); };
     document.head.appendChild(s);
   });
   return zxCargando;
@@ -4472,7 +4507,7 @@ function setView(v){
   window.scrollTo({top:0, behavior:'smooth'});
 }
 function colorDe(d){
-  if(d.color) return 'rgb(' + d.color + ')';
+  if(d.color){ var seg = colorSeguro(d.color); if(seg) return 'rgb(' + seg + ')'; }
   var s = (d.artista || d.titulo || '?'), h = 0;
   for(var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
   return 'hsl(' + h + ',42%,42%)';
@@ -4953,7 +4988,26 @@ function configurarCargaIncremental(board, listaCompleta, dups){
   _paginacion.dups = dups;
   _paginacion.mostrados = Math.min(LOTE_TAM, listaCompleta.length);
   if(listaCompleta.length <= LOTE_TAM) return;
-  if(typeof IntersectionObserver === 'undefined') return; /* por si acaso: se ve todo de golpe, como antes */
+  /* las tandas siguientes tienen que entrar DENTRO de la rejilla o la lista,
+     no como hijos sueltos de #board, o pierden las columnas del grid y
+     ocupan todo el ancho de la pantalla */
+  var contenedor = board.querySelector(modo === 'list' ? '.lista' : '.grid');
+  if(!contenedor) return;
+  if(typeof IntersectionObserver === 'undefined'){
+    /* sin IntersectionObserver, no hay forma de saber cuándo cargar más
+       sobre la marcha: se pinta la colección entera de una vez, para que
+       siga viéndose completa en vez de cortada en los primeros 80 */
+    var resto = _paginacion.lista.slice(_paginacion.mostrados);
+    var htmlResto = (modo === 'list')
+      ? resto.map(function(d){ return filaListaHtml(d, dups); }).join('')
+      : resto.map(function(d){ return tileHtml(d, dups); }).join('');
+    contenedor.insertAdjacentHTML('beforeend', htmlResto);
+    enlazarTiles(board, dups);
+    montarPulsacionLarga(board);
+    montarDeslizarEscucha(board);
+    _paginacion.mostrados = _paginacion.lista.length;
+    return;
+  }
   var centinela = document.createElement('div');
   centinela.id = 'masDiscos';
   centinela.className = 'mas-discos';
@@ -4966,9 +5020,9 @@ function configurarCargaIncremental(board, listaCompleta, dups){
     var html = (modo === 'list')
       ? siguiente.map(function(d){ return filaListaHtml(d, _paginacion.dups); }).join('')
       : siguiente.map(function(d){ return tileHtml(d, _paginacion.dups); }).join('');
-    var previos = board.querySelectorAll('.tile,.lrow').length;
-    centinela.insertAdjacentHTML('beforebegin', html);
-    var todos = board.querySelectorAll('.tile,.lrow');
+    var previos = contenedor.querySelectorAll('.tile,.lrow').length;
+    contenedor.insertAdjacentHTML('beforeend', html);
+    var todos = contenedor.querySelectorAll('.tile,.lrow');
     var nuevosEl = Array.prototype.slice.call(todos, previos);
     var raizNueva = {querySelectorAll: function(sel){
       return nuevosEl.filter(function(el){ return el.matches(sel); });
@@ -4993,6 +5047,7 @@ function configurarCargaIncremental(board, listaCompleta, dups){
   _paginacion.observer.observe(centinela);
 }
 
+
 function enlazarTiles(root, dups){
   root.querySelectorAll('.tile,.lrow,.spine').forEach(function(t){
     t.onclick = function(e){
@@ -5010,7 +5065,7 @@ function enlazarTiles(root, dups){
       b.innerHTML = puesto ? I.check : I.playF;
       b.dataset.tip = puesto ? 'Ya lo marcaste hoy' : 'Marcar que lo has escuchado';
       var d = DB.discos.filter(function(x){ return x.id === b.dataset.oir; })[0];
-      var y = b.closest('.tile') && b.closest('.tile').querySelector('.meta .y');
+      var y = b.closest('.tile') && b.closest('.tile').querySelector('.meta .y .txt');
       if(y && d) y.textContent = (d['año'] || '—') + (d.genero ? ' · ' + d.genero : '')
         + (totalEscuchas(d) ? ' · ▶ ' + totalEscuchas(d) : '');
       refrescarContadores();
@@ -5650,13 +5705,12 @@ function openDetail(id, desde){
     + '</div><div class="linkrow">'
     + '<a class="lnk ext" target="_blank" rel="noopener" href="' + (d.mbid ? 'https://musicbrainz.org/release/' + d.mbid
         : 'https://musicbrainz.org/search?type=release&query=' + encodeURIComponent(d.artista + ' ' + d.titulo)) + '">' + I.link + 'MusicBrainz</a>'
-    + '<a class="lnk ext" target="_blank" rel="noopener" href="' + (d.discogs ? d.discogs
-        : 'https://www.discogs.com/search/?q=' + encodeURIComponent(d.artista + ' ' + d.titulo) + '&type=release') + '">' + I.link + 'Discogs</a>'
+    + '<a class="lnk ext" target="_blank" rel="noopener" href="' + (urlSegura(d.discogs) || 'https://www.discogs.com/search/?q=' + encodeURIComponent(d.artista + ' ' + d.titulo) + '&type=release') + '">' + I.link + 'Discogs</a>'
     + '<a class="lnk ext" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query='
         + encodeURIComponent(d.artista + ' ' + d.titulo + ' full album') + '">' + I.play + 'YouTube</a>'
     + '<a class="lnk ext" target="_blank" rel="noopener" data-tip="'
       + (d.appleUrl ? 'Abrir este álbum en Apple Music' : 'Buscarlo en Apple Music')
-      + '" href="' + esc(d.appleUrl || ('https://music.apple.com/es/search?term='
+      + '" href="' + esc(urlSegura(d.appleUrl) || ('https://music.apple.com/es/search?term='
         + encodeURIComponent(d.artista + ' ' + d.titulo))) + '">' + I.apple + 'Apple Music</a>'
     + '<button class="lnk ext" id="btnWiki">' + I.libro + 'Datos Artista / Álbum</button>'
     + '<span class="sep"></span>'
@@ -6236,19 +6290,11 @@ function openForm(item, listaDestino, preset){
   function setType(t){ formato = t; $('#tv').className = t === 'Vinilo' ? 'on' : ''; $('#tc').className = t === 'CD' ? 'on' : ''; paintCover(); checkDup(); }
   $('#tv').onclick = function(){ setType('Vinilo'); };
   $('#tc').onclick = function(){ setType('CD'); };
-  var listaSel = d.lista === 'deseos' ? 'deseos' : 'coleccion';
   function setLista(l){
     listaSel = l;
     $('#lc').className = l === 'coleccion' ? 'on' : '';
     $('#ld').className = l === 'deseos' ? 'on' : '';
   }
-  $('#lc').onclick = function(){ setLista('coleccion'); };
-  $('#ld').onclick = function(){ setLista('deseos'); };
-  var setLista = function(l){
-    listaSel = l;
-    $('#lc').className = l === 'coleccion' ? 'on' : '';
-    $('#ld').className = l === 'deseos' ? 'on' : '';
-  };
   $('#lc').onclick = function(){ setLista('coleccion'); };
   $('#ld').onclick = function(){ setLista('deseos'); };
   $('#fU').oninput = function(e){ portada = e.target.value.trim(); paintCover(); };
@@ -9651,7 +9697,7 @@ function tarjetaPaleta(){
   return '<div class="card full"><h3>La paleta de tu colección</h3>'
     + '<div class="sub">Los ' + orden.length + ' colores dominantes de tus portadas, ordenados por tono</div>'
     + '<div class="paletagrid">' + orden.map(function(d){
-        return '<i data-disco="' + d.id + '" style="background:rgb(' + esc(d.color) + ')" title="'
+        return '<i data-disco="' + d.id + '" style="background:rgb(' + colorSeguro(d.color) + ')" title="'
           + esc(d.titulo + ' · ' + d.artista) + '"></i>';
       }).join('') + '</div></div>';
 }

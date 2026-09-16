@@ -4,19 +4,20 @@ Catálogo de vinilos y CDs que funciona igual en el Mac y en el iPhone, con los 
 guardados en tu propio repositorio de GitHub. Sin servidor propio: la aplicación es
 un único archivo, y tu colección se sincroniza como un `datos.json` en GitHub.
 
-**Versión de esta entrega:** 2026.09.12-streaming — se comprueba en Ajustes, al final de todo.
+**Versión de esta entrega:** 2026.09.16-estructural — se comprueba en Ajustes, al final de todo.
 
 ## Qué hay en esta carpeta
 
 | Archivo | Para qué sirve |
 |---|---|
 | `index.html` | La aplicación completa |
-| `datos.json` | Tu colección: 168 discos. Es el único archivo que se sincroniza |
+| `datos.json` | Tu colección: 206 discos en colección y 14 en deseos. Es el único archivo que se sincroniza |
 | `manifest.webmanifest` | Permite instalarla con su icono |
 | `sw.js` | Hace que abra al instante y funcione sin cobertura |
 | `icon-192-v2.png`, `icon-512-v2.png`, `apple-touch-icon-v2.png` | Iconos |
+| `zxing-0.21.3.js` | El lector de códigos de barras del escáner. Antes se traía de un servicio externo cada vez que se abría; ahora vive en tu propio repositorio, así tu app no depende de nada de fuera para escanear |
 
-Sube siempre estos **siete archivos** juntos cuando actualices, salvo `datos.json`,
+Sube siempre estos **ocho archivos** juntos cuando actualices, salvo `datos.json`,
 que no se toca nunca al subir una versión nueva de la aplicación.
 
 ---
