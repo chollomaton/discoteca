@@ -1732,7 +1732,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.19-revision3';
+var VERSION = '2026.09.19-revision4';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var view = 'col';
 var fType = 'all', fGen = '', fArt = '', fTag = '', fDec = '', fPais = '', fSello = '';
@@ -2046,8 +2046,11 @@ function serializarDiscLigero(d){
     if(esDefectoReconstruible(campo, o[campo])) delete o[campo];
   });
   if(o.tracklist && o.tracklist.length){
+    /* "preview" se omite SIEMPRE, tenga o no contenido: normTracks() lo
+       reconstruye igual (como "") tanto si la clave falta del todo como si
+       llega vacía, así que dejar preview:"" en cada tema no protegía nada y
+       solo eran bytes muertos repetidos por cada canción de cada disco. */
     o.tracklist = o.tracklist.map(function(t){
-      if(!t.preview) return t;
       var c = {}, j;
       for(j in t) if(j !== 'preview') c[j] = t[j];
       return c;
@@ -2490,7 +2493,15 @@ function pullReal(silencioso){
         indexarFirmas();
         lastSync = nowISO();
         guardarLocal();
-        if(res.aRemoto > 0){ marcar('pend'); programarPush(); }
+        if(res.aRemoto > 0){
+          /* La fusión ha producido datos que GitHub todavía no tiene (p.ej.
+             escuchasFechas combinadas de dos dispositivos): eso es un cambio
+             real y tiene que contar como tal, o push() -que solo sube cuando
+             revisionDatos ha avanzado- puede pensar que ya está todo subido
+             y no hacer ningún PUT. */
+          revisionDatos++;
+          marcar('pend'); programarPush();
+        }
         else marcar('ok');
         if(res.aLocal > 0){
           renderAll();
@@ -2521,8 +2532,14 @@ function pullReal(silencioso){
    hay una subida en curso, una llamada nueva no dispara un segundo PUT en
    paralelo, se limita a anotar que hace falta otra en cuanto termine la
    actual, para no perder el cambio que la motivó. */
+/* Qué revisión de los datos iba dentro del último cuerpo que de verdad se
+   envió por PUT -se fija justo al construir "doc", no al pedir el push-,
+   para que push() sepa exactamente qué se subió aunque el cambio haya
+   llegado mientras esta tarea esperaba su turno en la cola. */
+var revisionEnviada = -1;
 function pushInterno(){
   marcar('busy');
+  revisionEnviada = revisionDatos;
   var doc = { version:4, actualizado: nowISO(), discos: discosLigeros(), borrados: DB.borrados || [] };
   var cuerpo = {
     message: 'Discoteca · ' + DB.discos.length + ' discos · ' + new Date().toLocaleString('es-ES'),
@@ -2578,15 +2595,17 @@ function push(){
      generar tres PUT -ni siquiera dos-, solo uno. Si ya se subió esta misma
      revisión de los datos, no hay nada nuevo que enviar. */
   if(revisionDatos === ultimaRevisionSubida) return Promise.resolve(true);
-  var revisionAlEmpezar = revisionDatos;
   pushPromiseActual = encolarSync(pushInterno).then(function(resultado){
     pushPromiseActual = null;
-    if(resultado) ultimaRevisionSubida = revisionAlEmpezar;
-    /* Caso B: si mientras este PUT estaba en marcha (incluido el tiempo que
-       pasó esperando su turno en la cola) se guardó un cambio nuevo, ese
-       cambio no iba dentro de lo que se acaba de subir: hace falta otro PUT
-       con lo último, no basta con el que ya terminó. */
-    if(revisionDatos !== revisionAlEmpezar) return push();
+    /* Se usa revisionEnviada (fijada dentro de pushInterno justo al construir
+       el cuerpo del PUT), NUNCA la revisión de cuando se llamó a push(): si
+       el cambio llegó mientras esta tarea esperaba turno en la cola, ya iba
+       incluido en "doc" y no hace falta un segundo PUT para lo mismo. */
+    if(resultado) ultimaRevisionSubida = revisionEnviada;
+    /* Caso B: si mientras el PUT ya estaba en vuelo (esperando la respuesta
+       del servidor) se guardó un cambio nuevo, ese sí quedó fuera de lo que
+       se acaba de subir: hace falta otro PUT con lo último. */
+    if(revisionDatos !== ultimaRevisionSubida) return push();
     return resultado;
   });
   return pushPromiseActual;
@@ -6646,17 +6665,35 @@ function verHuecos(artista){
 }
 
 /* ---------- fusionar duplicados ---------- */
-/* Une dos objetos "de un nivel" (tecnica, extra) por clave: lo que ya hay en
-   "a" se conserva, y solo se rellena desde "b" lo que a "a" le falta -así se
-   preservan sub-claves complementarias (p.ej. ids en una ficha, creditos y
-   companias en otra) en vez de que una ficha completa gane sobre la otra. */
-function fusionaObjetoPlano(a, b){
-  if(!b || typeof b !== 'object') return a || null;
-  if(!a || typeof a !== 'object') return b;
-  var r = {}, k;
-  for(k in a) r[k] = a[k];
-  for(k in b){ if(r[k] === undefined || r[k] === null || r[k] === '') r[k] = b[k]; }
-  return r;
+/* Fusión recursiva de "tecnica"/"extra": objeto + objeto se combina clave a
+   clave bajando a cualquier profundidad (así se preservan sub-objetos
+   complementarios dentro de otro sub-objeto, no solo en el primer nivel:
+   p.ej. companias.A de una ficha y companias.B de otra sobreviven las dos,
+   no solo el objeto companias completo de la que gane). array + array se
+   une sin duplicados. Si uno de los dos falta, gana el que hay. Si ambos son
+   valores sueltos y distintos (dos escalares, o un objeto contra un
+   escalar), NO se inventa una combinación: se conserva el de "a" -la ficha
+   ya elegida hasta ahora- tal cual estaba, sin tocarlo. */
+function fusionaProfunda(a, b){
+  if(a === undefined || a === null || a === '') return b;
+  if(b === undefined || b === null || b === '') return a;
+  if(Array.isArray(a) && Array.isArray(b)){
+    var union = a.slice();
+    b.forEach(function(x){
+      var yaEsta = union.some(function(y){ return JSON.stringify(y) === JSON.stringify(x); });
+      if(!yaEsta) union.push(x);
+    });
+    return union;
+  }
+  var esObjA = a && typeof a === 'object' && !Array.isArray(a);
+  var esObjB = b && typeof b === 'object' && !Array.isArray(b);
+  if(esObjA && esObjB){
+    var r = {}, k;
+    for(k in a) r[k] = a[k];
+    for(k in b) r[k] = (k in r) ? fusionaProfunda(r[k], b[k]) : b[k];
+    return r;
+  }
+  return a; /* tipos incompatibles o dos escalares distintos: no se arriesga nada */
 }
 /* Combina varios tracklists del mismo álbum en uno solo: parte del más largo
    (probablemente el más completo) y, para cada uno de los demás, empareja
@@ -6723,8 +6760,8 @@ function fusionarDuplicados(base){
   });
   grupo2.forEach(function(d){
     campos.forEach(function(f){ if(!res[f] && d[f]) res[f] = d[f]; });
-    res.tecnica = fusionaObjetoPlano(res.tecnica, d.tecnica);
-    res.extra = fusionaObjetoPlano(res.extra, d.extra);
+    res.tecnica = fusionaProfunda(res.tecnica, d.tecnica);
+    res.extra = fusionaProfunda(res.extra, d.extra);
     if(res.ejemplares < (d.ejemplares || 1)) res.ejemplares = d.ejemplares;
     d.etiquetas.forEach(function(t){ if(res.etiquetas.indexOf(t) < 0) res.etiquetas.push(t); });
     /* editado: se unen las protecciones de campo de todas las fichas, para que
@@ -8984,11 +9021,16 @@ function faltaOpcional(d){
 function calcularFaltan(d){ return faltaEsencial(d).concat(faltaOpcional(d)); }
 /* Refresca d.faltan tras cualquier enriquecimiento (Completar, Discogs,
    MusicBrainz, elegir edición, escáner, reparar, importar…), pero solo si la
-   ficha YA tenía un «faltan» calculado antes -igual que al guardar el
-   formulario a mano-: una ficha que nunca ha pasado por "Revisar todo" sigue
-   sin «faltan» a propósito (no evaluada todavía es distinto de completa). */
+   ficha YA ha pasado por una revisión -igual que al guardar el formulario a
+   mano-: una ficha que nunca ha pasado por "Revisar todo" sigue sin «faltan»
+   a propósito (no evaluada todavía es distinto de completa).
+   OJO: "!d.faltan" NO sirve para distinguir esos dos casos, porque una ficha
+   revisada y completa tiene exactamente faltan:"" -mismo valor falsy que una
+   ficha nunca evaluada-. La señal correcta es si hay fecha de revisión
+   (fechaRevision, que ya mira tanto el registro de revisiones como
+   d.revisado): eso sí distingue "nunca evaluada" de "evaluada y completa". */
 function refrescarFaltan(d){
-  if(!d || !d.faltan) return;
+  if(!d || !fechaRevision(d)) return;
   var f = calcularFaltan(d);
   d.faltan = f.length ? f.join(', ') : '';
 }

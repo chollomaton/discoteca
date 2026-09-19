@@ -4,7 +4,7 @@ Catálogo de vinilos y CDs que funciona igual en el Mac y en el iPhone, con los 
 guardados en tu propio repositorio de GitHub. Sin servidor propio: la aplicación es
 un único archivo, y tu colección se sincroniza como un `datos.json` en GitHub.
 
-**Versión de esta entrega:** 2026.09.19-revision2 — se comprueba en Ajustes, al final de todo.
+**Versión de esta entrega:** 2026.09.19-revision4 — se comprueba en Ajustes, al final de todo.
 
 ## Qué hay en esta carpeta
 
@@ -18,7 +18,12 @@ un único archivo, y tu colección se sincroniza como un `datos.json` en GitHub.
 | `zxing-0.21.3.js` | El lector de códigos de barras del escáner. Antes se traía de un servicio externo cada vez que se abría; ahora vive en tu propio repositorio, así tu app no depende de nada de fuera para escanear |
 
 Sube siempre estos **ocho archivos** juntos cuando actualices — todos menos `datos.json`,
-que no se toca nunca al subir una versión nueva de la aplicación.
+que no se toca nunca al subir una versión nueva de la aplicación. Son los ocho archivos
+que la aplicación necesita de verdad para funcionar: `index.html`, `manifest.webmanifest`,
+`sw.js`, los cuatro iconos y `zxing-0.21.3.js`.
+
+Este propio `LEEME.md` **no es uno de esos ocho**: es solo documentación para ti, no lo usa
+la aplicación ni falta si no lo subes a GitHub, pero tampoco pasa nada si lo subes también.
 
 **Si en tu repositorio de GitHub todavía existen `icon-192.png` e `icon-512.png` (sin `-v2`)**,
 son del diseño antiguo y ya no los usa ni `index.html`, ni `manifest.webmanifest`, ni `sw.js`.

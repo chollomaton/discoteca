@@ -1,7 +1,7 @@
 /* Discoteca — service worker
    Guarda la aplicación en caché para que abra al instante y sin conexión.
    Los datos NUNCA se cachean: siempre se piden a GitHub. */
-var CACHE = 'discoteca-v39';
+var CACHE = 'discoteca-v40';
 /* zxing-0.21.3.js (336 KB) NO va aquí a propósito: solo lo carga quien usa el
    escáner de códigos de barras, y forzar su descarga en la instalación penaliza
    a todo el mundo. Se cachea solo (como cualquier otro archivo) la primera vez
@@ -11,6 +11,9 @@ var CACHE = 'discoteca-v39';
    el HTML entero (~650 KB) en la instalación. El respaldo sin conexión de más
    abajo ya sirve './index.html' para cualquier navegación, incluida la raíz. */
 var SHELL = ['./index.html', './manifest.webmanifest', './icon-192-v2.png', './icon-512-v2.png', './icon-512-maskable.png', './apple-touch-icon-v2.png'];
+/* Rutas absolutas del SHELL, para reconocerlas en el "fetch" de abajo sin
+   depender de cómo esté escrita la URL de la petición (con o sin "./"). */
+var SHELL_PATHS = SHELL.map(function(s){ return new URL(s, self.registration.scope).pathname; });
 
 self.addEventListener('install', function(e){
   /* Sin skipWaiting() aquí: el service worker nuevo se queda "esperando" hasta
@@ -29,13 +32,25 @@ self.addEventListener('message', function(e){
 });
 /* Caché primero, para que abra al instante de verdad; en paralelo se pide la
    red y se deja guardada para la próxima vez. Si no hay nada en caché aún
-   (primera visita), se espera a la red como antes. */
+   (primera visita), se espera a la red como antes.
+   EXCEPCIÓN: los archivos del SHELL (el HTML, el manifest, los iconos -todo
+   lo versionado por la propia instalación del service worker) NUNCA se
+   refrescan así en caliente. Si se hiciera, un service worker todavía
+   ACTIVO (el viejo, mientras el nuevo espera a que el usuario pulse
+   "Actualizar") iría escribiendo silenciosamente el index.html nuevo dentro
+   de su propia caché -mezclando HTML nuevo con lógica de sw.js vieja, que es
+   justo lo que el aviso de actualización quiere evitar-. La única forma de
+   que estos archivos cambien es una versión nueva del propio service worker,
+   con su propio CACHE y su propio ciclo install→waiting→(usuario pulsa
+   Actualizar)→activate. */
 self.addEventListener('fetch', function(e){
   var url = new URL(e.request.url);
   if(e.request.method !== 'GET') return;
   if(url.origin !== location.origin || /datos\.json/.test(url.pathname)) return;
+  var esArchivoShell = SHELL_PATHS.indexOf(url.pathname) >= 0;
   e.respondWith(
     caches.match(e.request).then(function(cacheado){
+      if(esArchivoShell && cacheado) return cacheado;
       var actualizar = fetch(e.request).then(function(r){
         /* Solo se guarda una respuesta buena: cachear un 404/500 (o un error de
            CORS marcado "opaque") dejaría ese fallo servido para siempre, incluso
