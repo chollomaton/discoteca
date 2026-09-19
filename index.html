@@ -928,6 +928,9 @@ label.trk{cursor:pointer}
 .tcompfila.tchd{font-weight:700;color:var(--txt3);font-size:11px;text-transform:uppercase;letter-spacing:.04em;background:var(--fill)}
 .tcompfila .tck{color:var(--txt2)}
 .tcompfila.dif .tcv{color:var(--orange);font-weight:600}
+.tcompfila.c4{grid-template-columns:.8fr 1fr 1fr 1fr}
+.confbadge{display:flex;gap:9px;align-items:flex-start;border-radius:14px;font-size:13.2px;padding:12px 14px;background:var(--elev);box-shadow:inset 0 0 0 1.5px var(--cb-c, var(--sep))}
+.confbadge .tt{font-weight:700;color:var(--cb-c, var(--txt));display:block;margin-bottom:2px}
 .tcard .tico{width:56px;height:56px;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center}
 .tcard.si .tico{background:rgba(52,199,89,.3)}
 .tcard.no .tico{background:rgba(255,149,0,.28)}
@@ -1719,7 +1722,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.16-estructural';
+var VERSION = '2026.09.19-detective';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var view = 'col';
 var fType = 'all', fGen = '', fArt = '', fTag = '', fDec = '', fPais = '', fSello = '';
@@ -3805,7 +3808,7 @@ function askAI(titulo, artista, formato, pistas){
     method:'POST',
     headers:{'content-type':'application/json', 'x-api-key':CFG.anthropic, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true'},
     body: JSON.stringify({
-      model:'claude-sonnet-4-6', max_tokens:2000,
+      model:'claude-sonnet-5', max_tokens:2000,
       messages:[{role:'user', content:L.join('\n')}],
       tools:[{type:'web_search_20250305', name:'web_search'}]
     })
@@ -5666,10 +5669,14 @@ function openDetail(id, desde){
     + (readOnly ? '' : '<button class="iconbtn" id="pen" data-tip="Editar el tracklist">' + I.pencil + '</button>') + '</div></div>'
     + '<div id="dTL"></div>';
 
+  /* el Detective solo lee (MusicBrainz/Discogs) y no toca la ficha, así que
+     se ofrece también en modo solo-lectura, a diferencia del resto de botones */
   var pie = readOnly
-    ? '<span></span><span></span>'
+    ? '<div class="rowb"><button class="btn sm" id="detective" data-tip="Comprobar si es exactamente esta edición">'
+      + I.search + '<span class="txt">Detective</span></button></div><span></span>'
     : '<div class="rowb"><button class="btn sm" id="aiFull" title="Completar">' + I.spark + '<span class="txt">Completar</span></button>'
-      + '<button class="btn sm" id="edics" data-tip="Elegir otra edición">' + I.layers + '<span class="txt">Ediciones</span></button></div>'
+      + '<button class="btn sm" id="edics" data-tip="Elegir otra edición">' + I.layers + '<span class="txt">Ediciones</span></button>'
+      + '<button class="btn sm" id="detective" data-tip="Comprobar si es exactamente esta edición">' + I.search + '<span class="txt">Detective</span></button></div>'
       + '<div class="rowb"><button class="btn sm" id="mas">···</button><button class="btn pri sm" id="edit">' + I.pencil + 'Editar</button></div>';
 
   var s = sheet(d.titulo || 'Sin título', body, pie);
@@ -5935,6 +5942,7 @@ function openDetail(id, desde){
 
   if($('#edit')) $('#edit').onclick = function(){ s.remove(); openForm(d); };
   if($('#edics')) $('#edics').onclick = function(){ elegirEdicion(d, s); };
+  if($('#detective')) $('#detective').onclick = function(){ detectiveEdiciones(d); };
   if($('#aiFull')) $('#aiFull').onclick = function(e){
     var b = e.currentTarget; b.disabled = true; b.innerHTML = I.spark + '<span class="txt">Buscando…</span>';
     enrich(d.id, true).then(function(ok){
@@ -6127,6 +6135,101 @@ function elegirEdicion(d, padre){
   }).catch(function(){
     s.querySelector('#cnote').className = 'note err';
     s.querySelector('#cnote').textContent = 'No se pudo consultar. Revisa la conexión.';
+  });
+}
+
+/* ============================================================
+   DETECTIVE DE EDICIONES
+   Cruza los identificadores que ya tiene la ficha (MusicBrainz,
+   Discogs, código de barras, catálogo…) contra esas mismas fuentes
+   externas y dice, con el nivel de confianza que corresponda, si
+   es realmente esa edición. No inventa una coincidencia: si falta
+   algo para estar segura, lo dice y ofrece cómo conseguirlo.
+   ============================================================ */
+function nivelConfianzaEdicion(d, mb, dg){
+  var campos = ['año', 'sello', 'numeroCatalogo', 'pais', 'codigoBarras'];
+  var fuentes = (mb ? 1 : 0) + (dg ? 1 : 0);
+  var comparables = 0, choca = false;
+  [mb, dg].filter(Boolean).forEach(function(ext){
+    campos.forEach(function(c){
+      var v1 = String(d[c] || '').trim().toLowerCase();
+      var v2 = String(ext[c] || '').trim().toLowerCase();
+      if(!v1 || !v2) return;
+      comparables++;
+      if(v1 !== v2) choca = true;
+    });
+  });
+  if(choca) return 'conflicto';
+  if(fuentes === 0) return 'baja';
+  if(fuentes === 2 || comparables >= 2) return 'alta';
+  return 'media';
+}
+function detectiveEdiciones(d){
+  var body = '<div class="note busy" id="dnote">Consultando'
+    + (d.mbid ? ' MusicBrainz' : '') + (d.mbid && hayDiscogs() && d.discogs ? ' y' : '')
+    + (hayDiscogs() && d.discogs ? ' Discogs' : '') + '…</div><div id="dres"></div>';
+  var s = sheet('Detective de ediciones', body, '<button class="btn" data-close5>Cerrar</button>', true);
+  s.querySelector('[data-close5]').onclick = function(){ s.remove(); };
+
+  var pMb = d.mbid ? mbDetalle(d.mbid).catch(function(){ return null; }) : Promise.resolve(null);
+  var pDg = (hayDiscogs() && d.discogs) ? (function(){
+    var m = String(d.discogs).match(/release\/(\d+)/);
+    return m ? dgGet('releases/' + m[1]).then(dgNormaliza).catch(function(){ return null; }) : Promise.resolve(null);
+  })() : Promise.resolve(null);
+
+  Promise.all([pMb, pDg]).then(function(r){
+    var mb = r[0], dg = r[1];
+    var nivel = nivelConfianzaEdicion(d, mb, dg);
+    var info = {
+      alta: ['Identificación con alta confianza', 'var(--green)',
+        'Al menos dos identificadores externos coinciden entre sí y con tu ficha.'],
+      media: ['Identificación parcial', 'var(--orange)',
+        'Solo hay una fuente externa enlazada (o pocos campos que comparar). Podría ser esta edición, pero no hay suficientes datos cruzados para asegurarlo.'],
+      conflicto: ['Los datos no coinciden', 'var(--red)',
+        'Algún campo no coincide entre las fuentes consultadas y tu ficha. Puede que la ficha no corresponda exactamente a esta edición.'],
+      baja: ['Sin confirmar', 'var(--txt3)',
+        'Esta ficha no tiene ningún identificador externo enlazado (ni MusicBrainz, ni Discogs, ni código de barras): los datos son los que se escribieron o rellenaron a mano.']
+    }[nivel];
+
+    var filaComp = function(k, campo, fmt){
+      var v1 = d[campo] || '';
+      if(campo === 'pais' && v1) v1 = nombrePais(v1);
+      var vmb = mb ? (fmt ? fmt(mb[campo]) : mb[campo]) || '' : '';
+      var vdg = dg ? (fmt ? fmt(dg[campo]) : dg[campo]) || '' : '';
+      if(!v1 && !vmb && !vdg) return '';
+      var distinto = (mb && vmb && v1 && String(vmb).toLowerCase() !== String(v1).toLowerCase())
+        || (dg && vdg && v1 && String(vdg).toLowerCase() !== String(v1).toLowerCase());
+      return '<div class="tcompfila c4' + (distinto ? ' dif' : '') + '"><span class="tck">' + k + '</span>'
+        + '<span class="tcv">' + esc(v1 || '—') + '</span>'
+        + '<span class="tcv">' + (mb ? esc(vmb || '—') : '—') + '</span>'
+        + '<span class="tcv">' + (dg ? esc(vdg || '—') : '—') + '</span></div>';
+    };
+    var fmtPais = function(c){ return c ? nombrePais(c) : ''; };
+    var tabla = (mb || dg) ? '<div class="tcomp"><div class="tcompfila c4 tchd"><span class="tck"></span>'
+      + '<span class="tcv">Tu ficha</span><span class="tcv">MusicBrainz</span><span class="tcv">Discogs</span></div>'
+      + filaComp('Año', 'año') + filaComp('Sello', 'sello') + filaComp('Catálogo', 'numeroCatalogo')
+      + filaComp('País', 'pais', fmtPais) + filaComp('Código de barras', 'codigoBarras')
+      + filaComp('Formato', 'formatoDetalle') + '</div>' : '';
+
+    var faltan = [];
+    if(!d.mbid) faltan.push('enlazar con MusicBrainz (botón «Buscar otra edición»)');
+    if(hayDiscogs() && !d.discogs) faltan.push('enlazar con Discogs');
+    if(!d.codigoBarras) faltan.push('añadir el código de barras');
+
+    s.querySelector('#dnote').remove();
+    s.querySelector('#dres').innerHTML =
+      '<div class="confbadge" style="--cb-c:' + info[1] + '"><span>' + I.info + '</span>'
+      + '<span><span class="tt">' + info[0] + '</span>' + info[2] + '</span></div>'
+      + tabla
+      + (faltan.length ? '<p style="font-size:13px;color:var(--txt3);margin:14px 3px 0">Para subir la confianza: '
+          + faltan.join(', ') + '.</p>' : '')
+      + '<div class="rowb" style="margin-top:16px">'
+      + (readOnly ? '' : '<button class="btn" id="dCambiar">' + I.layers + 'Buscar otra edición</button>') + '</div>';
+    var bc = s.querySelector('#dCambiar');
+    if(bc) bc.onclick = function(){ s.remove(); elegirEdicion(d); };
+  }).catch(function(){
+    s.querySelector('#dnote').className = 'note err';
+    s.querySelector('#dnote').textContent = 'No se pudo consultar. Revisa la conexión.';
   });
 }
 
@@ -8756,6 +8859,7 @@ function radarColeccion(){
   var olvidados = ds.filter(function(d){
     return d.ultimaEscucha && (Date.now() - new Date(d.ultimaEscucha + 'T12:00:00').getTime()) > 180 * 86400000;
   });
+  var dudosas = ds.filter(function(d){ return d.confianza === 'baja'; });
   var fallos = fallosGuardados();
 
   var fila = function(icono, titulo, n, detalle, accion){
@@ -8765,7 +8869,7 @@ function radarColeccion(){
       + '<div class="rt"><div class="rn">' + titulo + '</div><div class="rd">' + detalle + '</div></div>'
       + '<div class="rv">' + n + '</div></button>';
   };
-  var body = (!incompletas.length && !totalReparar && !sinFoto.length && !dup && !fallos.length
+  var body = (!incompletas.length && !totalReparar && !sinFoto.length && !dup && !dudosas.length && !fallos.length
       ? '<div class="warnb info">' + I.check + '<span>Tu colección está sana: sin fichas incompletas, sin nada '
         + 'pendiente de reparar, sin duplicados y sin fallos recientes.</span></div>'
       : '<p style="font-size:13.5px;color:var(--txt2);margin:0 0 4px">Lo que puede merecer tu atención, reunido en un sitio.</p>')
@@ -8774,6 +8878,7 @@ function radarColeccion(){
     + fila(I.spark, 'Cosas para reparar', totalReparar, 'Nombres, sellos, años o enlaces por limpiar', 'reparar')
     + fila(I.img, 'Sin portada', sinFoto.length, 'Discos sin ninguna imagen', 'sinfoto')
     + fila(I.copy, 'Posibles duplicados', dup, 'Fichas que podrían ser el mismo disco', 'dups')
+    + fila(I.layers, 'Identificación dudosa', dudosas.length, 'La edición asignada fue una coincidencia poco segura', 'dudosas')
     + fila(I.reloj2, 'Llevan tiempo sin sonar', olvidados.length, 'Más de 6 meses sin marcar una escucha', 'olvidados')
     + fila(I.lampara, 'En tu lista de deseos', deseos2.length, 'Discos que buscas', 'deseos')
     + fila(I.bug || I.warn, 'Fallos recientes de la app', fallos.length, 'Registrados en Ajustes', 'fallos')
@@ -8794,6 +8899,8 @@ function radarColeccion(){
       else if(a === 'sinfoto' || a === 'olvidados'){
         var lista = a === 'sinfoto' ? sinFoto : olvidados;
         listaPendientesGenerica(a === 'sinfoto' ? 'Discos sin portada' : 'Llevan tiempo sin sonar', lista);
+      }else if(a === 'dudosas'){
+        listaPendientesGenerica('Identificación dudosa', dudosas);
       }
     };
   });
@@ -8986,6 +9093,38 @@ function tendenciaEscucha(){
       : cambio < 0 ? 'Has escuchado un ' + Math.abs(cambio) + '% menos en los últimos tres meses que en los tres anteriores.'
       : 'Escuchas al mismo ritmo que hace tres meses.') + '</span></div>'
     + '<div class="chartwrap">' + columns(datosGrafico, 'var(--green)') + '</div>';
+
+  /* artistas más escuchados en estos 12 meses */
+  var desdeMs = new Date(hoy.getFullYear(), hoy.getMonth() - 11, 1).getTime();
+  var porArtista = {};
+  ds.forEach(function(d){
+    (d.escuchasFechas || []).forEach(function(fecha){
+      var t = new Date(String(fecha)).getTime();
+      if(!isNaN(t) && t >= desdeMs) porArtista[d.artista] = (porArtista[d.artista] || 0) + 1;
+    });
+  });
+  var topArtistas = Object.keys(porArtista).map(function(a){ return {a:a, n:porArtista[a]}; })
+    .sort(function(x, y){ return y.n - x.n; }).slice(0, 5);
+  if(topArtistas.length){
+    body += '<div class="tl-hd" style="margin-top:18px"><h4>Artistas más escuchados<span class="n"> · últimos 12 meses</span></h4></div>'
+      + '<div class="tl">' + topArtistas.map(function(x, i){
+          return '<div class="trk"><span class="num">' + (i + 1) + '</span>'
+            + '<span class="nm">' + esc(x.a) + '</span>'
+            + '<span class="dur">' + x.n + (x.n === 1 ? ' escucha' : ' escuchas') + '</span></div>';
+        }).join('') + '</div>';
+  }
+
+  /* discos con más tiempo sin escuchar (de los que ya se han escuchado alguna vez) */
+  var yaEscuchados = ds.filter(function(d){ return d.ultimaEscucha; })
+    .sort(function(a, b){ return String(a.ultimaEscucha).localeCompare(String(b.ultimaEscucha)); }).slice(0, 5);
+  if(yaEscuchados.length){
+    body += '<div class="tl-hd" style="margin-top:18px"><h4>Más tiempo sin escuchar</h4></div>'
+      + '<div class="tl">' + yaEscuchados.map(function(d){
+          return '<div class="trk"><span class="nm">' + esc(d.titulo) + ' · ' + esc(d.artista) + '</span>'
+            + '<span class="dur">' + fechaBonita(d.ultimaEscucha) + '</span></div>';
+        }).join('') + '</div>';
+  }
+
   sheet('Tendencia de escucha', body, null, true);
 }
 

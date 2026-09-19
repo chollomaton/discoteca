@@ -4,7 +4,7 @@ Catálogo de vinilos y CDs que funciona igual en el Mac y en el iPhone, con los 
 guardados en tu propio repositorio de GitHub. Sin servidor propio: la aplicación es
 un único archivo, y tu colección se sincroniza como un `datos.json` en GitHub.
 
-**Versión de esta entrega:** 2026.09.16-estructural — se comprueba en Ajustes, al final de todo.
+**Versión de esta entrega:** 2026.09.19-detective — se comprueba en Ajustes, al final de todo.
 
 ## Qué hay en esta carpeta
 
@@ -108,7 +108,27 @@ cambias el icono, borra el acceso directo y vuelve a añadirlo desde Safari para
   de décadas; calendario de escuchas a cuatro niveles; horas de aguja; quiz sobre tu
   propia colección; recomendaciones basadas solo en lo que ya tienes.
 - **Deseos** y **modo tienda**, con escáner de código de barras y, si falla, la opción
-  de identificar el disco por una foto de la portada.
+  de identificar el disco por una foto de la portada; te dice al momento si ya lo
+  tienes, si es otra edición o si no lo tienes.
+- **Inteligencia de la colección**, accesible desde la paleta de comandos (⌘K) o desde
+  cada ficha:
+  - **Detective de ediciones** (en la ficha de cada disco): cruza MusicBrainz, Discogs
+    y el código de barras contra los datos de tu ficha y dice, con su nivel de
+    confianza (alta / parcial / sin confirmar / datos que no coinciden), si es
+    exactamente esa edición. Nunca inventa una coincidencia: si algo no cuadra o falta
+    un identificador, lo dice claramente.
+  - **Radar de la colección**: todo lo que merece revisión reunido en un sitio —
+    fichas incompletas, posibles duplicados, discos sin foto, reparaciones pendientes.
+  - **Qué escucho ahora**: eliges cuánto tiempo tienes y arma una sesión con discos
+    reales que encajan en ese tiempo, con los filtros que quieras (no escuchados,
+    favoritos, vinilo, CD…).
+  - **El ADN de tu colección**: perfil calculado solo con tus propios datos —
+    décadas, géneros, países, sellos, concentración por artista.
+  - **Tendencia de escucha**: cómo ha cambiado el ritmo de escucha mes a mes, artistas
+    más escuchados en el último año y discos con más tiempo sin sonar.
+  - **Huecos de un artista** (desde su ficha): álbumes de estudio que te faltan según
+    MusicBrainz, con botón directo a deseos.
+  - **Evolución del valor**: snapshots del valor estimado de la colección en el tiempo.
 - **Más allá del catálogo** (Ajustes): conciertos cerca de ti de tus artistas con más
   discos, aviso de discos nuevos de artistas que ya tienes, un resumen del año en
   formato de historias para compartir, y reconocer una canción grabando unos segundos
