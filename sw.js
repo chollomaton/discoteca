@@ -1,7 +1,7 @@
 /* Discoteca — service worker
    Guarda la aplicación en caché para que abra al instante y sin conexión.
    Los datos NUNCA se cachean: siempre se piden a GitHub. */
-var CACHE = 'discoteca-v40';
+var CACHE = 'discoteca-v41';
 /* zxing-0.21.3.js (336 KB) NO va aquí a propósito: solo lo carga quien usa el
    escáner de códigos de barras, y forzar su descarga en la instalación penaliza
    a todo el mundo. Se cachea solo (como cualquier otro archivo) la primera vez

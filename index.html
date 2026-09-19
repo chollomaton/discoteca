@@ -1732,7 +1732,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.19-revision4';
+var VERSION = '2026.09.19-revision5';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var view = 'col';
 var fType = 'all', fGen = '', fArt = '', fTag = '', fDec = '', fPais = '', fSello = '';
@@ -2328,7 +2328,7 @@ function persist(silencioso){
 }
 function programarPush(){
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(function(){ push(); }, 2500);
+  saveTimer = setTimeout(function(){ saveTimer = null; push(); }, 2500);
 }
 
 
@@ -2338,7 +2338,7 @@ function programarPush(){
       fusiona por fecha de modificación de cada disco y sube.
    ============================================================ */
 var GH = 'https://api.github.com/repos/';
-var pullTimer = null, ultimoPull = 0, reintentos = 0;
+var pullTimer = null, ultimoPull = 0;
 
 function b64enc(str){
   var bytes = new TextEncoder().encode(str), bin = '', paso = 0x8000;
@@ -2424,10 +2424,23 @@ function fusionar(locales, borrLoc, remotos, borrRem){
         });
         cambiosLocales++; cambiosRemotos++;
       }
+      /* Igual que escuchasFechas: la unión de etiquetas es información nueva
+         que puede faltarle a CUALQUIERA de los dos lados (incluido el que no
+         se eligió como "elegido"), así que cada lado cuenta su propio cambio
+         por separado -comparando el conjunto final contra el conjunto de
+         CADA lado, nunca solo longitudes, que dos listas de igual tamaño
+         pero distinto contenido pueden despistar-. */
       var etq = {};
       (l.etiquetas || []).concat(r.etiquetas || []).forEach(function(t){ etq[t] = 1; });
-      if(Object.keys(etq).length !== (elegido.etiquetas || []).length){
-        elegido = Object.assign({}, elegido, {etiquetas: Object.keys(etq)});
+      var unionEtq = Object.keys(etq).sort();
+      var etqLocalOrden = (l.etiquetas || []).slice().sort();
+      var etqRemotoOrden = (r.etiquetas || []).slice().sort();
+      var difiereLocal = JSON.stringify(etqLocalOrden) !== JSON.stringify(unionEtq);
+      var difiereRemoto = JSON.stringify(etqRemotoOrden) !== JSON.stringify(unionEtq);
+      if(difiereLocal || difiereRemoto){
+        elegido = Object.assign({}, elegido, {etiquetas: unionEtq});
+        if(difiereLocal) cambiosLocales++;
+        if(difiereRemoto) cambiosRemotos++;
       }
     }
     if(!l || (r && elegido === r)) cambiosLocales++;
@@ -2537,7 +2550,15 @@ function pullReal(silencioso){
    para que push() sepa exactamente qué se subió aunque el cambio haya
    llegado mientras esta tarea esperaba su turno en la cola. */
 var revisionEnviada = -1;
-function pushInterno(){
+/* El contador de reintentos por conflicto 409/422 es un PARÁMETRO de esta
+   cadena de llamadas, no una variable global: así cada push() -incluso uno
+   completamente independiente que empiece justo después de que otro haya
+   agotado sus reintentos- arranca siempre desde 0, con sus 3 reintentos
+   propios disponibles, en vez de heredar el contador ya consumido por una
+   sincronización anterior. */
+var MAX_REINTENTOS_PUSH = 3;
+function pushInterno(intento){
+  intento = intento || 0;
   marcar('busy');
   revisionEnviada = revisionDatos;
   var doc = { version:4, actualizado: nowISO(), discos: discosLigeros(), borrados: DB.borrados || [] };
@@ -2550,12 +2571,12 @@ function pushInterno(){
   return fetch(ghUrl(), {method:'PUT', headers: ghHeaders(), body: JSON.stringify(cuerpo)})
     .then(function(r){
       if(r.status === 409 || r.status === 422){
-        if(reintentos >= 3){ reintentos = 0; throw new Error('conflicto'); }
-        reintentos++;
+        if(intento >= MAX_REINTENTOS_PUSH) throw new Error('conflicto');
+        var siguiente = intento + 1;
         /* pequeño backoff antes de reintentar: si dos dispositivos están
            chocando a la vez, reintentar en el mismo instante solo aumenta
            las probabilidades de un segundo choque. 400ms, 800ms, 1200ms. */
-        var espera = new Promise(function(res){ setTimeout(res, 400 * reintentos); });
+        var espera = new Promise(function(res){ setTimeout(res, 400 * siguiente); });
         /* Va directo a pullReal(), NO a pull(): esta función ya se está
            ejecutando dentro de su propio turno de la cola de sincronización
            (encolarSync), así que volver a pasar por pull() -que también
@@ -2565,14 +2586,13 @@ function pushInterno(){
            seguiría mandando el mismo SHA caducado y volvería a chocar, o
            peor, podría pisar cambios remotos que no llegó a ver. */
         return espera.then(function(){ return pullReal(true); }).then(function(ok){
-          if(!ok){ reintentos = 0; throw new Error('conflicto'); }
-          return pushInterno();
+          if(!ok) throw new Error('conflicto');
+          return pushInterno(siguiente);
         });
       }
       if(r.status === 401 || r.status === 403) throw new Error('token');
       if(!r.ok) throw new Error('http' + r.status);
       return r.json().then(function(j){
-        reintentos = 0;
         SHA = j.content && j.content.sha ? j.content.sha : SHA;
         DB.actualizado = doc.actualizado;
         lastSync = nowISO();
@@ -2595,17 +2615,25 @@ function push(){
      generar tres PUT -ni siquiera dos-, solo uno. Si ya se subió esta misma
      revisión de los datos, no hay nada nuevo que enviar. */
   if(revisionDatos === ultimaRevisionSubida) return Promise.resolve(true);
-  pushPromiseActual = encolarSync(pushInterno).then(function(resultado){
+  pushPromiseActual = encolarSync(function(){ return pushInterno(0); }).then(function(resultado){
     pushPromiseActual = null;
-    /* Se usa revisionEnviada (fijada dentro de pushInterno justo al construir
-       el cuerpo del PUT), NUNCA la revisión de cuando se llamó a push(): si
-       el cambio llegó mientras esta tarea esperaba turno en la cola, ya iba
-       incluido en "doc" y no hace falta un segundo PUT para lo mismo. */
-    if(resultado) ultimaRevisionSubida = revisionEnviada;
-    /* Caso B: si mientras el PUT ya estaba en vuelo (esperando la respuesta
-       del servidor) se guardó un cambio nuevo, ese sí quedó fuera de lo que
-       se acaba de subir: hace falta otro PUT con lo último. */
-    if(revisionDatos !== ultimaRevisionSubida) return push();
+    /* Encadenar otro push() solo tiene sentido cuando este ha tenido ÉXITO:
+       si ha fallado (sin red, token caducado, conflicto agotado...), NO se
+       reintenta aquí en bucle -ultimaRevisionSubida no se toca, así que
+       revisionDatos seguiría sin coincidir con ella para siempre y encadenar
+       push() habría sido un bucle infinito-. Un fallo ya deja marcar('err')/
+       marcar('off') y syncState en consecuencia; lo reintentan los mecanismos
+       normales (sincronización periódica, el próximo guardado, o "Sincronizar
+       ahora"), no un reintento ciego dentro de esta misma promesa. */
+    if(!resultado) return resultado;
+    /* Se compara contra revisionEnviada (fijada dentro de pushInterno justo
+       al construir el cuerpo del PUT), NUNCA contra la revisión de cuando se
+       llamó a push(): si el cambio llegó mientras esta tarea esperaba turno
+       en la cola, ya iba incluido en "doc" y no hace falta un segundo PUT
+       para lo mismo -pero si llegó DESPUÉS, con el PUT ya en vuelo (Caso B),
+       sí quedó fuera y hace falta otro PUT con lo último-. */
+    ultimaRevisionSubida = revisionEnviada;
+    if(revisionDatos !== revisionEnviada) return push();
     return resultado;
   });
   return pushPromiseActual;
@@ -2617,7 +2645,7 @@ function sincronizarAhora(){
       /* pull() puede haber programado ya una subida para dentro de unos
          segundos; como se va a subir ahora mismo, se cancela esa, para
          que no lleguen las dos y generen un segundo commit de más */
-      clearTimeout(saveTimer);
+      clearTimeout(saveTimer); saveTimer = null;
       return push();
     }
   });
@@ -6703,10 +6731,16 @@ function fusionaProfunda(a, b){
    longitud. De cada tema emparejado rellena solo lo que al tema base le
    faltaba (duración, fav, pos, disco, preview), sin pisar lo que ya tenía. */
 function fusionaTracklists(listas){
-  var base = listas.reduce(function(m, l){ return (l || []).length > m.length ? l : m; }, []);
+  var original = listas.reduce(function(m, l){ return (l || []).length > m.length ? l : m; }, []);
+  /* Copia profunda antes de tocar nada: "original" es el tracklist de verdad
+     de una ficha que sigue viva en DB.discos -fusionarDuplicados() llama a
+     esta función para construir la VISTA PREVIA, antes de que el usuario
+     confirme nada-. Sin esta copia, con solo abrir "Fusionar" y pulsar
+     Cancelar, la ficha original ya habría quedado alterada en memoria. */
+  var base = JSON.parse(JSON.stringify(original));
   var basePlano = base.map(function(t){ return plain(t.titulo); });
   listas.forEach(function(l){
-    if(l === base || !l || !l.length) return;
+    if(l === original || !l || !l.length) return;
     var mismaLongitud = l.length === base.length;
     l.forEach(function(t, i){
       var idx = basePlano.indexOf(plain(t.titulo));

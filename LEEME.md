@@ -4,7 +4,7 @@ Catálogo de vinilos y CDs que funciona igual en el Mac y en el iPhone, con los 
 guardados en tu propio repositorio de GitHub. Sin servidor propio: la aplicación es
 un único archivo, y tu colección se sincroniza como un `datos.json` en GitHub.
 
-**Versión de esta entrega:** 2026.09.19-revision4 — se comprueba en Ajustes, al final de todo.
+**Versión de esta entrega:** 2026.09.19-revision5 — se comprueba en Ajustes, al final de todo.
 
 ## Qué hay en esta carpeta
 
