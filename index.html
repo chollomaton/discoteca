@@ -3269,7 +3269,7 @@ function aplicar(d, r, force){
     if(r[f] && (force || !d[f])){ d[f] = r[f]; cambios = true; }
   });
   if(r.notas && !d.notas){ d.notas = r.notas; cambios = true; }
-  if(cambios) d.confianza = r.confianza === 'baja' ? 'baja' : '';
+  if(cambios){ d.confianza = r.confianza === 'baja' ? 'baja' : ''; refrescarFaltan(d); }
   return cambios;
 }
 function enrich(id, force){
@@ -3378,6 +3378,7 @@ function aplicarCandidato(d, cand){
     if(cand['año']) d['año'] = cand['año'];
     d.confianza = '';
     d.color = '';
+    refrescarFaltan(d);
     persist();
     return true;
   });
@@ -6645,6 +6646,51 @@ function verHuecos(artista){
 }
 
 /* ---------- fusionar duplicados ---------- */
+/* Une dos objetos "de un nivel" (tecnica, extra) por clave: lo que ya hay en
+   "a" se conserva, y solo se rellena desde "b" lo que a "a" le falta -así se
+   preservan sub-claves complementarias (p.ej. ids en una ficha, creditos y
+   companias en otra) en vez de que una ficha completa gane sobre la otra. */
+function fusionaObjetoPlano(a, b){
+  if(!b || typeof b !== 'object') return a || null;
+  if(!a || typeof a !== 'object') return b;
+  var r = {}, k;
+  for(k in a) r[k] = a[k];
+  for(k in b){ if(r[k] === undefined || r[k] === null || r[k] === '') r[k] = b[k]; }
+  return r;
+}
+/* Combina varios tracklists del mismo álbum en uno solo: parte del más largo
+   (probablemente el más completo) y, para cada uno de los demás, empareja
+   cada tema por título normalizado y, si las dos listas tienen igual número
+   de temas y el título no coincide, por posición -nunca inventa una
+   coincidencia entre títulos claramente distintos de listas de distinta
+   longitud. De cada tema emparejado rellena solo lo que al tema base le
+   faltaba (duración, fav, pos, disco, preview), sin pisar lo que ya tenía. */
+function fusionaTracklists(listas){
+  var base = listas.reduce(function(m, l){ return (l || []).length > m.length ? l : m; }, []);
+  var basePlano = base.map(function(t){ return plain(t.titulo); });
+  listas.forEach(function(l){
+    if(l === base || !l || !l.length) return;
+    var mismaLongitud = l.length === base.length;
+    l.forEach(function(t, i){
+      var idx = basePlano.indexOf(plain(t.titulo));
+      if(idx < 0 && mismaLongitud) idx = i;
+      if(idx < 0) return;
+      var bt = base[idx];
+      if(!bt.duracion && t.duracion) bt.duracion = t.duracion;
+      if(!bt.preview && t.preview) bt.preview = t.preview;
+      if(bt.pos === undefined && t.pos !== undefined) bt.pos = t.pos;
+      if(bt.disco === undefined && t.disco !== undefined) bt.disco = t.disco;
+      if(!bt.fav && t.fav) bt.fav = 1;
+    });
+  });
+  return base;
+}
+/* Campos personales donde dos copias con un valor distinto NO deben
+   resolverse en silencio: se avisa de la diferencia antes de fusionar. */
+var CAMPOS_CONFLICTO_FUSION = {
+  ubicacion: 'Ubicación', estado: 'Estado del disco', estadoFunda: 'Estado de la funda',
+  precioCompra: 'Precio de compra', valorMercado: 'Valor de mercado', prestadoA: 'Prestado a', notas: 'Notas'
+};
 function fusionarDuplicados(base){
   var grupo2 = DB.discos.filter(function(x){ return key(x) === key(base); });
   if(grupo2.length < 2){ toast('No hay fichas repetidas de este disco'); return; }
@@ -6652,17 +6698,34 @@ function fusionarDuplicados(base){
      especial abajo: se queda el primero no vacío que aparezca, recorriendo
      las fichas en orden. Si una ficha no tiene un dato, se coge de la
      siguiente; nada de lo que ya tenías se pierde por estar duplicado. */
-  var campos = ['año','genero','sello','numeroCatalogo','pais','estado','estadoFunda','fechaCompra',
-    'portada','notas','formatoDetalle','mbid','rgid','discogs','codigoBarras','color','confianza',
-    'valoracion','ubicacion','revisado','faltan','fotoDisco','fotoDiscoMbid','appleUrl','tecnica',
-    'extra','ultimaEscucha','prestadoA','prestadoDesde'];
+  var campos = ['año','genero','sello','numeroCatalogo','pais','formatoDetalle','portada',
+    'mbid','rgid','discogs','codigoBarras','color','confianza',
+    'valoracion','revisado','faltan','fotoDisco','fotoDiscoMbid','appleUrl',
+    'fechaCompra','ultimaEscucha','prestadoDesde'];
   var res = normDisc(JSON.parse(JSON.stringify(grupo2[0])));
+  /* Ficha con la modificación más reciente: es la que gana en cada conflicto
+     real de un campo personal (más fiable que "la primera que aparezca"). */
+  var masReciente = grupo2.reduce(function(m, d){ return (d.mod || '') > (m.mod || '') ? d : m; }, grupo2[0]);
+  var conflictos = [];
+  Object.keys(CAMPOS_CONFLICTO_FUSION).forEach(function(f){
+    var valores = [];
+    grupo2.forEach(function(d){
+      var v = d[f];
+      if(v === undefined || v === null || v === '') return;
+      if(valores.filter(function(x){ return String(x.valor) === String(v); }).length) return;
+      valores.push({valor: v, mod: d.mod || ''});
+    });
+    if(valores.length > 1){
+      conflictos.push({campo: f, etiqueta: CAMPOS_CONFLICTO_FUSION[f], valores: valores, elegido: masReciente[f]});
+    }
+    res[f] = masReciente[f] !== undefined && masReciente[f] !== null && masReciente[f] !== '' ? masReciente[f]
+      : (valores.length ? valores[0].valor : res[f]);
+  });
   grupo2.forEach(function(d){
     campos.forEach(function(f){ if(!res[f] && d[f]) res[f] = d[f]; });
-    if(!res.precioCompra && d.precioCompra) res.precioCompra = d.precioCompra;
-    if(!res.valorMercado && d.valorMercado) res.valorMercado = d.valorMercado;
+    res.tecnica = fusionaObjetoPlano(res.tecnica, d.tecnica);
+    res.extra = fusionaObjetoPlano(res.extra, d.extra);
     if(res.ejemplares < (d.ejemplares || 1)) res.ejemplares = d.ejemplares;
-    if(res.tracklist.length < d.tracklist.length) res.tracklist = d.tracklist;
     d.etiquetas.forEach(function(t){ if(res.etiquetas.indexOf(t) < 0) res.etiquetas.push(t); });
     /* editado: se unen las protecciones de campo de todas las fichas, para que
        un campo protegido manualmente en cualquiera de ellas se siga respetando. */
@@ -6672,22 +6735,25 @@ function fusionarDuplicados(base){
        entre las copias duplicadas. */
     (d.escuchasFechas || []).forEach(function(f){ if(res.escuchasFechas.indexOf(f) < 0) res.escuchasFechas.push(f); });
   });
+  res.tracklist = fusionaTracklists(grupo2.map(function(d){ return d.tracklist || []; }));
   res.escuchasFechas.sort();
   res.escuchasFechas = res.escuchasFechas.slice(-600);
   res.escuchas = Math.max(res.escuchas, res.escuchasFechas.length);
   if(res.escuchasFechas.length) res.ultimaEscucha = res.escuchasFechas[res.escuchasFechas.length - 1];
-  /* favoritas por tema: se cruzan por título con el tracklist elegido, para
-     no perder un "me gusta" marcado en una copia con menos temas listados. */
-  grupo2.forEach(function(d){
-    (d.tracklist || []).forEach(function(t){
-      if(!t.fav) return;
-      var m = res.tracklist.filter(function(rt){ return plain(rt.titulo) === plain(t.titulo); })[0];
-      if(m) m.fav = 1;
-    });
-  });
+  var htmlConflictos = conflictos.length
+    ? '<div class="warnb" style="align-items:flex-start;flex-direction:column;gap:8px">' + I.warn
+      + '<b style="display:block">Diferencias entre las fichas — revísalas antes de fusionar</b>'
+      + conflictos.map(function(c){
+          return '<div style="font-size:13.5px;color:var(--txt2)"><b>' + esc(c.etiqueta) + ':</b> '
+            + c.valores.map(function(v){ return '«' + esc(String(v.valor)) + '»'; }).join(' / ')
+            + ' — se usará «' + esc(String(c.elegido)) + '» (de la edición más reciente)</div>';
+        }).join('')
+      + '</div>'
+    : '';
   var s = sheet('Fusionar ' + grupo2.length + ' fichas',
     '<p style="font-size:14.5px;color:var(--txt2);line-height:1.5;margin:0 0 14px">Se conservará una sola ficha con lo mejor de cada una: '
     + 'el tracklist más completo, la portada, y todos los campos rellenos. Las demás se eliminarán.</p>'
+    + htmlConflictos
     + '<div class="specs">' + spec('Título', res.titulo) + spec('Artista', res.artista) + spec('Año', res['año'] || '—')
     + spec('Sello', res.sello || '—') + spec('Temas', res.tracklist.length) + spec('Portada', res.portada ? 'Sí' : 'No') + '</div>',
     '<span></span><div class="rowb"><button type="button" class="btn" data-close5>Cancelar</button><button type="button" class="btn pri" id="okf">Fusionar</button></div>');
@@ -6929,10 +6995,7 @@ function openForm(item, listaDestino, preset){
        campos (o de borrarlo), se recalcula para que no siga anunciando un
        hueco que ya no existe -o callando uno nuevo-. Un disco que nunca se
        ha revisado sigue sin «faltan»: eso significa otra cosa (no evaluado). */
-    if(n.faltan){
-      var faltaAhora = faltaEsencial(n).concat(faltaOpcional(n));
-      n.faltan = faltaAhora.length ? faltaAhora.join(', ') : '';
-    }
+    refrescarFaltan(n);
     /* los campos que rellenan las fuentes externas quedan protegidos si el usuario
        los ha escrito o cambiado a mano, para que «Completar» no los vuelva a pisar */
     CAMPOS_AUTO.forEach(function(f){
@@ -8913,22 +8976,21 @@ function faltaOpcional(d){
   if(hayDiscogs() && !d.tecnica) f.push('ficha técnica');
   return f;
 }
-function faltaAlgo(d){
-  var f = [];
-  if(!d.mbid) f.push('identificador');
-  if(!d.portada) f.push('portada');
-  if(!d.tracklist.length) f.push('tracklist');
-  else if(!d.tracklist.some(function(t){ return t.pos || t.disco > 1; })) f.push('caras');
-  if(!d.appleUrl) f.push('apple');
-  if(!d.fotoDisco && !d.sinFoto) f.push('foto');
-  if(!d.sello) f.push('sello');
-  if(!d.numeroCatalogo) f.push('catálogo');
-  if(!d.pais) f.push('país');
-  if(!d['año']) f.push('año');
-  if(!d.genero) f.push('género');
-  if(!d.extra) f.push('créditos');
-  if(hayDiscogs() && !d.tecnica) f.push('ficha técnica');
-  return f;
+/* Única función que decide «qué le falta» a una ficha: la usan por igual
+   "Revisar todo", el guardado manual del formulario y cualquier pantalla que
+   necesite saberlo. d.faltan es solo la última foto guardada de esto -nunca
+   una segunda fuente independiente-, así que siempre se recalcula con esta
+   misma función, jamás con una lista de comprobaciones propia. */
+function calcularFaltan(d){ return faltaEsencial(d).concat(faltaOpcional(d)); }
+/* Refresca d.faltan tras cualquier enriquecimiento (Completar, Discogs,
+   MusicBrainz, elegir edición, escáner, reparar, importar…), pero solo si la
+   ficha YA tenía un «faltan» calculado antes -igual que al guardar el
+   formulario a mano-: una ficha que nunca ha pasado por "Revisar todo" sigue
+   sin «faltan» a propósito (no evaluada todavía es distinto de completa). */
+function refrescarFaltan(d){
+  if(!d || !d.faltan) return;
+  var f = calcularFaltan(d);
+  d.faltan = f.length ? f.join(', ') : '';
 }
 /* Pendiente = le falta algo esencial, o nunca se ha revisado.
    Lo opcional solo se reintenta pasados 45 días. */
@@ -9026,7 +9088,7 @@ async function revisarTodo(s, lista){
     try{
       await revisarDisco(d, res);
     }catch(e){ res.fallos++; fallos.push({t:d.titulo, a:d.artista, motivo:String(e.message || e)}); }
-    var falta = faltaEsencial(d).concat(faltaOpcional(d));
+    var falta = calcularFaltan(d);
     d.revisado = nowISO();
     d.faltan = falta.length ? falta.join(', ') : '';
     marcarRevisado(d, falta);      /* en el dispositivo: la sincronía no puede pisarlo */
