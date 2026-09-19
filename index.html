@@ -74,6 +74,16 @@ body.ro .hide-ro{display:none !important}
 .ic.duo{fill:none}
 button{font-family:inherit}
 .only-mob{display:none !important}
+/* Foco visible por teclado: no toca el ratón/táctil (donde :focus-visible no
+   se activa) ni cambia ningún otro estilo; solo repone el contorno que varias
+   reglas de arriba quitan con outline:none. */
+button:focus-visible,[role="button"]:focus-visible,a:focus-visible,input:focus-visible,
+select:focus-visible,textarea:focus-visible,.lightbox:focus-visible{
+  outline:2px solid var(--blue);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms !important;animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;scroll-behavior:auto !important}
+}
 
 /* ---------- barra superior ---------- */
 .nav{position:sticky;top:0;z-index:40;background:var(--glass);padding-top:var(--sat);
@@ -1722,7 +1732,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.19-detective';
+var VERSION = '2026.09.19-revision2';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var view = 'col';
 var fType = 'all', fGen = '', fArt = '', fTag = '', fDec = '', fPais = '', fSello = '';
@@ -1950,6 +1960,9 @@ function normDisc(d){
     faltan: d.faltan || '',
     sinFoto: d.sinFoto ? 1 : 0,
     fotoDisco: d.fotoDisco || '',
+    /* de qué MusicBrainz Release viene fotoDisco, para avisar si luego se
+       cambia de edición y la foto del soporte queda desactualizada */
+    fotoDiscoMbid: d.fotoDiscoMbid || '',
     editado: (d.editado && typeof d.editado === 'object') ? d.editado : {},
     enlazado: d.enlazado || '',
     appleUrl: d.appleUrl || '',
@@ -2076,6 +2089,11 @@ function montarAyudas(raiz){
   (raiz || document).querySelectorAll('[data-tip]').forEach(function(el){
     if(el.dataset.tipListo) return;
     el.dataset.tipListo = '1';
+    /* data-tip solo se ve al pasar el ratón: para quien navega con teclado o
+       lector de pantalla, un botón sin texto y sin aria-label es un icono
+       mudo. Si no tiene ya un nombre accesible propio, se usa el mismo texto
+       de la ayuda visual -no hace falta duplicarlo a mano en cada sitio-. */
+    if(!el.hasAttribute('aria-label') && !el.textContent.trim()) el.setAttribute('aria-label', el.dataset.tip);
     el.addEventListener('mouseenter', function(){
       if(window.matchMedia && window.matchMedia('(hover: none)').matches) return;
       clearTimeout(tempAyuda);
@@ -2183,14 +2201,25 @@ function similitud(a, b){
 /* ============================================================
    3. ALMACÉN LOCAL (caché)
    ============================================================ */
+/* Una sola conexión reutilizada para toda la sesión, en vez de abrir una
+   nueva en cada guardado/lectura (cada persist() podía dejar una conexión
+   sin cerrar nunca). Se descarta y se vuelve a abrir sola si otra pestaña
+   pide subir de versión, o si la apertura falla. */
+var idbConexion = null;
 function idbOpen(){
-  return new Promise(function(res, rej){
+  if(idbConexion) return idbConexion;
+  idbConexion = new Promise(function(res, rej){
     if(!window.indexedDB) return rej('no-idb');
     var r = indexedDB.open(IDB_NAME, 1);
     r.onupgradeneeded = function(){ r.result.createObjectStore(IDB_STORE); };
-    r.onsuccess = function(){ res(r.result); };
-    r.onerror = function(){ rej(r.error); };
+    r.onsuccess = function(){
+      var db = r.result;
+      db.onversionchange = function(){ db.close(); idbConexion = null; };
+      res(db);
+    };
+    r.onerror = function(){ idbConexion = null; rej(r.error); };
   });
+  return idbConexion;
 }
 function idbSet(k, val){
   return idbOpen().then(function(db){
@@ -2382,10 +2411,18 @@ function fusionar(locales, borrLoc, remotos, borrRem){
 }
 
 /* ---------- descarga ---------- */
+/* Exclusión mutua sencilla: si ya hay un pull o un push en curso, las
+   llamadas nuevas reutilizan esa misma promesa en vez de disparar una
+   segunda petición en paralelo (dos PUT simultáneos a GitHub, o un push
+   con el SHA que dejó el pull anterior sin haber terminado). Si llega un
+   push mientras otro ya está subiendo, no se pierde: queda marcado como
+   pendiente y se dispara en cuanto el actual termine. */
+var pullPromiseActual = null;
 function pull(silencioso){
+  if(pullPromiseActual) return pullPromiseActual;
   if(!configurado()) return Promise.resolve(false);
   marcar('busy');
-  return fetch(ghUrl() + '?ref=' + encodeURIComponent(CFG.branch) + '&t=' + Date.now(), {headers: ghHeaders(), cache:'no-store'})
+  pullPromiseActual = fetch(ghUrl() + '?ref=' + encodeURIComponent(CFG.branch) + '&t=' + Date.now(), {headers: ghHeaders(), cache:'no-store'})
     .then(function(r){
       if(r.status === 404) return null;
       if(r.status === 401 || r.status === 403) throw new Error('token');
@@ -2427,12 +2464,18 @@ function pull(silencioso){
       if(e instanceof TypeError){ marcar('off'); return false; }
       marcar('err', String(e.message) === 'token' ? 'Token no válido' : '');
       return false;
-    });
+    })
+    .then(function(resultado){ pullPromiseActual = null; return resultado; });
+  return pullPromiseActual;
 }
 
 /* ---------- subida ---------- */
-function push(){
-  if(!configurado() || readOnly) return Promise.resolve(false);
+/* pushInterno() hace la petición PUT y, si hace falta, el reintento tras
+   un 409/422; push() es la puerta de entrada con exclusión mutua: si ya
+   hay una subida en curso, una llamada nueva no dispara un segundo PUT en
+   paralelo, se limita a anotar que hace falta otra en cuanto termine la
+   actual, para no perder el cambio que la motivó. */
+function pushInterno(){
   marcar('busy');
   var doc = { version:4, actualizado: nowISO(), discos: discosLigeros(), borrados: DB.borrados || [] };
   var cuerpo = {
@@ -2446,7 +2489,14 @@ function push(){
       if(r.status === 409 || r.status === 422){
         if(reintentos >= 3){ reintentos = 0; throw new Error('conflicto'); }
         reintentos++;
-        return pull(true).then(function(){ return push(); });
+        /* si el pull para refrescar el SHA falla (sin red, token, lo que
+           sea), NO tiene sentido reintentar el push a ciegas: seguiría
+           mandando el mismo SHA caducado y volvería a chocar, o peor,
+           podría pisar cambios remotos que no llegó a ver */
+        return pull(true).then(function(ok){
+          if(!ok){ reintentos = 0; throw new Error('conflicto'); }
+          return pushInterno();
+        });
       }
       if(r.status === 401 || r.status === 403) throw new Error('token');
       if(!r.ok) throw new Error('http' + r.status);
@@ -2465,6 +2515,17 @@ function push(){
       marcar('err', String(e.message) === 'token' ? 'Token no válido' : '');
       return false;
     });
+}
+var pushPromiseActual = null, pushPendienteTrasFinalizar = false;
+function push(){
+  if(pushPromiseActual){ pushPendienteTrasFinalizar = true; return pushPromiseActual; }
+  if(!configurado() || readOnly) return Promise.resolve(false);
+  pushPromiseActual = pushInterno().then(function(resultado){
+    pushPromiseActual = null;
+    if(pushPendienteTrasFinalizar){ pushPendienteTrasFinalizar = false; return push(); }
+    return resultado;
+  });
+  return pushPromiseActual;
 }
 function sincronizarAhora(){
   if(!configurado()){ pantallaSync(); return; }
@@ -2538,11 +2599,15 @@ function probarDiscogs(valor){
       return 'Funciona correctamente';
     });
 }
+/* Un único sitio para el nombre de cada modelo: si Anthropic retira uno,
+   se cambia aquí y no hay que buscarlo por el resto del archivo. */
+var MODELO_ANTHROPIC_RAPIDO = 'claude-haiku-4-5-20251001';
+var MODELO_ANTHROPIC_COMPLETO = 'claude-sonnet-5';
 function probarAnthropic(valor){
   return fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {'content-type':'application/json', 'x-api-key':valor, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true'},
-    body: JSON.stringify({model:'claude-haiku-4-5-20251001', max_tokens:1, messages:[{role:'user', content:'hola'}]})
+    body: JSON.stringify({model:MODELO_ANTHROPIC_RAPIDO, max_tokens:1, messages:[{role:'user', content:'hola'}]})
   }).then(function(r){
     if(r.status === 401) throw new Error('Clave no válida');
     if(!r.ok) return r.json().catch(function(){ return {}; }).then(function(j){
@@ -3273,22 +3338,47 @@ function queEstaSonando(){
     + '<div id="qsNota" style="font-size:15px;color:var(--txt2)">Pulsa grabar y acerca el móvil a la música, unos 7 segundos.</div>'
     + '</div>', '<span></span><button class="btn pri" id="qsGo">Grabar</button>', true);
   var ico = s.querySelector('#qsIco'), nota = s.querySelector('#qsNota');
+  /* Limpieza de mic/pistas/temporizador ante CUALQUIER forma de cerrar la hoja
+     -el botón, Escape, tocar fuera, deslizar-, no solo cuando termina sola:
+     un MutationObserver detecta que la hoja salió del DOM sea cual sea el motivo. */
+  var streamActivo = null, timerAuto = null, mrActivo = null, limpiado = false;
+  var limpiar = function(){
+    if(limpiado) return; limpiado = true;
+    if(timerAuto){ clearTimeout(timerAuto); timerAuto = null; }
+    if(mrActivo && mrActivo.state !== 'inactive'){ try{ mrActivo.stop(); }catch(e){} }
+    if(streamActivo){ streamActivo.getTracks().forEach(function(t){ t.stop(); }); streamActivo = null; }
+  };
+  var obsCierre = new MutationObserver(function(){
+    if(!document.body.contains(s)){ limpiar(); obsCierre.disconnect(); }
+  });
+  obsCierre.observe(document.body, {childList: true});
   s.querySelector('#qsGo').onclick = function(e){
     var boton = e.currentTarget;
     boton.disabled = true;
     navigator.mediaDevices.getUserMedia({audio: true}).then(function(stream){
+      streamActivo = stream;
       ico.style.background = 'rgba(255,59,48,.15)'; ico.style.color = 'var(--red)';
       nota.textContent = 'Grabando… no lo cierres';
       var chunks = [];
-      var mr = new MediaRecorder(stream);
+      var mr;
+      try{ mr = new MediaRecorder(stream); }
+      catch(errRec){ limpiar(); nota.textContent = 'Este navegador no puede grabar audio.'; boton.disabled = false; return; }
+      mrActivo = mr;
       mr.ondataavailable = function(e2){ if(e2.data.size) chunks.push(e2.data); };
       mr.onstop = function(){
+        streamActivo = null;
         stream.getTracks().forEach(function(t){ t.stop(); });
         nota.textContent = 'Reconociendo…';
-        var blob = new Blob(chunks, {type: mr.mimeType || 'audio/webm'});
+        /* El tipo real lo decide el navegador (Chrome/Android graban webm,
+           Safari/iOS graban mp4): el nombre de archivo tiene que llevar la
+           extensión que corresponde a ese tipo, nunca ".webm" fijo, o AudD
+           puede fallar al identificar el formato en Safari. */
+        var tipo = mr.mimeType || 'audio/webm';
+        var ext = /mp4|m4a/i.test(tipo) ? 'm4a' : /ogg/i.test(tipo) ? 'ogg' : /wav/i.test(tipo) ? 'wav' : 'webm';
+        var blob = new Blob(chunks, {type: tipo});
         var fd = new FormData();
         fd.append('api_token', CFG.audd);
-        fd.append('file', blob, 'audio.webm');
+        fd.append('file', blob, 'audio.' + ext);
         fd.append('return', 'apple_music');
         fetch('https://api.audd.io/', {method: 'POST', body: fd})
           .then(function(r){ return r.json(); })
@@ -3323,7 +3413,7 @@ function queEstaSonando(){
           });
       };
       mr.start();
-      setTimeout(function(){ if(mr.state === 'recording') mr.stop(); }, 7000);
+      timerAuto = setTimeout(function(){ if(mr.state === 'recording') mr.stop(); }, 7000);
     }).catch(function(){
       nota.textContent = 'No se pudo usar el micrófono.';
       boton.disabled = false;
@@ -3372,7 +3462,7 @@ function tuAnoEnUnVistazo(){
     var sl = slides[i];
     var grad = sl.c.split(',');
     wrap.innerHTML = '<div class="anoslide" style="background:linear-gradient(150deg,' + grad[0] + ',' + grad[1] + ')">'
-      + '<button class="anox" id="anoX">' + I.x + '</button>'
+      + '<button class="anox" id="anoX" aria-label="Cerrar">' + I.x + '</button>'
       + (sl.img ? '<img class="anoimg" src="' + esc(sl.img) + '" alt="" onerror="this.remove()">' : '')
       + '<div class="anok">' + esc(sl.t) + (sl.s ? ' <span>' + esc(sl.s) + '</span>' : '') + '</div>'
       + '<div class="anov' + (sl.texto ? ' txt' : '') + '">' + (sl.texto ? esc(String(sl.v)) : sl.v) + '</div>'
@@ -3568,7 +3658,10 @@ function lastfmBio(artista){
         titulo: j.artist.name,
         extracto: texto,
         img: ((j.artist.image || []).filter(function(im){ return im.size === 'large'; })[0] || {})['#text'] || '',
-        url: j.artist.url
+        /* la URL viene tal cual de la respuesta de Last.fm: se valida el
+           esquema antes de que llegue a asignarse a un href, igual que
+           cualquier otro enlace que no construimos nosotros mismos */
+        url: urlSegura(j.artist.url)
       };
     });
 }
@@ -3608,7 +3701,7 @@ function identificarPortada(file){
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: MODELO_ANTHROPIC_RAPIDO,
         max_tokens: 200,
         messages: [{
           role: 'user',
@@ -3719,7 +3812,8 @@ function dgNormaliza(r){
     id:'', rgId:'', titulo: r.title || '', artista: artista,
     'año': String(r.year || (r.released || '').slice(0, 4) || ''),
     anioOriginal:'', sello: limpiaSello(lab.name || ''), numeroCatalogo: lab.catno || '',
-    pais: (r.country === 'Spain' ? 'ES' : (r.country === 'US' || r.country === 'USA' ? 'US' : '')),
+    pais: codigoDePaisDiscogs(r.country || ''),
+    paisTexto: r.country || '',
     formatoDetalle: [fmt.name, (fmt.descriptions || []).join(', ')].filter(Boolean).join(', '),
     codigoBarras: ((r.identifiers || []).filter(function(i){ return /barcode/i.test(i.type); })[0] || {}).value || '',
     portada: (r.images && r.images[0] && (r.images[0].uri || r.images[0].resource_url)) || '',
@@ -3740,15 +3834,34 @@ function porCodigoBarras(codigo){
 }
 
 /* ---------- huecos en la discografía ---------- */
+/* MusicBrainz devuelve como mucho 100 release-groups por página. Un artista
+   con más de 100 (compilaciones y reediciones incluidas antes de filtrar)
+   se quedaba con una lista incompleta; se pide página a página -una detrás
+   de otra, respetando el mismo hueco entre peticiones de mbGet- solo
+   mientras el propio MusicBrainz diga que quedan más por recibir. */
 function huecosArtista(nombre){
+  var LIMITE = 100, TOPE_PAGINAS = 10; /* tope defensivo: 1000 discos de un mismo artista */
   return mbArtistaId(nombre).then(function(id){
     if(!id) throw new Error('artista');
-    return mbGet('release-group?artist=' + id + '&type=album&limit=100');
-  }).then(function(j){
+    var acumulado = [];
+    var pedirPagina = function(offset){
+      return mbGet('release-group?artist=' + id + '&type=album&limit=' + LIMITE + '&offset=' + offset).then(function(j){
+        var pagina = j['release-groups'] || [];
+        acumulado = acumulado.concat(pagina);
+        var total = Number(j['release-group-count']) || acumulado.length;
+        var siguienteOffset = offset + pagina.length;
+        if(pagina.length && siguienteOffset < total && (siguienteOffset / LIMITE) < TOPE_PAGINAS){
+          return pedirPagina(siguienteOffset);
+        }
+        return acumulado;
+      });
+    };
+    return pedirPagina(0);
+  }).then(function(todos){
     var mios = {};
     DB.discos.filter(function(d){ return (d.artista || '').trim().toLowerCase() === nombre.trim().toLowerCase(); })
       .forEach(function(d){ mios[plain(d.titulo)] = 1; });
-    var rgs = (j['release-groups'] || []).filter(function(g){
+    var rgs = todos.filter(function(g){
       return g['primary-type'] === 'Album' && (!g['secondary-types'] || !g['secondary-types'].length);
     });
     rgs.sort(function(a, b){ return String(a['first-release-date'] || '9999').localeCompare(String(b['first-release-date'] || '9999')); });
@@ -3808,11 +3921,19 @@ function askAI(titulo, artista, formato, pistas){
     method:'POST',
     headers:{'content-type':'application/json', 'x-api-key':CFG.anthropic, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true'},
     body: JSON.stringify({
-      model:'claude-sonnet-5', max_tokens:2000,
+      model:MODELO_ANTHROPIC_COMPLETO, max_tokens:2000,
       messages:[{role:'user', content:L.join('\n')}],
       tools:[{type:'web_search_20250305', name:'web_search'}]
     })
-  }).then(function(r){ if(!r.ok) throw new Error('api'); return r.json(); }).then(function(data){
+  }).then(function(r){
+    /* antes era un "api" genérico que no decía nada: si Anthropic retira este
+       modelo (404/model_not_found) o cambia algo en la petición, el mensaje
+       real de Anthropic queda enterrado y parece un fallo de red cualquiera. */
+    if(!r.ok) return r.json().catch(function(){ return null; }).then(function(j){
+      throw new Error((j && j.error && j.error.message) || ('Anthropic respondió con error http' + r.status));
+    });
+    return r.json();
+  }).then(function(data){
     var text = (data.content || []).filter(function(b){ return b.type === 'text'; }).map(function(b){ return b.text; }).join('\n');
     var m = text.match(/\{[\s\S]*\}/);
     if(!m) throw new Error('json');
@@ -4080,8 +4201,13 @@ function exportarCsv(){
     'Date Added','Collection Media Condition','Collection Sleeve Condition','Collection Notes','Género','País','Precio','Etiquetas'];
   var lines = [cab.join(',')];
   DB.discos.forEach(function(d){
+    /* release_id es el identificador numérico de Discogs (lo que trae este CSV
+       cuando se reimporta ahí o en otra app compatible), no el mbid: son dos
+       sistemas de identificadores distintos y no son intercambiables. */
+    var refDg = idDesdeUrl(d.discogs);
+    var releaseId = (refDg && refDg.tipo === 'discogs') ? refDg.id : '';
     lines.push([
-      d.numeroCatalogo, d.artista, d.titulo, d.sello, d.formatoDetalle || d.formato, d.valoracion || '', d['año'], d.mbid,
+      d.numeroCatalogo, d.artista, d.titulo, d.sello, d.formatoDetalle || d.formato, d.valoracion || '', d['año'], releaseId,
       d.lista === 'deseos' ? 'Wishlist' : 'Uncategorized', (d.fechaAlta || '').slice(0, 10),
       d.estado, d.estadoFunda, d.notas, d.genero, d.pais, d.precioCompra || '', d.etiquetas.join(' | ')
     ].map(csvCell).join(','));
@@ -5341,8 +5467,8 @@ function sheet(title, bodyHtml, footHtml, ancho){
     + '<div class="sheet-hd">'
     + '<button class="atras only-mob" data-close><svg class="ic" viewBox="0 0 24 24"><polyline points="15 5 8 12 15 19"/></svg>Atrás</button>'
     + '<h2>' + esc(title) + '</h2>'
-    + '<button class="xbtn no-mob" data-close>' + I.x + '</button>'
-    + '<button class="xbtn only-mob" data-close style="visibility:hidden">' + I.x + '</button>'
+    + '<button class="xbtn no-mob" data-close aria-label="Cerrar">' + I.x + '</button>'
+    + '<button class="xbtn only-mob" data-close style="visibility:hidden" aria-hidden="true" tabindex="-1">' + I.x + '</button>'
     + '</div><div class="sheet-bd">' + bodyHtml + '</div>'
     + (footHtml ? '<div class="sheet-ft">' + footHtml + '</div>' : '') + '</div>';
   document.body.appendChild(s);
@@ -5405,13 +5531,28 @@ function spec(k, v){
   return '<div class="spec' + (vacio ? ' vacio' : '') + '"><div class="k">' + k + '</div><div class="v">' + esc(v) + '</div></div>';
 }
 function lightbox(url){
-  var big = url.indexOf('mzstatic') >= 0 ? artBig(url.replace(/\d+x\d+bb/, '100x100bb'), 1200)
-    : url.replace('/front-500', '/front-1200').replace('/front-250', '/front-1200');
+  url = urlSegura(url);
+  if(!url) return;
+  var big = urlSegura(url.indexOf('mzstatic') >= 0 ? artBig(url.replace(/\d+x\d+bb/, '100x100bb'), 1200)
+    : url.replace('/front-500', '/front-1200').replace('/front-250', '/front-1200')) || url;
   var l = document.createElement('div');
   l.className = 'lightbox';
-  l.innerHTML = '<img src="' + esc(big) + '" onerror="this.src=' + JSON.stringify(url) + '">';
-  l.onclick = function(){ l.remove(); };
+  /* construido por DOM, no con un onerror inline metido dentro de una
+     cadena de HTML: así no depende de que la URL no rompa el atributo */
+  var img = document.createElement('img');
+  img.src = big;
+  img.alt = 'Imagen ampliada';
+  img.onerror = function(){ img.onerror = null; img.src = url; };
+  l.appendChild(img);
+  l.setAttribute('role', 'dialog');
+  l.setAttribute('aria-modal', 'true');
+  l.tabIndex = -1;
+  var cerrar = function(){ l.remove(); document.removeEventListener('keydown', onKey); };
+  l.onclick = cerrar;
+  var onKey = function(e){ if(e.key === 'Escape') cerrar(); };
+  document.addEventListener('keydown', onKey);
   document.body.appendChild(l);
+  l.focus();
 }
 
 /* ---------- reproductor ---------- */
@@ -5532,6 +5673,7 @@ function montarGiro(s, d){
   if(!d.fotoDisco && d.mbid && !d.sinFoto){
     fotoDelSoporte(d.mbid, d.rgid).then(function(url){
       d.fotoDisco = url;
+      d.fotoDiscoMbid = d.mbid;
       persist(true);
       if(document.body.contains(s)) pinta();
     }).catch(function(){ d.sinFoto = 1; persist(true); });
@@ -5710,9 +5852,13 @@ function openDetail(id, desde){
     + (d.extra && d.extra.secundarios ? '<span class="tag">' + esc(traduceTipo(d.extra.secundarios)) + '</span>' : '')
     + d.etiquetas.map(function(t){ return '<span class="tag usr" data-tag="' + esc(t) + '">' + esc(t) + '</span>'; }).join('')
     + '</div><div class="linkrow">'
-    + '<a class="lnk ext" target="_blank" rel="noopener" href="' + (d.mbid ? 'https://musicbrainz.org/release/' + d.mbid
+    /* validar (urlSegura, o el formato del mbid) evita esquemas peligrosos,
+       pero no basta para meterlo en un atributo HTML: si el valor trae una
+       comilla, hay que escaparlo aparte (esc) o se sale del href. Las dos
+       cosas hacen falta, no una en lugar de la otra. */
+    + '<a class="lnk ext" target="_blank" rel="noopener" href="' + esc(/^[0-9a-f-]{36}$/i.test(d.mbid || '') ? 'https://musicbrainz.org/release/' + d.mbid
         : 'https://musicbrainz.org/search?type=release&query=' + encodeURIComponent(d.artista + ' ' + d.titulo)) + '">' + I.link + 'MusicBrainz</a>'
-    + '<a class="lnk ext" target="_blank" rel="noopener" href="' + (urlSegura(d.discogs) || 'https://www.discogs.com/search/?q=' + encodeURIComponent(d.artista + ' ' + d.titulo) + '&type=release') + '">' + I.link + 'Discogs</a>'
+    + '<a class="lnk ext" target="_blank" rel="noopener" href="' + esc(urlSegura(d.discogs) || 'https://www.discogs.com/search/?q=' + encodeURIComponent(d.artista + ' ' + d.titulo) + '&type=release') + '">' + I.link + 'Discogs</a>'
     + '<a class="lnk ext" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query='
         + encodeURIComponent(d.artista + ' ' + d.titulo + ' full album') + '">' + I.play + 'YouTube</a>'
     + '<a class="lnk ext" target="_blank" rel="noopener" data-tip="'
@@ -6139,31 +6285,128 @@ function elegirEdicion(d, padre){
 }
 
 /* ============================================================
-   DETECTIVE DE EDICIONES
-   Cruza los identificadores que ya tiene la ficha (MusicBrainz,
-   Discogs, código de barras, catálogo…) contra esas mismas fuentes
-   externas y dice, con el nivel de confianza que corresponda, si
-   es realmente esa edición. No inventa una coincidencia: si falta
-   algo para estar segura, lo dice y ofrece cómo conseguirlo.
+   DIAGNÓSTICO DE EDICIÓN — lógica única
+   Compara los identificadores de tu ficha, MusicBrainz y Discogs
+   ENTRE SÍ (no solo cada uno contra tu ficha) y da un nivel
+   determinista y explicable según la evidencia real -nunca un
+   porcentaje inventado-. La usan tanto el Detective (con MusicBrainz
+   y Discogs recién consultados) como el Radar (en modo estático, sin
+   red, solo con lo que ya hay guardado en tecnica): misma lógica,
+   dos formas de alimentarla.
+   Devuelve {nivel, problemas, coincidencias}, donde nivel es uno de:
+   'solida' | 'probable' | 'parcial' | 'revisar' | 'contradictoria'.
    ============================================================ */
-function nivelConfianzaEdicion(d, mb, dg){
-  var campos = ['año', 'sello', 'numeroCatalogo', 'pais', 'codigoBarras'];
-  var fuentes = (mb ? 1 : 0) + (dg ? 1 : 0);
-  var comparables = 0, choca = false;
-  [mb, dg].filter(Boolean).forEach(function(ext){
-    campos.forEach(function(c){
-      var v1 = String(d[c] || '').trim().toLowerCase();
-      var v2 = String(ext[c] || '').trim().toLowerCase();
-      if(!v1 || !v2) return;
-      comparables++;
-      if(v1 !== v2) choca = true;
-    });
-  });
-  if(choca) return 'conflicto';
-  if(fuentes === 0) return 'baja';
-  if(fuentes === 2 || comparables >= 2) return 'alta';
-  return 'media';
+/* El "formato" (CD/Vinilo) es una señal fuerte, pero SOLO al nivel de
+   soporte: comparar formatoDetalle como texto libre ("LP, Comp" contra
+   "Vinyl · LP, Compilation, Stereo") genera falsos positivos constantes,
+   porque cada fuente describe el mismo disco con palabras distintas.
+   Por eso el soporte se compara aparte, con formatoBaseDe(). */
+var CAMPOS_FUERTES_EDICION = {numeroCatalogo: 'Catálogo', pais: 'País', 'año': 'Año'};
+function formatoBaseDe(texto){
+  var t = String(texto || '').toLowerCase();
+  if(/\bcd\b/.test(t)) return 'CD';
+  if(/vinyl|vinilo|\blp\b/.test(t)) return 'Vinilo';
+  return '';
 }
+function diagnosticarEdicion(d, mb, dg){
+  var problemas = [], coincidencias = [], detalles = [];
+  var fuentes = [];
+  if(mb) fuentes.push(['MusicBrainz', mb]);
+  if(dg) fuentes.push(['Discogs', dg]);
+  /* sin fuentes en vivo (uso estático desde el Radar, sin red): se
+     aprovecha lo último que ya se consultó de Discogs y quedó guardado
+     en tecnica, la única fuente barata de tener sin volver a preguntar */
+  if(!dg && d.tecnica && d.tecnica.pais){
+    fuentes.push(['Discogs (guardado)', {
+      'año': (String(d.tecnica.publicado || '').match(/^\d{4}/) || [])[0] || '',
+      pais: codigoDePaisDiscogs(d.tecnica.pais) || '',
+      formatoDetalle: d.tecnica.prensado || ''
+    }]);
+  }
+  var comparar = function(nombreA, valA, nombreB, valB, etiqueta){
+    var a = String(valA || '').trim().toLowerCase(), b = String(valB || '').trim().toLowerCase();
+    if(!a || !b) return;
+    if(a === b){ coincidencias.push(etiqueta + ' (' + nombreA + ' = ' + nombreB + ')'); return; }
+    problemas.push(etiqueta + ': ' + nombreA + ' dice «' + valA + '», ' + nombreB + ' dice «' + valB + '»');
+    detalles.push({campo: etiqueta, fuenteA: nombreA, valorA: valA, fuenteB: nombreB, valorB: valB});
+  };
+  var barcodeCoincide = false, barcodeContradice = false;
+  var compararBarcode = function(a, b){
+    if(!a || !b) return;
+    if(String(a) === String(b)) barcodeCoincide = true; else barcodeContradice = true;
+  };
+  fuentes.forEach(function(par){
+    var nombre = par[0], ext = par[1];
+    Object.keys(CAMPOS_FUERTES_EDICION).forEach(function(c){
+      var v1 = c === 'pais' ? (d.pais ? nombrePais(d.pais) : '') : d[c];
+      var v2 = c === 'pais' ? (ext.pais ? nombrePais(ext.pais) : '') : ext[c];
+      comparar('tu ficha', v1, nombre, v2, CAMPOS_FUERTES_EDICION[c]);
+    });
+    if(ext.sello) comparar('tu ficha', d.sello, nombre, ext.sello, 'Sello');
+    comparar('tu ficha', formatoBaseDe(d.formato), nombre, formatoBaseDe(ext.formatoDetalle), 'Soporte');
+    compararBarcode(d.codigoBarras, ext.codigoBarras);
+  });
+  /* MusicBrainz y Discogs también se comparan ENTRE SÍ: si Discogs dice
+     Alemania y MusicBrainz otra cosa, tiene que saberse aunque los dos
+     coincidan con lo que pusiste tú a mano */
+  if(mb && dg){
+    Object.keys(CAMPOS_FUERTES_EDICION).forEach(function(c){
+      var v1 = c === 'pais' ? (mb.pais ? nombrePais(mb.pais) : '') : mb[c];
+      var v2 = c === 'pais' ? (dg.pais ? nombrePais(dg.pais) : '') : dg[c];
+      comparar('MusicBrainz', v1, 'Discogs', v2, CAMPOS_FUERTES_EDICION[c]);
+    });
+    comparar('MusicBrainz', formatoBaseDe(mb.formatoDetalle), 'Discogs', formatoBaseDe(dg.formatoDetalle), 'Soporte');
+    compararBarcode(mb.codigoBarras, dg.codigoBarras);
+  }
+
+  var tieneMbid = !!d.mbid;
+  var tieneDiscogsRelease = !!(d.discogs && /release\/\d+/.test(d.discogs));
+  var tieneBarcode = !!d.codigoBarras;
+  var contradice = problemas.length > 0 || barcodeContradice;
+
+  var nivel;
+  if(d.confianza === 'baja' && !mb && !dg){
+    /* el propio autocompletado ya avisó de que fue una coincidencia
+       dudosa, y aquí no hay ninguna fuente en vivo que lo desmienta */
+    nivel = 'revisar';
+  }else if(contradice){
+    nivel = 'contradictoria';
+  }else if(barcodeCoincide && (tieneMbid || tieneDiscogsRelease)){
+    /* código de barras exacto + una edición concreta enlazada: la señal
+       más fuerte posible, y ninguna fuente la contradice */
+    nivel = 'solida';
+  }else if(tieneMbid && tieneDiscogsRelease && coincidencias.length >= 2){
+    /* dos ediciones concretas de dos catálogos independientes, y
+       coinciden en al menos dos campos fuertes sin contradecirse */
+    nivel = 'solida';
+  }else if((tieneMbid || tieneDiscogsRelease) && coincidencias.length >= 2){
+    nivel = 'probable';
+  }else if(tieneMbid || tieneDiscogsRelease || tieneBarcode){
+    nivel = 'parcial';
+  }else{
+    nivel = 'revisar';
+  }
+  return {nivel: nivel, problemas: problemas, coincidencias: coincidencias, detalles: detalles};
+}
+var INFO_NIVEL_EDICION = {
+  solida: ['Identificación sólida', 'var(--green)',
+    'El código de barras o dos catálogos independientes (MusicBrainz y Discogs) coinciden entre sí, y nada los contradice.'],
+  probable: ['Identificación probable', 'var(--green)',
+    'Hay una edición concreta enlazada y varios campos coinciden con ella, aunque no hay una segunda fuente independiente que lo confirme del todo.'],
+  parcial: ['Identificación parcial', 'var(--orange)',
+    'Hay algo enlazado (MusicBrainz, Discogs o el código de barras), pero pocos campos que comparar. Podría ser esta edición, sin suficiente evidencia cruzada.'],
+  revisar: ['Sin confirmar — revisar', 'var(--txt3)',
+    'No hay ningún identificador externo enlazado (ni MusicBrainz, ni Discogs, ni código de barras): los datos son los que se escribieron o rellenaron a mano.'],
+  contradictoria: ['Datos contradictorios', 'var(--red)',
+    'Alguna fuente no coincide con otra o con tu ficha. Puede que no sea exactamente esta edición, o que una de las fuentes esté equivocada.']
+};
+
+/* ============================================================
+   DETECTIVE DE EDICIONES
+   Consulta MusicBrainz y Discogs en vivo y llama a
+   diagnosticarEdicion() para dar el veredicto, con la tabla
+   comparativa campo a campo que lo justifica.
+   ============================================================ */
 function detectiveEdiciones(d){
   var body = '<div class="note busy" id="dnote">Consultando'
     + (d.mbid ? ' MusicBrainz' : '') + (d.mbid && hayDiscogs() && d.discogs ? ' y' : '')
@@ -6179,36 +6422,27 @@ function detectiveEdiciones(d){
 
   Promise.all([pMb, pDg]).then(function(r){
     var mb = r[0], dg = r[1];
-    var nivel = nivelConfianzaEdicion(d, mb, dg);
-    var info = {
-      alta: ['Identificación con alta confianza', 'var(--green)',
-        'Al menos dos identificadores externos coinciden entre sí y con tu ficha.'],
-      media: ['Identificación parcial', 'var(--orange)',
-        'Solo hay una fuente externa enlazada (o pocos campos que comparar). Podría ser esta edición, pero no hay suficientes datos cruzados para asegurarlo.'],
-      conflicto: ['Los datos no coinciden', 'var(--red)',
-        'Algún campo no coincide entre las fuentes consultadas y tu ficha. Puede que la ficha no corresponda exactamente a esta edición.'],
-      baja: ['Sin confirmar', 'var(--txt3)',
-        'Esta ficha no tiene ningún identificador externo enlazado (ni MusicBrainz, ni Discogs, ni código de barras): los datos son los que se escribieron o rellenaron a mano.']
-    }[nivel];
+    var diag = diagnosticarEdicion(d, mb, dg);
+    var info = INFO_NIVEL_EDICION[diag.nivel];
 
-    var filaComp = function(k, campo, fmt){
+    var filaComp = function(k, campo){
       var v1 = d[campo] || '';
       if(campo === 'pais' && v1) v1 = nombrePais(v1);
-      var vmb = mb ? (fmt ? fmt(mb[campo]) : mb[campo]) || '' : '';
-      var vdg = dg ? (fmt ? fmt(dg[campo]) : dg[campo]) || '' : '';
+      var vmb = mb ? (campo === 'pais' ? (mb.pais ? nombrePais(mb.pais) : '') : mb[campo]) || '' : '';
+      var vdg = dg ? (campo === 'pais' ? (dg.pais ? nombrePais(dg.pais) : '') : dg[campo]) || '' : '';
       if(!v1 && !vmb && !vdg) return '';
       var distinto = (mb && vmb && v1 && String(vmb).toLowerCase() !== String(v1).toLowerCase())
-        || (dg && vdg && v1 && String(vdg).toLowerCase() !== String(v1).toLowerCase());
+        || (dg && vdg && v1 && String(vdg).toLowerCase() !== String(v1).toLowerCase())
+        || (mb && dg && vmb && vdg && String(vmb).toLowerCase() !== String(vdg).toLowerCase());
       return '<div class="tcompfila c4' + (distinto ? ' dif' : '') + '"><span class="tck">' + k + '</span>'
         + '<span class="tcv">' + esc(v1 || '—') + '</span>'
         + '<span class="tcv">' + (mb ? esc(vmb || '—') : '—') + '</span>'
         + '<span class="tcv">' + (dg ? esc(vdg || '—') : '—') + '</span></div>';
     };
-    var fmtPais = function(c){ return c ? nombrePais(c) : ''; };
     var tabla = (mb || dg) ? '<div class="tcomp"><div class="tcompfila c4 tchd"><span class="tck"></span>'
       + '<span class="tcv">Tu ficha</span><span class="tcv">MusicBrainz</span><span class="tcv">Discogs</span></div>'
       + filaComp('Año', 'año') + filaComp('Sello', 'sello') + filaComp('Catálogo', 'numeroCatalogo')
-      + filaComp('País', 'pais', fmtPais) + filaComp('Código de barras', 'codigoBarras')
+      + filaComp('País', 'pais') + filaComp('Código de barras', 'codigoBarras')
       + filaComp('Formato', 'formatoDetalle') + '</div>' : '';
 
     var faltan = [];
@@ -6220,6 +6454,8 @@ function detectiveEdiciones(d){
     s.querySelector('#dres').innerHTML =
       '<div class="confbadge" style="--cb-c:' + info[1] + '"><span>' + I.info + '</span>'
       + '<span><span class="tt">' + info[0] + '</span>' + info[2] + '</span></div>'
+      + (diag.problemas.length ? '<p style="font-size:13px;color:var(--red);margin:12px 3px 0">'
+          + diag.problemas.join('<br>') + '</p>' : '')
       + tabla
       + (faltan.length ? '<p style="font-size:13px;color:var(--txt3);margin:14px 3px 0">Para subir la confianza: '
           + faltan.join(', ') + '.</p>' : '')
@@ -6276,14 +6512,42 @@ function verHuecos(artista){
 function fusionarDuplicados(base){
   var grupo2 = DB.discos.filter(function(x){ return key(x) === key(base); });
   if(grupo2.length < 2){ toast('No hay fichas repetidas de este disco'); return; }
-  var campos = ['año','genero','sello','numeroCatalogo','pais','estado','fechaCompra','portada','notas','formatoDetalle','mbid','rgid','discogs','codigoBarras'];
+  /* Todos los campos de valor único de normDisc que no llevan un merge
+     especial abajo: se queda el primero no vacío que aparezca, recorriendo
+     las fichas en orden. Si una ficha no tiene un dato, se coge de la
+     siguiente; nada de lo que ya tenías se pierde por estar duplicado. */
+  var campos = ['año','genero','sello','numeroCatalogo','pais','estado','estadoFunda','fechaCompra',
+    'portada','notas','formatoDetalle','mbid','rgid','discogs','codigoBarras','color','confianza',
+    'valoracion','ubicacion','revisado','faltan','fotoDisco','fotoDiscoMbid','appleUrl','tecnica',
+    'extra','ultimaEscucha','prestadoA','prestadoDesde'];
   var res = normDisc(JSON.parse(JSON.stringify(grupo2[0])));
   grupo2.forEach(function(d){
     campos.forEach(function(f){ if(!res[f] && d[f]) res[f] = d[f]; });
     if(!res.precioCompra && d.precioCompra) res.precioCompra = d.precioCompra;
+    if(!res.valorMercado && d.valorMercado) res.valorMercado = d.valorMercado;
+    if(res.ejemplares < (d.ejemplares || 1)) res.ejemplares = d.ejemplares;
     if(res.tracklist.length < d.tracklist.length) res.tracklist = d.tracklist;
     d.etiquetas.forEach(function(t){ if(res.etiquetas.indexOf(t) < 0) res.etiquetas.push(t); });
-    res.escuchas = Math.max(res.escuchas, d.escuchas || 0);
+    /* editado: se unen las protecciones de campo de todas las fichas, para que
+       un campo protegido manualmente en cualquiera de ellas se siga respetando. */
+    if(d.editado) Object.keys(d.editado).forEach(function(k){ if(d.editado[k]) res.editado[k] = true; });
+    /* escuchasFechas: se unen las fechas de todas las fichas (no solo el
+       recuento), porque son escuchas reales del mismo disco físico repartidas
+       entre las copias duplicadas. */
+    (d.escuchasFechas || []).forEach(function(f){ if(res.escuchasFechas.indexOf(f) < 0) res.escuchasFechas.push(f); });
+  });
+  res.escuchasFechas.sort();
+  res.escuchasFechas = res.escuchasFechas.slice(-600);
+  res.escuchas = Math.max(res.escuchas, res.escuchasFechas.length);
+  if(res.escuchasFechas.length) res.ultimaEscucha = res.escuchasFechas[res.escuchasFechas.length - 1];
+  /* favoritas por tema: se cruzan por título con el tracklist elegido, para
+     no perder un "me gusta" marcado en una copia con menos temas listados. */
+  grupo2.forEach(function(d){
+    (d.tracklist || []).forEach(function(t){
+      if(!t.fav) return;
+      var m = res.tracklist.filter(function(rt){ return plain(rt.titulo) === plain(t.titulo); })[0];
+      if(m) m.fav = 1;
+    });
   });
   var s = sheet('Fusionar ' + grupo2.length + ' fichas',
     '<p style="font-size:14.5px;color:var(--txt2);line-height:1.5;margin:0 0 14px">Se conservará una sola ficha con lo mejor de cada una: '
@@ -6524,6 +6788,15 @@ function openForm(item, listaDestino, preset){
       fechaAlta: d.fechaAlta || nowISO(), editado: Object.assign({}, d.editado)
     }));
     if(!n.titulo && !n.artista){ toast('Falta el título o el artista', true); return; }
+    /* «faltan» es la foto de lo que le faltaba la última vez que pasó por
+       "Revisar todo"; si el usuario acaba de rellenar aquí a mano uno de esos
+       campos (o de borrarlo), se recalcula para que no siga anunciando un
+       hueco que ya no existe -o callando uno nuevo-. Un disco que nunca se
+       ha revisado sigue sin «faltan»: eso significa otra cosa (no evaluado). */
+    if(n.faltan){
+      var faltaAhora = faltaEsencial(n).concat(faltaOpcional(n));
+      n.faltan = faltaAhora.length ? faltaAhora.join(', ') : '';
+    }
     /* los campos que rellenan las fuentes externas quedan protegidos si el usuario
        los ha escrito o cambiado a mano, para que «Completar» no los vuelva a pisar */
     CAMPOS_AUTO.forEach(function(f){
@@ -6590,7 +6863,7 @@ function elegirFotoSoporte(d, padre){
     + '<button class="btn" data-fx>Cerrar</button>', true);
   s.querySelector('[data-fx]').onclick = function(){ s.remove(); };
   if(s.querySelector('#fQuitar')) s.querySelector('#fQuitar').onclick = function(){
-    d.fotoDisco = ''; d.sinFoto = 1;
+    d.fotoDisco = ''; d.fotoDiscoMbid = ''; d.sinFoto = 1;
     persist();
     s.remove();
     if(padre) padre.remove();
@@ -6630,6 +6903,9 @@ function elegirFotoSoporte(d, padre){
             + '¿Seguro que quieres usarla como cara B? Si lo que querías era cambiar la carátula, '
             + 'pulsa Cancelar y usa el botón «Carátula».')) return;
         d.fotoDisco = elegida;
+        /* viene de Discogs, no de un MusicBrainz Release concreto: no hay
+           mbid con el que comparar, así que no se marca como desactualizada */
+        d.fotoDiscoMbid = '';
         d.sinFoto = 0;
         persist();
         s.remove();
@@ -7132,12 +7408,13 @@ function cargarDiscogs(d){
       if(cambio) d.tracklist = d.tracklist.slice();
     }
     if(!d.discogs && tec.url) d.discogs = tec.url;
-    /* Si el país no coincide con lo que tenías y no lo has corregido tú a
-       mano, se actualiza con el de Discogs, en vez de dejar el aviso
-       repitiéndose disco tras disco sin que nada lo resuelva nunca. */
-    if(tec.pais && !protegido(d, 'pais')){
+    /* Si no tenías país guardado, se rellena con el de Discogs. Si ya tenías
+       uno y no coincide, NO se sustituye en silencio -eso perdería el aviso
+       de discrepancia sin que nadie lo revisara-: se deja tal cual y es
+       consistenciaIdentificadores() quien avisa de la diferencia en la ficha. */
+    if(tec.pais && !d.pais){
       var codigo = codigoDePaisDiscogs(tec.pais);
-      if(codigo && codigo !== d.pais) d.pais = codigo;
+      if(codigo) d.pais = codigo;
     }
     d.tecnica = tec;
     persist(true);
@@ -7158,33 +7435,46 @@ var PAISES_DISCOGS = {
 };
 function codigoDePaisDiscogs(nombre){ return PAISES_DISCOGS[String(nombre || '').trim()] || ''; }
 /* Compara el país y el año que tienes tú con lo que dice Discogs de esa
-   misma edición. No decide cuál es el correcto -eso lo sabes tú, que
-   tienes el disco en la mano-, solo avisa cuando no coinciden. */
+   misma edición (lo último que se consultó, guardado en tecnica). No
+   decide cuál es el correcto -eso lo sabes tú, que tienes el disco en la
+   mano-, solo avisa cuando no coinciden. Reutiliza diagnosticarEdicion(),
+   la misma lógica que usan el Detective y el Radar: una sola fuente de
+   verdad para comparar identificadores, no cuatro implementaciones. */
 function consistenciaIdentificadores(d){
-  var t = d.tecnica;
-  if(!t) return [];
-  var out = [];
-  if(d.pais && t.pais){
-    var codigoDg = codigoDePaisDiscogs(t.pais);
-    /* si Discogs escribe un país que no sabemos traducir, se compara el
-       texto tal cual, para no dejar de avisar solo porque no lo conocemos */
-    var coincide = codigoDg ? (codigoDg === d.pais) : (nombrePais(d.pais) === t.pais);
-    if(!coincide) out.push({campo: 'País', tuyo: nombrePais(d.pais) || d.pais, discogs: t.pais});
-  }
-  var añoDg = String(t.publicado || '').match(/^\d{4}/);
-  if(d['año'] && añoDg && String(d['año']) !== añoDg[0]){
-    out.push({campo: 'Año', tuyo: d['año'], discogs: añoDg[0]});
-  }
-  return out;
+  if(!d.tecnica || !d.tecnica.pais) return [];
+  return diagnosticarEdicion(d, null, null).detalles
+    .filter(function(x){ return (x.campo === 'País' || x.campo === 'Año') && x.fuenteB.indexOf('Discogs') === 0; })
+    .map(function(x){ return {campo: x.campo, tuyo: x.valorA, discogs: x.valorB}; });
+}
+/* La fotografía del disco físico (fotoDisco) queda ligada al MusicBrainz
+   Release del que se sacó -normalmente porque su propia URL de Cover Art
+   Archive lleva ese UUID-. Si luego se elige otra edición, el mbid
+   cambia pero la foto no se vuelve a pedir sola, así que puede quedar
+   representando un soporte que ya no es el enlazado. Se detecta de dos
+   formas: comparando el UUID que lleva la propia URL (funciona también
+   con fotos guardadas antes de que existiera fotoDiscoMbid), o el campo
+   fotoDiscoMbid que se anota desde ahora en cada foto nueva. */
+function uuidDeCoverUrl(url){
+  var m = String(url || '').match(/coverartarchive\.org\/release\/([0-9a-f-]{36})/i);
+  return m ? m[1].toLowerCase() : '';
+}
+function fotoDiscoDesactualizada(d){
+  if(!d.fotoDisco || !d.mbid) return false;
+  if(d.fotoDiscoMbid && d.fotoDiscoMbid !== d.mbid) return true;
+  var uuid = uuidDeCoverUrl(d.fotoDisco);
+  return !!(uuid && uuid !== String(d.mbid).toLowerCase());
 }
 function pintaConsistencia(caja, d){
   if(!caja) return;
   var aviso = consistenciaIdentificadores(d);
-  if(!aviso.length){ caja.innerHTML = ''; return; }
-  caja.innerHTML = '<div class="warnb" style="margin-bottom:14px">' + I.warn + '<span>'
-    + aviso.map(function(x){ return x.campo + ': tú tienes ' + esc(x.tuyo) + ', Discogs dice ' + esc(x.discogs); }).join('. ')
-    + '. Puede que esta no sea exactamente tu edición, o que uno de los dos esté equivocado. Tú, con el disco en la mano, lo sabes mejor.'
-    + '</span></div>';
+  var fotoVieja = fotoDiscoDesactualizada(d);
+  if(!aviso.length && !fotoVieja){ caja.innerHTML = ''; return; }
+  var partes = [];
+  if(aviso.length) partes.push(aviso.map(function(x){ return x.campo + ': tú tienes ' + esc(x.tuyo) + ', Discogs dice ' + esc(x.discogs); }).join('. ')
+    + '. Puede que esta no sea exactamente tu edición, o que uno de los dos esté equivocado. Tú, con el disco en la mano, lo sabes mejor.');
+  if(fotoVieja) partes.push('La fotografía del soporte pertenece a otro MusicBrainz Release: se guardó antes de elegir esta edición. '
+    + 'Puede que ya no corresponda exactamente a este disco.');
+  caja.innerHTML = '<div class="warnb" style="margin-bottom:14px">' + I.warn + '<span>' + partes.join('<br><br>') + '</span></div>';
 }
 function pintaTecnica(caja, d){
   if(!caja) return;
@@ -8725,7 +9015,7 @@ async function revisarDisco(d, res){
   /* 4. foto del disco físico */
   if(!d.fotoDisco && !d.sinFoto && d.mbid){
     var url = await fotoDelSoporte(d.mbid, d.rgid).catch(function(){ return ''; });
-    if(url){ d.fotoDisco = url; res.foto++; }
+    if(url){ d.fotoDisco = url; d.fotoDiscoMbid = d.mbid; res.foto++; }
     else d.sinFoto = 1;
   }
   /* 5. créditos y ficha técnica */
@@ -8859,7 +9149,13 @@ function radarColeccion(){
   var olvidados = ds.filter(function(d){
     return d.ultimaEscucha && (Date.now() - new Date(d.ultimaEscucha + 'T12:00:00').getTime()) > 180 * 86400000;
   });
-  var dudosas = ds.filter(function(d){ return d.confianza === 'baja'; });
+  /* misma lógica que el Detective (diagnosticarEdicion), en modo estático
+     -sin red, solo con lo ya guardado-: se marca lo que quedó como
+     coincidencia dudosa al rellenar, o lo que ya se sabe que se contradice */
+  var dudosas = ds.filter(function(d){
+    return d.confianza === 'baja' || diagnosticarEdicion(d, null, null).nivel === 'contradictoria';
+  });
+  var fotosViejas = ds.filter(fotoDiscoDesactualizada);
   var fallos = fallosGuardados();
 
   var fila = function(icono, titulo, n, detalle, accion){
@@ -8869,7 +9165,7 @@ function radarColeccion(){
       + '<div class="rt"><div class="rn">' + titulo + '</div><div class="rd">' + detalle + '</div></div>'
       + '<div class="rv">' + n + '</div></button>';
   };
-  var body = (!incompletas.length && !totalReparar && !sinFoto.length && !dup && !dudosas.length && !fallos.length
+  var body = (!incompletas.length && !totalReparar && !sinFoto.length && !dup && !dudosas.length && !fotosViejas.length && !fallos.length
       ? '<div class="warnb info">' + I.check + '<span>Tu colección está sana: sin fichas incompletas, sin nada '
         + 'pendiente de reparar, sin duplicados y sin fallos recientes.</span></div>'
       : '<p style="font-size:13.5px;color:var(--txt2);margin:0 0 4px">Lo que puede merecer tu atención, reunido en un sitio.</p>')
@@ -8878,7 +9174,8 @@ function radarColeccion(){
     + fila(I.spark, 'Cosas para reparar', totalReparar, 'Nombres, sellos, años o enlaces por limpiar', 'reparar')
     + fila(I.img, 'Sin portada', sinFoto.length, 'Discos sin ninguna imagen', 'sinfoto')
     + fila(I.copy, 'Posibles duplicados', dup, 'Fichas que podrían ser el mismo disco', 'dups')
-    + fila(I.layers, 'Identificación dudosa', dudosas.length, 'La edición asignada fue una coincidencia poco segura', 'dudosas')
+    + fila(I.layers, 'Revisar identificación', dudosas.length, 'País o año no coinciden con Discogs, o la coincidencia inicial fue dudosa', 'dudosas')
+    + fila(I.img, 'Foto del disco desactualizada', fotosViejas.length, 'Pertenece a otra edición de MusicBrainz distinta de la enlazada ahora', 'fotosviejas')
     + fila(I.reloj2, 'Llevan tiempo sin sonar', olvidados.length, 'Más de 6 meses sin marcar una escucha', 'olvidados')
     + fila(I.lampara, 'En tu lista de deseos', deseos2.length, 'Discos que buscas', 'deseos')
     + fila(I.bug || I.warn, 'Fallos recientes de la app', fallos.length, 'Registrados en Ajustes', 'fallos')
@@ -8900,7 +9197,9 @@ function radarColeccion(){
         var lista = a === 'sinfoto' ? sinFoto : olvidados;
         listaPendientesGenerica(a === 'sinfoto' ? 'Discos sin portada' : 'Llevan tiempo sin sonar', lista);
       }else if(a === 'dudosas'){
-        listaPendientesGenerica('Identificación dudosa', dudosas);
+        listaPendientesGenerica('Revisar identificación', dudosas);
+      }else if(a === 'fotosviejas'){
+        listaPendientesGenerica('Foto del disco desactualizada', fotosViejas);
       }
     };
   });
@@ -9415,7 +9714,7 @@ function modoTienda(){
   var t = document.createElement('div');
   t.className = 'tienda';
   t.innerHTML =
-    '<div class="tnav"><button class="tclose">' + I.x + '</button>'
+    '<div class="tnav"><button class="tclose" aria-label="Cerrar">' + I.x + '</button>'
     + '<div class="ttit">Modo tienda</div>'
     + '<button class="tluz" data-tip="Lista de deseos">' + I.heart + '</button></div>'
     + '<div class="tbody" id="tBody">'
@@ -9447,9 +9746,20 @@ function modoTienda(){
   var responder = function(codigo){
     var caja = t.querySelector('#tRes');
     caja.innerHTML = '<div class="tbuscando">' + I.search + 'Buscando ' + esc(codigo) + '…</div>';
-    var mio = DB.discos.filter(function(d){ return d.codigoBarras === codigo; })[0];
-    var pinta = function(d, encontrado, info, otraEdicion){
-      if(encontrado && d && !otraEdicion){
+    /* Una coincidencia en deseos NO es "ya lo tienes": son listas distintas
+       y no deben tratarse igual en ningún caso de esta función. */
+    var mioCol = DB.discos.filter(function(d){ return d.codigoBarras === codigo && d.lista !== 'deseos'; })[0];
+    var mioDeseo = !mioCol && DB.discos.filter(function(d){ return d.codigoBarras === codigo && d.lista === 'deseos'; })[0];
+    var pinta = function(d, encontrado, info, otraEdicion, esDeseo){
+      if(encontrado && d && esDeseo){
+        caja.innerHTML = '<div class="tcard otra"><div class="tico">' + I.heart + '</div>'
+          + '<div class="tt">ESTÁ EN TU LISTA DE DESEOS</div>'
+          + '<div class="tsub">' + esc(d.titulo) + ' · ' + esc(d.artista) + '</div>'
+          + '<div class="tdet">' + [d.formato, d['año']].filter(Boolean).join(' · ') + '</div>'
+          + '<button class="btn" id="tVer">Ver en deseos</button></div>';
+        var bv = caja.querySelector('#tVer');
+        if(bv) bv.onclick = function(){ cerrar(); openDetail(d.id); };
+      }else if(encontrado && d && !otraEdicion){
         caja.innerHTML = '<div class="tcard si"><div class="tico">' + I.check + '</div>'
           + '<div class="tt">YA LO TIENES</div>'
           + '<div class="tsub">' + esc(d.titulo) + ' · ' + esc(d.artista) + '</div>'
@@ -9486,8 +9796,9 @@ function modoTienda(){
           + '<div class="tt">NO LO TIENES</div>'
           + '<div class="tsub">' + (info ? esc(info.titulo + ' · ' + info.artista) : 'Código ' + esc(codigo)) + '</div>'
           + '<div class="rowb" style="justify-content:center;margin-top:14px">'
-          + '<button class="btn" id="tDeseo">' + I.heart + 'A deseos</button>'
-          + (readOnly ? '' : '<button class="btn pri" id="tAlta">Añadir ya</button>') + '</div></div>';
+          + (readOnly ? '' : '<button class="btn" id="tDeseo">' + I.heart + 'A deseos</button>')
+          + (readOnly ? '' : '<button class="btn pri" id="tAlta">Añadir ya</button>') + '</div>'
+          + (readOnly ? '<div class="tdet" style="margin-top:10px">Modo solo lectura: configura la sincronización para poder añadir discos.</div>' : '') + '</div>';
         var bd = caja.querySelector('#tDeseo');
         if(bd) bd.onclick = function(){
           var nuevo = normDisc(Object.assign({id:uid(), lista:'deseos', codigoBarras:codigo, fechaAlta:nowISO()},
@@ -9503,12 +9814,18 @@ function modoTienda(){
         if(ba) ba.onclick = function(){ cerrar(); altaPorCodigo(codigo); };
       }
     };
-    if(mio) return pinta(mio, true);
+    if(mioCol) return pinta(mioCol, true, null, false, false);
+    if(mioDeseo) return pinta(mioDeseo, true, null, false, true);
     porCodigoBarras(codigo).then(function(info){
-      var igual = DB.discos.filter(function(d){
-        return plain(d.artista) === plain(info.artista) && plain(d.titulo) === plain(info.titulo);
+      var igualCol = DB.discos.filter(function(d){
+        return d.lista !== 'deseos' && plain(d.artista) === plain(info.artista) && plain(d.titulo) === plain(info.titulo);
       })[0];
-      pinta(igual || null, !!igual, info, !!igual);
+      var igualDeseo = !igualCol && DB.discos.filter(function(d){
+        return d.lista === 'deseos' && plain(d.artista) === plain(info.artista) && plain(d.titulo) === plain(info.titulo);
+      })[0];
+      if(igualCol) return pinta(igualCol, true, info, true, false);
+      if(igualDeseo) return pinta(igualDeseo, true, info, true, true);
+      pinta(null, false, info, false, false);
     }).catch(function(){ pinta(null, false, null); });
   };
   t.querySelector('#tOk').onclick = function(){
@@ -9535,14 +9852,27 @@ function maquinaDelTiempo(){
     '<div class="warnb info">' + I.clock + '<span>Cada vez que se sincroniza, GitHub guarda una copia. '
     + 'Aquí puedes ver cómo era tu colección en cualquier momento del pasado.</span></div>'
     + '<div class="note busy" id="mtNota">Leyendo el historial…</div><div id="mtBody"></div>', null, true);
-  var url = GH + encodeURIComponent(CFG.owner) + '/' + encodeURIComponent(CFG.repo)
+  /* GitHub solo da 100 commits por página: si hay más de 100 sincronizaciones
+     históricas de datos.json, se piden páginas siguientes -con un tope
+     defensivo- para no dejar fuera el historial más antiguo. */
+  var urlBase = GH + encodeURIComponent(CFG.owner) + '/' + encodeURIComponent(CFG.repo)
     + '/commits?path=' + encodeURIComponent(CFG.path) + '&sha=' + encodeURIComponent(CFG.branch) + '&per_page=100';
-  fetch(url, {headers: ghHeaders()}).then(function(r){ return r.json(); }).then(function(commits){
+  var TOPE_PAGINAS_COMMITS = 5; /* hasta 500 commits de historial */
+  var pedirCommits = function(pagina, acumulado){
+    return fetch(urlBase + '&page=' + pagina, {headers: ghHeaders()}).then(function(r){ return r.json(); }).then(function(lote){
+      if(!Array.isArray(lote)) throw new Error('sin historial');
+      acumulado = acumulado.concat(lote);
+      if(lote.length === 100 && pagina < TOPE_PAGINAS_COMMITS) return pedirCommits(pagina + 1, acumulado);
+      return acumulado;
+    });
+  };
+  pedirCommits(1, []).then(function(commits){
     if(!Array.isArray(commits) || !commits.length) throw new Error('sin historial');
     s.querySelector('#mtNota').style.display = 'none';
     var puntos = commits.map(function(c){
       return {sha:c.sha, fecha:(c.commit && c.commit.committer && c.commit.committer.date) || '', msg:(c.commit && c.commit.message) || ''};
     }).filter(function(x){ return x.fecha; });
+    var mtSliderTimer = null;
     var pintar = function(i){
       var p = puntos[i];
       s.querySelector('#mtBody').innerHTML =
@@ -9551,7 +9881,15 @@ function maquinaDelTiempo(){
         + '<div class="mts">' + (i === 0 ? 'ahora' : 'hace ' + Math.round((Date.now() - new Date(p.fecha).getTime()) / 86400000) + ' días') + '</div></div>'
         + '<div class="note busy" id="mtCarga">Cargando esa versión…</div><div id="mtCont"></div>';
       var sl = s.querySelector('#mtR');
-      sl.oninput = function(){ pintar(+sl.value); };
+      /* Mover el slider dispara dos peticiones a GitHub por cada versión: sin
+         esperar a que el usuario suelte, arrastrarlo rápido lanzaría una a la
+         vez por cada tick. Se espera a que se quede quieto un instante. */
+      clearTimeout(mtSliderTimer);
+      sl.oninput = function(){
+        clearTimeout(mtSliderTimer);
+        var i = +sl.value;
+        mtSliderTimer = setTimeout(function(){ pintar(i); }, 350);
+      };
       fetch(GH + encodeURIComponent(CFG.owner) + '/' + encodeURIComponent(CFG.repo)
         + '/contents/' + CFG.path.split('/').map(encodeURIComponent).join('/') + '?ref=' + p.sha,
         {headers: ghHeaders()})
@@ -10841,12 +11179,24 @@ function montarEventos(){
     else if(/\.json$/i.test(f.name)) importBackup(f);
   });
   if('serviceWorker' in navigator && location.protocol.indexOf('http') === 0){
-    var recargado = false;
-    navigator.serviceWorker.addEventListener('controllerchange', function(){
+    var recargado = false, avisoVersionNueva = false;
+    /* No recargar de golpe si hay una hoja/lightbox/modo tienda abiertos o una
+       sincronización en curso: se perdería lo que el usuario tiene a medias.
+       Se reintenta cada pocos segundos hasta que esté todo tranquilo. */
+    var puedeRecargarYa = function(){
+      return !document.querySelector('.scrim, .tienda, .lightbox') && !pushPromiseActual && !pullPromiseActual;
+    };
+    var recargarCuandoSeaSeguro = function(){
       if(recargado) return;
+      if(!puedeRecargarYa()){
+        if(!avisoVersionNueva){ avisoVersionNueva = true; toast('Hay una versión nueva. Se aplicará al terminar lo que tienes abierto'); }
+        setTimeout(recargarCuandoSeaSeguro, 3000);
+        return;
+      }
       recargado = true;
       location.reload();
-    });
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', recargarCuandoSeaSeguro);
     navigator.serviceWorker.register('sw.js').then(function(reg){
       if(reg.waiting) reg.waiting.postMessage('saltar');
       reg.addEventListener('updatefound', function(){

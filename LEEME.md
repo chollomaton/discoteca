@@ -4,7 +4,7 @@ Catálogo de vinilos y CDs que funciona igual en el Mac y en el iPhone, con los 
 guardados en tu propio repositorio de GitHub. Sin servidor propio: la aplicación es
 un único archivo, y tu colección se sincroniza como un `datos.json` en GitHub.
 
-**Versión de esta entrega:** 2026.09.19-detective — se comprueba en Ajustes, al final de todo.
+**Versión de esta entrega:** 2026.09.19-revision2 — se comprueba en Ajustes, al final de todo.
 
 ## Qué hay en esta carpeta
 
@@ -17,7 +17,7 @@ un único archivo, y tu colección se sincroniza como un `datos.json` en GitHub.
 | `icon-192-v2.png`, `icon-512-v2.png`, `apple-touch-icon-v2.png` | Iconos |
 | `zxing-0.21.3.js` | El lector de códigos de barras del escáner. Antes se traía de un servicio externo cada vez que se abría; ahora vive en tu propio repositorio, así tu app no depende de nada de fuera para escanear |
 
-Sube siempre estos **ocho archivos** juntos cuando actualices, salvo `datos.json`,
+Sube siempre estos **siete archivos** juntos cuando actualices — todos menos `datos.json`,
 que no se toca nunca al subir una versión nueva de la aplicación.
 
 ---
@@ -26,8 +26,8 @@ que no se toca nunca al subir una versión nueva de la aplicación.
 
 1. Entra en [github.com/new](https://github.com/new) y crea un repositorio llamado **`discoteca`**.
    Márcalo como **Public** (los repositorios privados no permiten publicar páginas en el plan gratuito).
-2. En el repositorio recién creado pulsa **Add file › Upload files** y arrastra **los siete archivos**
-   de esta carpeta. Abajo pulsa **Commit changes**.
+2. En el repositorio recién creado pulsa **Add file › Upload files** y arrastra **los ocho archivos**
+   de esta carpeta (esta primera vez sí incluye tu `datos.json`). Abajo pulsa **Commit changes**.
 3. Ve a **Settings › Pages**. En *Source* elige **Deploy from a branch**, rama **main**, carpeta **/ (root)**
    y pulsa **Save**.
 4. Espera un minuto. Tu aplicación estará en:
@@ -54,11 +54,15 @@ pero no editar.
 **Qué puede hacer alguien que consiguiera este token, con honestidad:** solo puede leer y escribir en el
 repositorio `discoteca`, nada más de tu cuenta de GitHub; el token está limitado a ese único repositorio.
 Con eso podría leer tu colección entera, o reescribir el `index.html` que se sirve a quien abra la web —tú
-incluido, la próxima vez—. No puede tocar tus otros repositorios ni la configuración de tu cuenta. El riesgo
-real no está en la aplicación: revisé dónde se usa el token en las peticiones y nunca se cuela en ningún mensaje
-de error ni en el registro de fallos de Ajustes. El riesgo está en el dispositivo donde lo escribas: se guarda
-en claro en ese Mac o ese iPhone, así que si alguna vez pierdes o vendes uno de los dos, revoca el token desde
-GitHub antes.
+incluido, la próxima vez—. No puede tocar tus otros repositorios ni la configuración de tu cuenta.
+
+**Cómo viaja y cómo se guarda:** en cada petición a GitHub va en la cabecera `Authorization`, nunca en la
+URL ni en ningún mensaje de error o en el registro de fallos de Ajustes. Pero no está cifrado: se guarda
+en claro en el dispositivo (IndexedDB, con una copia en localStorage) para que la aplicación pueda usarlo
+sin pedírtelo cada vez. Eso quiere decir que **cualquier script que llegara a ejecutarse en esa página**
+—no solo alguien con acceso físico al Mac o al iPhone— podría leerlo, igual que en cualquier aplicación
+web que guarda una credencial en el navegador para no depender de un servidor propio. Revoca el token
+desde GitHub si pierdes o vendes el dispositivo, o si notas algo raro en el repositorio.
 
 ---
 
@@ -104,9 +108,9 @@ cambias el icono, borra el acceso directo y vuelve a añadirlo desde Safari para
   opcionalmente, Discogs. **Revisar y actualizar todo**, en Ajustes, repasa la
   colección entera rellenando solo lo que falte, sin pisar nunca lo que hayas escrito
   a mano.
-- **Estadísticas**: mapa mundial de coches, artistas, escuchas o valor con deslizador
-  de décadas; calendario de escuchas a cuatro niveles; horas de aguja; quiz sobre tu
-  propia colección; recomendaciones basadas solo en lo que ya tienes.
+- **Estadísticas**: mapa mundial de tu colección por país de edición, artistas, escuchas
+  o valor con deslizador de décadas; calendario de escuchas a cuatro niveles; horas de
+  aguja; quiz sobre tu propia colección; recomendaciones basadas solo en lo que ya tienes.
 - **Deseos** y **modo tienda**, con escáner de código de barras y, si falla, la opción
   de identificar el disco por una foto de la portada; te dice al momento si ya lo
   tienes, si es otra edición o si no lo tienes.
