@@ -6,10 +6,18 @@ var CACHE = 'discoteca-v39';
    escáner de códigos de barras, y forzar su descarga en la instalación penaliza
    a todo el mundo. Se cachea solo (como cualquier otro archivo) la primera vez
    que de verdad se pide, vía el gestor de "fetch" de abajo. */
-var SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192-v2.png', './icon-512-v2.png', './apple-touch-icon-v2.png'];
+/* './' NO se incluye a propósito: es la misma página que './index.html' (GitHub
+   Pages sirve ese archivo para la raíz), así que precachear las dos duplicaría
+   el HTML entero (~650 KB) en la instalación. El respaldo sin conexión de más
+   abajo ya sirve './index.html' para cualquier navegación, incluida la raíz. */
+var SHELL = ['./index.html', './manifest.webmanifest', './icon-192-v2.png', './icon-512-v2.png', './icon-512-maskable.png', './apple-touch-icon-v2.png'];
 
 self.addEventListener('install', function(e){
-  e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(SHELL); }).then(function(){ return self.skipWaiting(); }));
+  /* Sin skipWaiting() aquí: el service worker nuevo se queda "esperando" hasta
+     que la propia app (tras avisar al usuario) le pida saltar con el mensaje
+     'saltar' de abajo. Así nunca se activa una versión nueva sin que la persona
+     lo sepa y lo confirme. */
+  e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(SHELL); }));
 });
 self.addEventListener('activate', function(e){
   e.waitUntil(caches.keys().then(function(ks){

@@ -14,11 +14,16 @@ un único archivo, y tu colección se sincroniza como un `datos.json` en GitHub.
 | `datos.json` | Tu colección: 206 discos en colección y 14 en deseos. Es el único archivo que se sincroniza |
 | `manifest.webmanifest` | Permite instalarla con su icono |
 | `sw.js` | Hace que abra al instante y funcione sin cobertura |
-| `icon-192-v2.png`, `icon-512-v2.png`, `apple-touch-icon-v2.png` | Iconos |
+| `icon-192-v2.png`, `icon-512-v2.png`, `icon-512-maskable.png`, `apple-touch-icon-v2.png` | Iconos. El `-maskable` es una variante especial para Android: con fondo que llena todo el icono, para que no se vea recortado en los lanzadores que le aplican su propia forma (círculo, "squircle"...) |
 | `zxing-0.21.3.js` | El lector de códigos de barras del escáner. Antes se traía de un servicio externo cada vez que se abría; ahora vive en tu propio repositorio, así tu app no depende de nada de fuera para escanear |
 
-Sube siempre estos **siete archivos** juntos cuando actualices — todos menos `datos.json`,
+Sube siempre estos **ocho archivos** juntos cuando actualices — todos menos `datos.json`,
 que no se toca nunca al subir una versión nueva de la aplicación.
+
+**Si en tu repositorio de GitHub todavía existen `icon-192.png` e `icon-512.png` (sin `-v2`)**,
+son del diseño antiguo y ya no los usa ni `index.html`, ni `manifest.webmanifest`, ni `sw.js`.
+Puedes borrarlos tú mismo desde GitHub (en el repositorio, ábrelos y pulsa la papelera) — esta
+aplicación no puede borrar archivos de tu repositorio por sí sola, solo puede subir los suyos.
 
 ---
 
@@ -26,7 +31,7 @@ que no se toca nunca al subir una versión nueva de la aplicación.
 
 1. Entra en [github.com/new](https://github.com/new) y crea un repositorio llamado **`discoteca`**.
    Márcalo como **Public** (los repositorios privados no permiten publicar páginas en el plan gratuito).
-2. En el repositorio recién creado pulsa **Add file › Upload files** y arrastra **los ocho archivos**
+2. En el repositorio recién creado pulsa **Add file › Upload files** y arrastra **los nueve archivos**
    de esta carpeta (esta primera vez sí incluye tu `datos.json`). Abajo pulsa **Commit changes**.
 3. Ve a **Settings › Pages**. En *Source* elige **Deploy from a branch**, rama **main**, carpeta **/ (root)**
    y pulsa **Save**.
@@ -220,9 +225,12 @@ vez de duplicarla.
 ## Si algo va mal
 
 - **"Token no válido"**: el token caducó o no tiene el permiso *Contents: Read and write*. Crea otro.
-- **La app no se actualiza tras subir una versión nueva**: cierra del todo la aplicación
-  y vuelve a abrirla; el service worker recarga la nueva versión en el segundo arranque.
-  Comprueba la versión al pie de Ajustes para confirmar que se actualizó.
+- **La app no se actualiza tras subir una versión nueva**: al abrirla, en cuanto detecta
+  los archivos nuevos aparece abajo del todo un aviso — "Hay una versión nueva de la
+  app" con un botón **Actualizar**. Pulsándolo se aplica (esperando, si hace falta, a
+  que no haya nada abierto ni a medio guardar) y la app se recarga sola. Si no ha
+  aparecido el aviso, ciérrala del todo y vuelve a abrirla para que compruebe si hay
+  una versión nueva. Comprueba la versión al pie de Ajustes para confirmar que se actualizó.
 - **Cambios que no aparecen en el otro dispositivo**: pulsa el indicador de sincronización para forzarla.
 - **El icono de la pantalla de inicio sigue siendo el viejo**: bórralo y vuelve a añadirlo
   desde Safari; iOS no lo refresca solo.
