@@ -4,26 +4,29 @@ Catálogo de vinilos y CDs que funciona igual en el Mac y en el iPhone, con los 
 guardados en tu propio repositorio de GitHub. Sin servidor propio: la aplicación es
 un único archivo, y tu colección se sincroniza como un `datos.json` en GitHub.
 
-**Versión de esta entrega:** 2026.09.19-revision7 — se comprueba en Ajustes, al final de todo.
+**Versión de esta entrega:** 2026.09.19-revision8 — se comprueba en Ajustes, al final de todo.
 
-## Qué hay en esta carpeta
+## Archivos de la aplicación
 
 | Archivo | Para qué sirve |
 |---|---|
 | `index.html` | La aplicación completa |
-| `datos.json` | Tu colección: 206 discos en colección y 14 en deseos. Es el único archivo que se sincroniza |
 | `manifest.webmanifest` | Permite instalarla con su icono |
 | `sw.js` | Hace que abra al instante y funcione sin cobertura |
 | `icon-192-v2.png`, `icon-512-v2.png`, `icon-512-maskable.png`, `apple-touch-icon-v2.png` | Iconos. El `-maskable` es una variante especial para Android: con fondo que llena todo el icono, para que no se vea recortado en los lanzadores que le aplican su propia forma (círculo, "squircle"...) |
 | `zxing-0.21.3.js` | El lector de códigos de barras del escáner. Antes se traía de un servicio externo cada vez que se abría; ahora vive en tu propio repositorio, así tu app no depende de nada de fuera para escanear |
 
-Sube siempre estos **ocho archivos** juntos cuando actualices — todos menos `datos.json`,
-que no se toca nunca al subir una versión nueva de la aplicación. Son los ocho archivos
-que la aplicación necesita de verdad para funcionar: `index.html`, `manifest.webmanifest`,
-`sw.js`, los cuatro iconos y `zxing-0.21.3.js`.
+Estos son los **ocho archivos** que la aplicación necesita de verdad para funcionar, y los
+que hay que subir juntos cada vez que actualizas. **Este ZIP de actualización no incluye
+`datos.json`**, precisamente para no sobrescribir tu colección — no lo eches en falta ni lo
+esperes dentro del paquete.
 
-Este propio `LEEME.md` **no es uno de esos ocho**: es solo documentación para ti, no lo usa
-la aplicación ni falta si no lo subes a GitHub, pero tampoco pasa nada si lo subes también.
+**`datos.json`** es aparte: contiene tu colección (206 discos en colección y 14 en deseos)
+y es el único archivo que se sincroniza solo, en cada cambio. No se incluye en los ZIP de
+actualización de la aplicación por esa misma razón.
+
+Este propio **`LEEME.md`** es solo documentación para ti: no lo usa la aplicación, no hace
+falta subirlo a GitHub, pero tampoco pasa nada si lo subes también.
 
 **Si en tu repositorio de GitHub todavía existen `icon-192.png` e `icon-512.png` (sin `-v2`)**,
 son del diseño antiguo y ya no los usa ni `index.html`, ni `manifest.webmanifest`, ni `sw.js`.
@@ -36,8 +39,10 @@ aplicación no puede borrar archivos de tu repositorio por sí sola, solo puede 
 
 1. Entra en [github.com/new](https://github.com/new) y crea un repositorio llamado **`discoteca`**.
    Márcalo como **Public** (los repositorios privados no permiten publicar páginas en el plan gratuito).
-2. En el repositorio recién creado pulsa **Add file › Upload files** y arrastra **los nueve archivos**
-   de esta carpeta (esta primera vez sí incluye tu `datos.json`). Abajo pulsa **Commit changes**.
+2. En el repositorio recién creado pulsa **Add file › Upload files** y arrastra los **ocho
+   archivos de la aplicación** de esta carpeta, más tu `datos.json` inicial (esta primera vez
+   sí hace falta crearlo/subirlo — en las siguientes actualizaciones no). `LEEME.md` es
+   opcional. Abajo pulsa **Commit changes**.
 3. Ve a **Settings › Pages**. En *Source* elige **Deploy from a branch**, rama **main**, carpeta **/ (root)**
    y pulsa **Save**.
 4. Espera un minuto. Tu aplicación estará en:
