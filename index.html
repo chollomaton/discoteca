@@ -1732,7 +1732,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.19-revision5';
+var VERSION = '2026.09.19-revision6';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var view = 'col';
 var fType = 'all', fGen = '', fArt = '', fTag = '', fDec = '', fPais = '', fSello = '';
@@ -11453,55 +11453,152 @@ function montarEventos(){
     else if(/\.json$/i.test(f.name)) importBackup(f);
   });
   if('serviceWorker' in navigator && location.protocol.indexOf('http') === 0){
-    var recargado = false, avisoMostrado = false;
-    /* No recargar (ni ofrecer hacerlo) si hay una hoja/lightbox/paleta/modo
-       tienda abiertos, una sincronización en curso, un guardado en la nube
-       pendiente (saveTimer) o cambios locales aún sin subir (syncState
-       'pend'): en cualquiera de esos casos se podría perder algo a medias. */
-    var puedeRecargarYa = function(){
-      return !document.querySelector('.scrim, .tienda, .lightbox, .pal')
-        && !pushPromiseActual && !pullPromiseActual
-        && !saveTimer && syncState !== 'pend';
+    var avisoMostrado = false;
+    /* Motivo (en texto humano) por el que AHORA MISMO no es seguro recargar,
+       o '' si ya se puede. Único punto de verdad: puedeRecargarYa() depende
+       de que esto devuelva ''. */
+    var motivoBloqueoActualizacion = function(){
+      if(document.querySelector('.scrim')) return 'Hay una ventana abierta';
+      if(document.querySelector('.tienda')) return 'Cierra el modo tienda';
+      if(document.querySelector('.lightbox')) return 'Cierra la imagen abierta';
+      if(document.querySelector('.pal')) return 'Cierra la búsqueda';
+      if(pushPromiseActual || pullPromiseActual) return 'Sincronizando datos';
+      if(saveTimer) return 'Hay un guardado pendiente';
+      if(syncState === 'pend') return 'Hay cambios pendientes de subir';
+      return '';
     };
-    var recargarCuandoSeaSeguro = function(){
-      if(recargado) return;
-      if(!puedeRecargarYa()){ setTimeout(recargarCuandoSeaSeguro, 3000); return; }
-      recargado = true;
-      location.reload();
-    };
-    navigator.serviceWorker.addEventListener('controllerchange', recargarCuandoSeaSeguro);
-    var avisarVersionNueva = function(sw){
+    var puedeRecargarYa = function(){ return motivoBloqueoActualizacion() === ''; };
+
+    var avisarVersionNueva = function(reg, sw){
       if(avisoMostrado) return;
       avisoMostrado = true;
-      /* Aviso real: la nueva versión NO se activa sola. Solo se aplica si el
-         usuario pulsa "Actualizar" (y, aun así, se espera a que no haya nada
-         abierto ni a medio guardar antes de recargar). Barra mínima con
-         estilo en línea para no tocar el CSS general de la app. */
       var b = document.createElement('div');
       b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;'
         + 'background:#1c1c1e;color:#fff;border-radius:12px;padding:12px 14px;'
-        + 'display:flex;align-items:center;gap:12px;box-shadow:0 4px 18px rgba(0,0,0,.35);'
+        + 'display:flex;flex-direction:column;gap:8px;box-shadow:0 4px 18px rgba(0,0,0,.35);'
         + 'font:14px/1.3 -apple-system,system-ui,sans-serif';
-      b.innerHTML = '<span style="flex:1">Hay una versión nueva de la app</span>'
-        + '<button type="button" style="background:#0a84ff;color:#fff;border:0;border-radius:8px;'
-        + 'padding:8px 14px;font:600 14px -apple-system,system-ui,sans-serif">Actualizar</button>';
+      b.innerHTML = '<div style="display:flex;align-items:center;gap:12px">'
+        + '<span style="flex:1" data-txt>Hay una versión nueva de la app</span>'
+        + '<button type="button" data-btn style="background:#0a84ff;color:#fff;border:0;border-radius:8px;'
+        + 'padding:8px 14px;font:600 14px -apple-system,system-ui,sans-serif">Actualizar</button>'
+        + '</div><div data-motivo style="display:none;color:#c7c7cc;font-size:12.5px"></div>';
       document.body.appendChild(b);
-      b.querySelector('button').addEventListener('click', function(){
-        b.querySelector('button').textContent = 'Actualizando…';
-        var aplicar = function(){
-          if(!puedeRecargarYa()){ setTimeout(aplicar, 3000); return; }
-          sw.postMessage('saltar');
-        };
-        aplicar();
+      var txt = b.querySelector('[data-txt]');
+      var btn = b.querySelector('[data-btn]');
+      var motivoEl = b.querySelector('[data-motivo]');
+
+      var recargado = false, procesando = false;
+      var esperaTimer = null, fallbackTimer = null;
+      var esperaInicio = 0;
+      var ESPERA_MAX_MS = 25000, ESPERA_PASO_MS = 1000, FALLBACK_MS = 9000;
+
+      var mostrarMotivo = function(m){
+        if(m){ motivoEl.style.display = 'block'; motivoEl.textContent = m; }
+        else { motivoEl.style.display = 'none'; motivoEl.textContent = ''; }
+      };
+
+      /* Único finalizador, idempotente: lo puede disparar tanto el evento
+         'controllerchange' del navegador como el 'statechange' del propio
+         worker nuevo llegando a 'activated' -cualquiera de los dos que
+         llegue primero recarga; el otro, si llega después, no hace nada. */
+      var finalizarActualizacion = function(){
+        if(recargado) return;
+        recargado = true;
+        if(fallbackTimer){ clearTimeout(fallbackTimer); fallbackTimer = null; }
+        setTimeout(function(){ location.reload(); }, 100);
+      };
+      navigator.serviceWorker.addEventListener('controllerchange', finalizarActualizacion);
+      sw.addEventListener('statechange', function(){
+        if(sw.state === 'activated') finalizarActualizacion();
+      });
+
+      var volverAReintentar = function(motivo){
+        procesando = false;
+        if(esperaTimer){ clearTimeout(esperaTimer); esperaTimer = null; }
+        if(fallbackTimer){ clearTimeout(fallbackTimer); fallbackTimer = null; }
+        btn.disabled = false;
+        btn.textContent = 'Reintentar';
+        txt.textContent = 'Hay una versión nueva de la app';
+        mostrarMotivo(motivo || '');
+      };
+
+      /* Tras enviar 'saltar' la actualización queda COMPROMETIDA: si el
+         worker llega a 'activated' se recarga siempre, aunque syncState
+         cambie después. El único fallback posible aquí es que ni
+         controllerchange ni statechange lleguen a tiempo. */
+      var enviarSaltarYComprometer = function(){
+        txt.textContent = 'Actualizando…';
+        mostrarMotivo('');
+        sw.postMessage('saltar');
+        fallbackTimer = setTimeout(function(){
+          if(recargado) return;
+          var swActivo = navigator.serviceWorker.controller;
+          if(sw.state === 'activated' || (reg.active && reg.active === sw) || (swActivo && swActivo.scriptURL === sw.scriptURL)){
+            finalizarActualizacion();
+            return;
+          }
+          volverAReintentar('No se pudo completar la actualización');
+        }, FALLBACK_MS);
+      };
+
+      var intentarDesbloquear = function(motivo){
+        /* Si lo único que bloquea es tener cambios locales sin subir y hay
+           configuración válida de GitHub, se intenta terminar el guardado
+           de verdad (reutilizando la cola global existente) en vez de
+           esperar pasivamente a que el usuario lo haga por su cuenta. */
+        if(motivo === 'Hay cambios pendientes de subir' && configurado()){
+          return push().then(function(ok){
+            if(!ok) throw new Error('push-fallo');
+          });
+        }
+        return Promise.resolve();
+      };
+
+      var paso = function(){
+        if(!procesando) return;
+        var motivo = motivoBloqueoActualizacion();
+        if(motivo === ''){
+          enviarSaltarYComprometer();
+          return;
+        }
+        if(Date.now() - esperaInicio >= ESPERA_MAX_MS){
+          volverAReintentar(motivo === 'Hay cambios pendientes de subir'
+            ? 'No se puede actualizar porque hay cambios sin sincronizar'
+            : motivo);
+          return;
+        }
+        txt.textContent = 'Esperando…';
+        mostrarMotivo(motivo);
+        if(motivo === 'Hay cambios pendientes de subir' && configurado()){
+          intentarDesbloquear(motivo).then(function(){
+            if(!procesando) return;
+            esperaTimer = setTimeout(paso, ESPERA_PASO_MS);
+          }).catch(function(){
+            volverAReintentar('No se puede actualizar porque hay cambios sin sincronizar');
+          });
+          return;
+        }
+        esperaTimer = setTimeout(paso, ESPERA_PASO_MS);
+      };
+
+      btn.addEventListener('click', function(){
+        if(procesando || btn.disabled) return; /* evita doble clic / doble proceso */
+        procesando = true;
+        btn.disabled = true;
+        esperaInicio = Date.now();
+        txt.textContent = 'Preparando…';
+        mostrarMotivo('');
+        paso();
       });
     };
+
     navigator.serviceWorker.register('sw.js').then(function(reg){
-      if(reg.waiting && navigator.serviceWorker.controller) avisarVersionNueva(reg.waiting);
+      if(reg.waiting && navigator.serviceWorker.controller) avisarVersionNueva(reg, reg.waiting);
       reg.addEventListener('updatefound', function(){
         var nuevo = reg.installing;
         if(!nuevo) return;
         nuevo.addEventListener('statechange', function(){
-          if(nuevo.state === 'installed' && navigator.serviceWorker.controller) avisarVersionNueva(nuevo);
+          if(nuevo.state === 'installed' && navigator.serviceWorker.controller) avisarVersionNueva(reg, nuevo);
         });
       });
       setInterval(function(){ reg.update().catch(function(){}); }, 900000);

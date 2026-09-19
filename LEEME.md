@@ -4,7 +4,7 @@ Catálogo de vinilos y CDs que funciona igual en el Mac y en el iPhone, con los 
 guardados en tu propio repositorio de GitHub. Sin servidor propio: la aplicación es
 un único archivo, y tu colección se sincroniza como un `datos.json` en GitHub.
 
-**Versión de esta entrega:** 2026.09.19-revision5 — se comprueba en Ajustes, al final de todo.
+**Versión de esta entrega:** 2026.09.19-revision6 — se comprueba en Ajustes, al final de todo.
 
 ## Qué hay en esta carpeta
 
@@ -232,10 +232,14 @@ vez de duplicarla.
 - **"Token no válido"**: el token caducó o no tiene el permiso *Contents: Read and write*. Crea otro.
 - **La app no se actualiza tras subir una versión nueva**: al abrirla, en cuanto detecta
   los archivos nuevos aparece abajo del todo un aviso — "Hay una versión nueva de la
-  app" con un botón **Actualizar**. Pulsándolo se aplica (esperando, si hace falta, a
-  que no haya nada abierto ni a medio guardar) y la app se recarga sola. Si no ha
-  aparecido el aviso, ciérrala del todo y vuelve a abrirla para que compruebe si hay
-  una versión nueva. Comprueba la versión al pie de Ajustes para confirmar que se actualizó.
+  app" con un botón **Actualizar**. Pulsándolo espera (mostrando el motivo si hace
+  falta esperar: una ventana abierta, un guardado pendiente, cambios sin subir…) hasta
+  20-25 segundos como máximo; si en ese tiempo lo único que faltaba era subir cambios
+  pendientes, la propia app intenta terminarlo por su cuenta. Solo entonces se aplica
+  de verdad y la app se recarga sola. Si algo lo impide, el botón vuelve a mostrar
+  **Reintentar** con el motivo debajo — nunca se queda encallado en "Actualizando…".
+  Si no ha aparecido el aviso, ciérrala del todo y vuelve a abrirla para que compruebe
+  si hay una versión nueva. Comprueba la versión al pie de Ajustes para confirmar que se actualizó.
 - **Cambios que no aparecen en el otro dispositivo**: pulsa el indicador de sincronización para forzarla.
 - **El icono de la pantalla de inicio sigue siendo el viejo**: bórralo y vuelve a añadirlo
   desde Safari; iOS no lo refresca solo.

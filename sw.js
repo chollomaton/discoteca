@@ -1,7 +1,7 @@
 /* Discoteca — service worker
    Guarda la aplicación en caché para que abra al instante y sin conexión.
    Los datos NUNCA se cachean: siempre se piden a GitHub. */
-var CACHE = 'discoteca-v41';
+var CACHE = 'discoteca-v42';
 /* zxing-0.21.3.js (336 KB) NO va aquí a propósito: solo lo carga quien usa el
    escáner de códigos de barras, y forzar su descarga en la instalación penaliza
    a todo el mundo. Se cachea solo (como cualquier otro archivo) la primera vez
@@ -47,6 +47,23 @@ self.addEventListener('fetch', function(e){
   var url = new URL(e.request.url);
   if(e.request.method !== 'GET') return;
   if(url.origin !== location.origin || /datos\.json/.test(url.pathname)) return;
+  if(e.request.mode === 'navigate'){
+    /* Cualquier navegación -incluida la raíz ('/discoteca/')- se sirve
+       SIEMPRE desde la misma entrada cacheada de './index.html', nunca con
+       una copia aparte bajo la URL de la raíz. Si no fuera así, un service
+       worker todavía ACTIVO (el viejo, mientras uno nuevo espera a que el
+       usuario pulse "Actualizar") podría ir descargando y cacheando en
+       silencio el index.html nuevo bajo la clave de la raíz -exactamente lo
+       que el resto de este archivo evita para el SHELL-. Por eso tampoco se
+       revalida en caliente aquí: mismo trato que el resto del SHELL. */
+    e.respondWith(
+      caches.match('./index.html').then(function(cacheado){
+        if(cacheado) return cacheado;
+        return fetch(e.request).catch(function(){ return Promise.reject('offline'); });
+      })
+    );
+    return;
+  }
   var esArchivoShell = SHELL_PATHS.indexOf(url.pathname) >= 0;
   e.respondWith(
     caches.match(e.request).then(function(cacheado){
@@ -61,11 +78,7 @@ self.addEventListener('fetch', function(e){
         }
         return r;
       }).catch(function(){
-        /* Sin red y sin copia en caché: solo tiene sentido devolver la app
-           (index.html) cuando lo que fallaba era navegar a una página -nunca
-           para un recurso suelto (una imagen, un script) que no la tenía. */
         if(cacheado) return cacheado;
-        if(e.request.mode === 'navigate') return caches.match('./index.html');
         return Promise.reject('offline');
       });
       return cacheado || actualizar;
