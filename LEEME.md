@@ -4,7 +4,7 @@ Catálogo de vinilos y CDs que funciona igual en el Mac y en el iPhone, con los 
 guardados en tu propio repositorio de GitHub. Sin servidor propio: la aplicación es
 una PWA estática modular, y tu colección se sincroniza como un `datos.json` en GitHub.
 
-**Versión de esta entrega:** 2026.09.25-phase6 — se comprueba en Ajustes, al final de todo.
+**Versión de esta entrega:** 2026.09.25-phase7 — se comprueba en Ajustes, al final de todo.
 
 ## Archivos de la aplicación
 
@@ -45,7 +45,7 @@ La colección mantiene las portadas como contenido principal. Las recomendacione
 
 ### Validación automática
 
-El repositorio incluye `.github/workflows/validate.yml` y las baterías `validate.mjs`, `sync-tests.mjs`, `quality-tests.mjs`, `design-tests.mjs`, `pwa-update-tests.mjs`, `module-tests.mjs` y `phase6-tests.mjs`. GitHub ejecuta estas comprobaciones en cada pull request y en cada cambio que llega a `main`: sintaxis de todos los módulos JavaScript, orden de carga, separación del CSS, manifest y service worker, assets PWA, coherencia de versión, integridad básica de `datos.json`, reglas de caché y regresiones críticas ya sufridas por la app. La batería de sincronización simula además dos dispositivos: ediciones concurrentes en campos distintos, etiquetas, protecciones manuales, escuchas, borrados y compatibilidad con versiones antiguas. La batería de calidad prueba los niveles del Detective y la detección de estados de revisión desactualizados del Radar. Si alguna falla, el cambio no debe publicarse hasta corregirla.
+El repositorio incluye `.github/workflows/validate.yml` y las baterías `validate.mjs`, `sync-tests.mjs`, `quality-tests.mjs`, `design-tests.mjs`, `pwa-update-tests.mjs`, `module-tests.mjs`, `phase6-tests.mjs` y `phase7-tests.mjs`. GitHub ejecuta estas comprobaciones en cada pull request y en cada cambio que llega a `main`: sintaxis de todos los módulos JavaScript, orden de carga, separación del CSS, manifest y service worker, assets PWA, coherencia de versión, integridad básica de `datos.json`, reglas de caché y regresiones críticas ya sufridas por la app. La batería de sincronización simula además dos dispositivos: ediciones concurrentes en campos distintos, etiquetas, protecciones manuales, escuchas, borrados y compatibilidad con versiones antiguas. La batería de calidad prueba los niveles del Detective y la detección de estados de revisión desactualizados del Radar. Si alguna falla, el cambio no debe publicarse hasta corregirla.
 
 ### Actualización PWA fiable
 
@@ -57,49 +57,58 @@ La colección mantiene la estética Apple Music, pero vuelve a dar protagonismo 
 
 ---
 
-## Paso 1 · Publicar la aplicación (una sola vez, 5 minutos)
+## Paso 1 · Separar aplicación y datos
 
-1. Entra en [github.com/new](https://github.com/new) y crea un repositorio llamado **`discoteca`**.
-   Márcalo como **Public** (los repositorios privados no permiten publicar páginas en el plan gratuito).
-2. En el repositorio recién creado pulsa **Add file › Upload files** y arrastra los **ocho
-   archivos de la aplicación** de esta carpeta, más tu `datos.json` inicial (esta primera vez
-   sí hace falta crearlo/subirlo — en las siguientes actualizaciones no). `LEEME.md` es
-   opcional. Abajo pulsa **Commit changes**.
-3. Ve a **Settings › Pages**. En *Source* elige **Deploy from a branch**, rama **main**, carpeta **/ (root)**
-   y pulsa **Save**.
-4. Espera un minuto. Tu aplicación estará en:
+Mantén la aplicación estática en el repositorio público `discoteca`, publicado con GitHub Pages.
+La colección puede estar en **otro repositorio privado**, por ejemplo `discoteca-datos`, sin Pages.
+La app usa la API autenticada de GitHub para leer y escribir allí, también para archivos grandes.
+Mac e iPhone usan exactamente la misma dirección de la app y el mismo destino de datos.
 
-   `https://TU-USUARIO.github.io/discoteca/`
+**La Fase 7 no convierte automáticamente la colección actual en privada.** El `datos.json` existente
+se conserva intacto para no perder datos ni interrumpir dispositivos antiguos. Mientras siga en el
+repositorio público, cualquiera puede leerlo. Dejar de cargarlo en la interfaz no lo oculta en GitHub.
+Las copias que ya estén en el historial público seguirán siendo públicas aunque se quite el archivo actual.
 
----
+### Migración sin pérdida de datos
 
-## Paso 2 · Crear el token de GitHub (una sola vez)
+1. Sincroniza Mac e iPhone hasta que ambos indiquen «Al día». Descarga una copia desde cada dispositivo
+   y comprueba que son JSON legibles. Conserva ambas fuera del repositorio público.
+2. Crea un repositorio **privado** `discoteca-datos`, inicializado con un README para tener rama `main`.
+   No copies el código de la app ni actives Pages en ese repositorio.
+3. Crea el token descrito abajo, limitado solo al repositorio privado.
+4. En el Mac, Ajustes → Token y repositorio: elige el repositorio privado, `main` y `datos.json`.
+   «Probar» debe indicar repositorio privado. Guarda; la app crea una copia previa y fusiona la colección
+   local con el destino, o crea allí el JSON si no existe. Espera «Al día» y verifica el archivo privado.
+5. En el iPhone configura el mismo destino. Conserva su copia local: sus cambios se fusionan.
+   Comprueba recuentos, deseos, escuchas, notas y una edición de prueba en ambos sentidos.
+6. Solo tras verificar los dos dispositivos, revoca el token anterior con acceso al código público.
+   La retirada del `datos.json` público y el tratamiento del historial requieren una tarea posterior
+   cuidadosamente preparada; esta entrega no borra ni reescribe el historial.
 
-El token es lo que permite a la aplicación guardar los cambios en tu repositorio. Es
-obligatorio; sin él, la aplicación se abre en **modo consulta**: se puede mirar y buscar,
-pero no editar.
+En un dispositivo nuevo la app comienza vacía hasta conectar o restaurar una copia. Nunca descarga
+por defecto el JSON público. En los dispositivos ya usados conserva la colección local, incluso vacía.
+No borres los datos del navegador para actualizar la app.
 
-1. Entra en [github.com/settings/personal-access-tokens/new](https://github.com/settings/personal-access-tokens/new)
-2. **Token name**: `discoteca`
-3. **Expiration**: elige **1 año**, no *No expiration*. Cuesta un minuto renovarlo cuando toque, y así, si alguna vez
-   se filtrara sin que te dieras cuenta, deja de servir por sí solo en vez de quedar abierto para siempre.
-4. **Repository access**: *Only select repositories* → selecciona **discoteca**.
-5. **Permissions › Repository permissions**: busca **Contents** y ponlo en **Read and write**.
-6. Pulsa **Generate token** y **copia el código** que aparece. Solo se muestra una vez.
-   Guárdalo en tu gestor de contraseñas: lo necesitarás también en el iPhone.
+## Paso 2 · Crear el token de GitHub
 
-**Qué puede hacer alguien que consiguiera este token, con honestidad:** solo puede leer y escribir en el
-repositorio `discoteca`, nada más de tu cuenta de GitHub; el token está limitado a ese único repositorio.
-Con eso podría leer tu colección entera, o reescribir el `index.html` que se sirve a quien abra la web —tú
-incluido, la próxima vez—. No puede tocar tus otros repositorios ni la configuración de tu cuenta.
+1. Abre [los tokens de acceso detallado](https://github.com/settings/personal-access-tokens/new).
+2. Dale un nombre reconocible y una caducidad limitada.
+3. En **Only select repositories**, selecciona exclusivamente el repositorio privado de datos.
+4. En **Contents**, concede **Read and write**. No necesita acceso al repositorio del código.
+5. Genera el token y consérvalo en tu gestor de contraseñas. Introdúcelo directamente en cada dispositivo;
+   nunca lo pegues en chats, incidencias, capturas, archivos del repositorio ni copias de colección.
 
-**Cómo viaja y cómo se guarda:** en cada petición a GitHub va en la cabecera `Authorization`, nunca en la
-URL ni en ningún mensaje de error o en el registro de fallos de Ajustes. Pero no está cifrado: se guarda
-en claro en el dispositivo (IndexedDB, con una copia en localStorage) para que la aplicación pueda usarlo
-sin pedírtelo cada vez. Eso quiere decir que **cualquier script que llegara a ejecutarse en esa página**
-—no solo alguien con acceso físico al Mac o al iPhone— podría leerlo, igual que en cualquier aplicación
-web que guarda una credencial en el navegador para no depender de un servidor propio. Revoca el token
-desde GitHub si pierdes o vendes el dispositivo, o si notas algo raro en el repositorio.
+Sin «Recordar claves en este dispositivo», las claves solo duran hasta cerrar o recargar la app.
+Con esa opción se guardan sin cifrar en IndexedDB; localStorage guarda únicamente ajustes sin claves.
+Por compatibilidad, las instalaciones anteriores mantienen su credencial recordada y eliminan su copia
+duplicada de localStorage. Puedes desactivar la opción y guardar para pasar a uso por sesión.
+Un script malicioso que lograse ejecutarse en el mismo origen podría leer credenciales recordadas o
+activas. La CSP prohíbe scripts inline, pero esto no sustituye proteger la cuenta y revisar los cambios
+publicados. Un token limitado a datos no permite reescribir la aplicación.
+
+«Desconectar» olvida todas las claves configuradas en ese dispositivo; conserva la colección y el destino.
+Si el navegador no permite borrar la credencial, se avisa. Revócala en GitHub si pierdes el dispositivo.
+El token viaja en la cabecera Authorization de las peticiones a GitHub, nunca en la URL.
 
 ---
 
@@ -107,7 +116,7 @@ desde GitHub si pierdes o vendes el dispositivo, o si notas algo raro en el repo
 
 1. Abre `https://TU-USUARIO.github.io/discoteca/` en Chrome.
 2. Ve a la pestaña **Ajustes › Conectar** (o pulsa el indicador de sincronización de arriba).
-3. Rellena: usuario, repositorio (`discoteca`), rama (`main`), archivo (`datos.json`) y pega el token.
+3. Rellena: usuario, repositorio privado (`discoteca-datos`), rama (`main`), archivo (`datos.json`) y pega el token.
 4. Pulsa **Probar** para comprobar la conexión y luego **Guardar y sincronizar**.
 
 A partir de ese momento, cada cambio se sube solo a los pocos segundos.
@@ -182,8 +191,8 @@ cambias el icono, borra el acceso directo y vuelve a añadirlo desde Safari para
 
 - Al abrir la aplicación se descarga la colección del repositorio.
 - Cada cambio se guarda al instante en el dispositivo y se sube a los pocos segundos.
-- Si has editado en los dos sitios, **se fusiona ficha por ficha**: de cada disco se conserva la
-  versión modificada más recientemente. No hay que elegir entre una copia y otra.
+- Si has editado en los dos sitios, **se fusionan los campos modificados**: las ediciones en campos distintos se combinan;
+  en un mismo campo gana su modificación más reciente. Se conserva compatibilidad con clientes antiguos.
 - Si dos dispositivos suben a la vez, el segundo detecta el choque, vuelve a bajar, fusiona y sube.
 - Los borrados también se propagan.
 - Sin cobertura la aplicación sigue funcionando: los cambios quedan en espera y suben al reconectar.
@@ -198,8 +207,8 @@ El token se guarda **solo en cada dispositivo**, nunca se sube al repositorio.
 ## Las claves opcionales
 
 Además del token de GitHub, obligatorio, hay cinco claves opcionales, todas se
-configuran en **Ajustes › Conectar** y se guardan solo en el dispositivo, igual que
-el token. Sin ninguna de ellas la aplicación funciona con normalidad; cada una
+configuran en **Ajustes › Conectar** y siguen la opción de recordar claves del token. Se envían a su proveedor para prestar el servicio;
+no se incluyen en la copia de colección. Sin ninguna de ellas la aplicación funciona con normalidad; cada una
 desbloquea una función concreta.
 
 | Clave | De dónde se saca | Qué desbloquea |
@@ -269,3 +278,30 @@ vez de duplicarla.
 - **Cambios que no aparecen en el otro dispositivo**: pulsa el indicador de sincronización para forzarla.
 - **El icono de la pantalla de inicio sigue siendo el viejo**: bórralo y vuelve a añadirlo
   desde Safari; iOS no lo refresca solo.
+
+
+## Recuperación y mantenimiento (Fase 7)
+
+- **Descargar copia** exporta colección completa, metadatos, imágenes locales y borrados; no incluye
+  ajustes, tokens ni claves. En iPhone comprueba que la hoja de compartir termina guardando el archivo.
+  Cancelar la hoja no marca una copia como exportada. Conserva varias fechas fuera del navegador.
+- **Restaurar copia** valida formato, versión, IDs y registros de borrado antes de cambiar nada.
+  Pide confirmar la fusión y permite recuperar también fichas borradas desde aquella copia. Antes
+  guarda el estado actual. Si no se puede crear esa copia previa, cancela la restauración.
+  La fusión puede actualizar campos existentes; no equivale a reemplazar toda la colección por una fecha.
+- **Copia anterior a la última operación** descarga el estado anterior a restaurar, cambiar conexión
+  o vaciar. Es un único punto local, reemplazado en la siguiente operación; no sustituye copias externas.
+  Descárgalo antes de otra operación. Para deshacer un borrado, impórtalo y acepta recuperar las fichas.
+- Se puede importar una copia sin token para consultarla localmente; al conectar se fusiona con GitHub.
+- **Proteger almacenamiento local** solicita persistencia al navegador. Safari/iOS puede no concederla;
+  borrar datos del sitio sigue borrando también copias locales. La app avisa si el almacenamiento se llena.
+- Ante token caducado o error de red, exporta primero los cambios locales. Renueva la credencial con el
+  mismo destino y sincroniza. No vacíes la colección para solucionar un problema de conexión.
+- Ante pérdida del dispositivo, revoca sus credenciales, conecta otro dispositivo al repositorio privado
+  y restaura la última copia si faltan cambios. El historial de GitHub es una segunda vía de recuperación.
+- Antes de actualizar: confirma «Al día» y conserva una copia reciente. Después: verifica en Ajustes
+  `2026.09.25-phase7`. La caché de esta versión es `discoteca-v53`; nunca incluye JSON de colección.
+
+Las pruebas de Fase 7 cubren almacenamiento de claves, censura de diagnósticos, rutas inválidas,
+validación de copias, falta de espacio, recuperación de borrados, API privada para archivos grandes,
+respuestas corruptas, bloqueo de sincronización al cambiar ajustes y aislamiento de caché.

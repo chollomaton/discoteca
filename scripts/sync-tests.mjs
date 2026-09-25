@@ -178,8 +178,8 @@ function netContext(fetchImpl){
     console, JSON, Date, Math, Number, String, Object, Array, Promise, TypeError,
     setTimeout, clearTimeout,
     CFG:{owner:'u',repo:'r',branch:'main',path:'datos.json',token:'t'},
-    DB:{discos:[{id:'d1',titulo:'A'}],borrados:[],actualizado:''},
-    SHA:'s0', lastSync:'', readOnly:false, revisionDatos:1, syncState:'ok',
+    DB:{discos:[{id:'d1',titulo:'A',artista:''}],borrados:[],actualizado:''},
+    configuracionEnCurso:false, SHA:'s0', lastSync:'', readOnly:false, revisionDatos:1, syncState:'ok',
     fetch:fetchImpl,
     configurado:()=>true,
     ghUrl:()=> 'https://api.github.test/datos.json',
@@ -194,6 +194,7 @@ function netContext(fetchImpl){
     normDisc:(d)=>d,
     fusionar:(locales,borrLoc,remotos,borrRem)=>({discos:locales,borrados:borrLoc||[],aLocal:0,aRemoto:0})
   });
+  vm.runInContext(sliceBetween('function validarCopia(o){','function descargarCopia'),c);
   vm.runInContext(syncBlock,c);
   return c;
 }
@@ -202,7 +203,7 @@ function resOkJson(j,status=200){ return {status,ok:status>=200&&status<300,json
 /* pull + push pedidos a la vez nunca tienen dos fetch simultáneos. */
 {
   let activos=0,max=0,metodos=[];
-  const remote=Buffer.from(JSON.stringify({discos:[{id:'d1',titulo:'A'}],borrados:[]})).toString('base64');
+  const remote=Buffer.from(JSON.stringify({discos:[{id:'d1',titulo:'A',artista:''}],borrados:[]})).toString('base64');
   const c=netContext(async (url,opt={})=>{
     activos++; max=Math.max(max,activos); metodos.push(opt.method||'GET');
     await sleep(20); activos--;
@@ -257,7 +258,7 @@ function resOkJson(j,status=200){ return {status,ok:status>=200&&status<300,json
 /* 409 + pull correcto: actualiza SHA y reintenta de forma acotada. */
 {
   let puts=0,gets=0;
-  const remote=Buffer.from(JSON.stringify({discos:[{id:'d1',titulo:'A'}],borrados:[]})).toString('base64');
+  const remote=Buffer.from(JSON.stringify({discos:[{id:'d1',titulo:'A',artista:''}],borrados:[]})).toString('base64');
   const c=netContext(async (url,opt={})=>{
     if(opt.method==='PUT'){
       puts++;

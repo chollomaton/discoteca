@@ -48,6 +48,13 @@ function paintDb(){
           + '<button type="button" class="lnk ext" data-a="maquina">' + I.refresh + 'Máquina del tiempo</button></div>' : '')
     + '</div>'
 
+    + seccion(I.key, 'Privacidad y mantenimiento')
+    + '<div class="card"><div class="fila"><div><div class="ft">' + (CFG.repoPrivado ? 'Repositorio de datos privado' : 'Privacidad de los datos sin verificar') + '</div>'
+    + '<div class="fs">Comprueba la visibilidad con Probar en Token y repositorio. Un repositorio público permite leer la colección. Las copias locales también contienen datos personales.</div></div></div>'
+    + '<div class="fila"><div><div class="ft">' + (CFG.recordarClaves ? 'Claves recordadas en este dispositivo' : 'Claves solo durante esta sesión') + '</div>'
+    + '<div class="fs">Desconectar borra las claves guardadas aquí. Revoca el token en GitHub si pierdes el dispositivo.</div></div></div></div>'
+    + '<div class="dbact">' + accion(I.save, 'Proteger almacenamiento local', 'Solicita al navegador que conserve los datos sin conexión. No sustituye una copia descargada.', 'almacen', '', 'Proteger') + '</div>'
+
     /* ---- apariencia ---- */
     + seccion(I.eye, 'Apariencia')
     + '<div class="card"><div class="fila"><div><div class="ft">Tema</div>'
@@ -69,7 +76,8 @@ function paintDb(){
           + 'Tus datos están en GitHub con su historial, pero una copia local no está de más.</span></div>' : '')
     + '<div class="dbact">'
       + accion(I.down, 'Descargar copia', 'Un JSON con toda la colección. En el iPhone se abre la hoja de compartir.', 'bak', '', 'Descargar')
-      + accion(I.up, 'Restaurar copia', 'Fusiona un JSON exportado antes. Nunca borra lo que ya tienes.', 'impbak', '', 'Seleccionar JSON')
+      + accion(I.down, 'Copia anterior a la última operación', 'Descarga el estado previo a una restauración, cambio de conexión o vaciado.', 'recuperacion', '', 'Descargar anterior')
+      + accion(I.up, 'Restaurar copia', 'Valida y fusiona un JSON. Los borrados también se restauran; guarda una copia previa automáticamente.', 'impbak', '', 'Seleccionar JSON')
     + '</div>'
 
     /* ---- importar y exportar ---- */
@@ -164,7 +172,12 @@ function paintDb(){
   };
   on('cfg', pantallaSync);
   on('sync', function(){ sincronizarAhora(); toast('Sincronizando…'); });
+  on('almacen', function(){
+    if(!navigator.storage || !navigator.storage.persist){ toast('Este navegador no permite solicitarlo; descarga una copia periódicamente'); return; }
+    navigator.storage.persist().then(function(ok){ toast(ok ? 'Almacenamiento persistente activado' : 'El navegador no lo ha concedido; conserva una copia descargada'); }).catch(function(){ toast('No se pudo solicitar almacenamiento persistente', true); });
+  });
   on('bak', exportBackup);
+  on('recuperacion', exportarRecuperacion);
   on('impbak', function(){ document.getElementById('fileBak').click(); });
   on('csv', function(){ document.getElementById('fileCsv').click(); });
   on('expcsv', exportarCsv);
@@ -199,9 +212,12 @@ function paintDb(){
   });
   var w = box.querySelector('#wipe');
   if(w) w.onclick = function(){
+    if(readOnly || configuracionEnCurso || pullPromiseActual || pushPromiseActual){ toast('Conecta y espera a que termine la sincronización', true); return; }
     if(confirm('¿Eliminar los ' + DB.discos.length + ' discos?')){
-      guardarDeshacer(DB.discos.slice(), 'vaciar la colección');
-      DB.discos = []; persist(); toast('Colección vaciada');
+      crearPuntoRecuperacion('Antes de vaciar la colección').then(function(){
+        guardarDeshacer(DB.discos.slice(), 'vaciar la colección');
+        DB.discos = []; persist(); toast('Colección vaciada');
+      }).catch(function(){ toast('No se ha vaciado: no se pudo guardar la copia previa', true); });
     }
   };
   var cf = box.querySelector('#copiarFallos');

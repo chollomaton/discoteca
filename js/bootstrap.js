@@ -1,3 +1,14 @@
+/* CSP sin scripts inline: acciones de imagen limitadas a esta lista. */
+document.addEventListener('error', function(e){
+  var img = e.target;
+  if(!img || img.tagName !== 'IMG') return;
+  if(img.dataset.imgRetry){ window.reintentarImg(img, img.dataset.imgRetry); return; }
+  var accion = img.dataset.imgError;
+  if(accion === 'remove') img.remove();
+  else if(accion === 'dim') img.style.opacity = '.15';
+  else if(accion === 'hide') img.style.visibility = 'hidden';
+  else if(accion === 'fail' && img.parentNode) img.parentNode.classList.add('falla');
+}, true);
 /* ============================================================
    14. EVENTOS
    ============================================================ */
