@@ -19,7 +19,8 @@ function montarEventos(){
     var mq = window.matchMedia('(prefers-color-scheme: dark)');
     if(mq.addEventListener) mq.addEventListener('change', function(){ if(temaActual() === 'auto') aplicarTema('auto'); });
   }
-  montarAyudas(document);
+  montarAccesibilidad();
+  setView(view);
   byId('btnAdd').onclick = function(){ openForm(null); };
   byId('btnAddMob').onclick = function(){ openForm(null); };
   byId('qClear').onclick = function(){

@@ -381,8 +381,11 @@ function paintNav(){
 }
 function setView(v){
   view = v;
-  document.querySelectorAll('#tabs button').forEach(function(b){ b.className = b.dataset.v === v ? 'on' : ''; });
-  document.querySelectorAll('#tabbar button[data-v]').forEach(function(b){ b.className = b.dataset.v === v ? 'on' : ''; });
+  document.querySelectorAll('#tabs button, #tabbar button[data-v]').forEach(function(b){
+    b.className = b.dataset.v === v ? 'on' : '';
+    if(b.dataset.v === v) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
   ['col','wish','stats','db'].forEach(function(x){ document.getElementById('v-' + x).className = 'view' + (x === v ? ' on' : ''); });
   document.getElementById('azbar').style.display = (v === 'col') ? '' : 'none';
   window.scrollTo({top:0, behavior:'smooth'});
@@ -1158,18 +1161,20 @@ function buscarInteligente(q){
   return out;
 }
 function abrirPaleta(){
+  if(document.querySelector('.pal')) return;
+  var origen = document.activeElement;
   var p = document.createElement('div');
   p.className = 'pal';
   var tactil = window.matchMedia && window.matchMedia('(hover: none)').matches;
   p.innerHTML = '<div class="palbox"><div class="palin">' + I.search
-    + '<input id="pq" placeholder="Disco, artista, canción, 1987, Geffen…" autocomplete="off">'
+    + '<input id="pq" role="combobox" aria-label="Buscar en la colección" aria-autocomplete="list" aria-expanded="true" aria-controls="pres" placeholder="Disco, artista, canción, 1987, Geffen…" autocomplete="off">'
     + '<button type="button" class="palx" id="palCerrar" aria-label="Cerrar">' + I.x + '</button></div>'
-    + '<div class="palres" id="pres"></div>'
+    + '<div class="palres" id="pres" role="listbox" aria-label="Resultados y acciones"></div>'
     + (tactil ? '<div class="palhint"><span>Toca fuera para cerrar</span></div>'
       : '<div class="palhint"><span>↑↓ moverse</span><span>↵ abrir</span><span>esc cerrar</span></div>') + '</div>';
   document.body.appendChild(p);
   var inp = p.querySelector('#pq'), res = p.querySelector('#pres'), sel = 0, items = [];
-  var cerrarPal = function(){ p.remove(); };
+  var cerrarPal = cerrar;
   p.querySelector('#palCerrar').onclick = cerrarPal;
   p.addEventListener('click', function(e){ if(e.target === p) cerrarPal(); });
   var acciones = [
@@ -1234,18 +1239,20 @@ function abrirPaleta(){
       var img = it.img
         ? '<img src="' + esc(it.img) + '" alt="" data-img-error="hide">'
         : '<div class="phb">' + (it.i || I.music) + '</div>';
-      return '<div class="palrow' + (i === 0 ? ' sel' : '') + '" data-i="' + i + '">' + img
+      return '<div class="palrow' + (i === 0 ? ' sel' : '') + '" role="option" id="pal-option-' + i + '" aria-selected="' + (i === 0) + '" data-i="' + i + '">' + img
         + '<div class="txt"><div class="t">' + esc(it.t) + '</div><div class="s">' + esc(it.s || '') + '</div></div>'
         + '<span class="k">' + esc(it.k || '') + '</span></div>';
     }).join('') || '<div class="tl-empty">Sin resultados</div>';
+    marca();
     res.querySelectorAll('.palrow').forEach(function(r){
       r.onclick = function(){ ejecutar(+r.dataset.i); };
     });
   }
   function marca(){
-    res.querySelectorAll('.palrow').forEach(function(r, i){ r.className = 'palrow' + (i === sel ? ' sel' : ''); });
+    res.querySelectorAll('.palrow').forEach(function(r, i){ r.className = 'palrow' + (i === sel ? ' sel' : ''); r.setAttribute('aria-selected', String(i === sel)); });
     var el = res.querySelectorAll('.palrow')[sel];
-    if(el) el.scrollIntoView({block:'nearest'});
+    if(el){ inp.setAttribute('aria-activedescendant', el.id); el.scrollIntoView({block:'nearest'}); }
+    else inp.removeAttribute('aria-activedescendant');
   }
   function ejecutar(i){
     var it = items[i];
@@ -1254,9 +1261,14 @@ function abrirPaleta(){
     if(it.run) it.run();
     else if(it.d) openDetail(it.d.id);
   }
-  function cerrar(){ p.remove(); document.removeEventListener('keydown', tecla, true); }
+  function cerrar(){ p.remove(); document.removeEventListener('keydown', tecla, true); if(origen && origen.isConnected) origen.focus(); }
   function tecla(e){
-    if(e.key === 'Escape'){ e.preventDefault(); cerrar(); }
+    if(e.key === 'Escape'){ e.preventDefault(); e.stopImmediatePropagation(); cerrar(); }
+    else if(e.key === 'Tab'){
+      e.preventDefault(); e.stopImmediatePropagation();
+      (document.activeElement === inp ? p.querySelector('#palCerrar') : inp).focus();
+    }
+    else if(e.target !== inp) return;
     else if(e.key === 'ArrowDown'){ e.preventDefault(); sel = Math.min(sel + 1, items.length - 1); marca(); }
     else if(e.key === 'ArrowUp'){ e.preventDefault(); sel = Math.max(sel - 1, 0); marca(); }
     else if(e.key === 'Enter'){ e.preventDefault(); ejecutar(sel); }
@@ -1384,6 +1396,7 @@ function lightbox(url){
   if(!url) return;
   var big = urlSegura(url.indexOf('mzstatic') >= 0 ? artBig(url.replace(/\d+x\d+bb/, '100x100bb'), 1200)
     : url.replace('/front-500', '/front-1200').replace('/front-250', '/front-1200')) || url;
+  var origen = document.activeElement;
   var l = document.createElement('div');
   l.className = 'lightbox';
   /* construido por DOM, no con un onerror inline metido dentro de una
@@ -1395,11 +1408,12 @@ function lightbox(url){
   l.appendChild(img);
   l.setAttribute('role', 'dialog');
   l.setAttribute('aria-modal', 'true');
+  l.setAttribute('aria-label', 'Portada ampliada');
   l.tabIndex = -1;
-  var cerrar = function(){ l.remove(); document.removeEventListener('keydown', onKey); };
+  var cerrar = function(){ l.remove(); document.removeEventListener('keydown', onKey, true); if(origen && origen.isConnected) origen.focus(); };
   l.onclick = cerrar;
-  var onKey = function(e){ if(e.key === 'Escape') cerrar(); };
-  document.addEventListener('keydown', onKey);
+  var onKey = function(e){ if(e.key === 'Escape'){ e.preventDefault(); e.stopImmediatePropagation(); cerrar(); } else if(e.key === 'Tab'){ e.preventDefault(); l.focus(); } };
+  document.addEventListener('keydown', onKey, true);
   document.body.appendChild(l);
   l.focus();
 }

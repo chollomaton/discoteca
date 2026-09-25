@@ -5,7 +5,7 @@ import fs from 'node:fs';import path from 'node:path';import assert from 'node:a
 const root=path.resolve('.visual-check'),outputs=path.resolve('visual-results');
 fs.mkdirSync(root,{recursive:true});fs.mkdirSync(outputs,{recursive:true});
 const {execFileSync}=await import('node:child_process');
-for(const [name,ref] of [['baseline','28017f62c3645b412bd2fcb3103d41329bfcedc7'],['discoteca','HEAD']]){
+for(const [name,ref] of [['baseline','01a559fa228133bf33e1c4327810e07bf767ec88'],['discoteca','HEAD']]){
  const dest=path.join(root,name);fs.mkdirSync(dest,{recursive:true});
  const archive=execFileSync('git',['archive',ref],{maxBuffer:20*1024*1024});
  execFileSync('tar',['-x','-C',dest],{input:archive});

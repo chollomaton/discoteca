@@ -10,7 +10,7 @@ var configuracionEnCurso = false;
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.25-phase10.2';
+var VERSION = '2026.09.25-phase10.3';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var firmasCampos = {};        // id -> firmas por campo, para sincronización granular
 var view = 'col';
@@ -432,13 +432,16 @@ function aplicarTema(t){
 var cajaAyuda = null, tempAyuda = null;
 function montarAyudas(raiz){
   (raiz || document).querySelectorAll('[data-tip]').forEach(function(el){
+    if(el.dataset.nombreAyuda === '1' || (!el.hasAttribute('aria-label') && !el.hasAttribute('aria-labelledby') && !el.textContent.trim())){
+      el.setAttribute('aria-label', el.dataset.tip); el.dataset.nombreAyuda = '1';
+    }
     if(el.dataset.tipListo) return;
     el.dataset.tipListo = '1';
     /* data-tip solo se ve al pasar el ratón: para quien navega con teclado o
        lector de pantalla, un botón sin texto y sin aria-label es un icono
        mudo. Si no tiene ya un nombre accesible propio, se usa el mismo texto
        de la ayuda visual -no hace falta duplicarlo a mano en cada sitio-. */
-    if(!el.hasAttribute('aria-label') && !el.textContent.trim()) el.setAttribute('aria-label', el.dataset.tip);
+
     el.addEventListener('mouseenter', function(){
       if(window.matchMedia && window.matchMedia('(hover: none)').matches) return;
       clearTimeout(tempAyuda);
@@ -497,7 +500,35 @@ window.addEventListener('unhandledrejection', function(e){
   apuntarFallo('promesa', m, '');
 });
 
+var avisosAccesibles = {};
+function anunciarEstado(canal, msg){
+  var estado = avisosAccesibles[canal];
+  if(!estado){
+    var region = document.createElement('div');
+    region.className = 'sr-only'; region.setAttribute('role', 'status');
+    region.setAttribute('aria-live', 'polite'); region.setAttribute('aria-atomic', 'true');
+    document.body.appendChild(region);
+    estado = avisosAccesibles[canal] = {region:region, texto:''};
+  }
+  if(estado.texto === msg) return;
+  estado.texto = msg;
+  clearTimeout(estado.timer);
+  estado.timer = setTimeout(function(){ estado.region.textContent = msg; }, 350);
+}
+function montarAccesibilidad(){
+  function actualizar(){
+    montarAyudas(document);
+    document.querySelectorAll('.seg button').forEach(function(b){
+      b.setAttribute('aria-pressed', String(b.classList.contains('on')));
+    });
+  }
+  actualizar();
+  new MutationObserver(actualizar).observe(document.body, {
+    childList:true, subtree:true, attributes:true, attributeFilter:['class','data-tip']
+  });
+}
 function toast(msg, err){
+  anunciarEstado('aviso', msg);
   var old = document.querySelectorAll('.toast');
   for(var i = 0; i < old.length; i++) old[i].remove();
   var t = document.createElement('div');
@@ -751,6 +782,8 @@ function pintarSync(){
     local: 'Solo en este equipo', ok: 'Al día', pend: 'Pendiente de subir',
     busy: 'Sincronizando…', err: 'Error de sincronía', off: 'Sin conexión'
   };
+  if(pintarSync.ultimo !== undefined && pintarSync.ultimo !== syncState) anunciarEstado('sync', textos[syncState] || '');
+  pintarSync.ultimo = syncState;
   b.className = 'sync ' + syncState;
   t.textContent = syncMsg || textos[syncState] || '';
   b.title = lastSync ? 'Última sincronización: ' + fdate(lastSync) : 'Pulsa para configurar la sincronización';
