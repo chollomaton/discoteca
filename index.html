@@ -1732,7 +1732,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.19-revision8';
+var VERSION = '2026.09.25-phase1';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var view = 'col';
 var fType = 'all', fGen = '', fArt = '', fTag = '', fDec = '', fPais = '', fSello = '';
@@ -2844,17 +2844,47 @@ function pantallaSync(){
       subirADiscogs: $('#sSubir') ? $('#sSubir').checked : false, auto: true
     };
   };
+  /* Diagnóstico por etapas: primero repositorio, luego rama y solo al final
+     datos.json. Un 404 ya no se interpreta automáticamente como "archivo no
+     existe", porque también puede significar repo/rama mal escritos o token
+     sin acceso. */
   var probar = function(cfg){
-    var url = GH + encodeURIComponent(cfg.owner) + '/' + encodeURIComponent(cfg.repo) + '/contents/'
-      + cfg.path.split('/').map(encodeURIComponent).join('/') + '?ref=' + encodeURIComponent(cfg.branch);
-    return fetch(url, {headers:{'Authorization':'Bearer ' + cfg.token, 'Accept':'application/vnd.github+json'}})
-      .then(function(r){
-        if(r.status === 200) return {ok:true, existe:true};
-        if(r.status === 404) return {ok:true, existe:false};
-        if(r.status === 401) throw new Error('El token no es válido');
-        if(r.status === 403) throw new Error('El token no tiene permiso sobre ese repositorio');
-        throw new Error('Respuesta ' + r.status + ' de GitHub');
+    var base = GH + encodeURIComponent(cfg.owner) + '/' + encodeURIComponent(cfg.repo);
+    var headers = {'Authorization':'Bearer ' + cfg.token, 'Accept':'application/vnd.github+json'};
+    var errorComun = function(r, que){
+      if(r.status === 401) throw new Error('El token de GitHub no es válido o ha caducado');
+      if(r.status === 403) throw new Error('El token no tiene permisos suficientes para ' + que);
+      throw new Error('GitHub respondió con HTTP ' + r.status + ' al comprobar ' + que);
+    };
+    return fetch(base, {headers:headers, cache:'no-store'}).then(function(r){
+      if(r.status === 404){
+        /* En un repositorio público esta segunda petición permite distinguir
+           "repo existe pero el token no tiene acceso" de "repo no existe".
+           En uno privado GitHub oculta deliberadamente esa diferencia. */
+        return fetch(base, {headers:{'Accept':'application/vnd.github+json'}, cache:'no-store'}).then(function(pub){
+          if(pub.ok) throw new Error('El repositorio existe, pero este token no tiene acceso a él');
+          throw new Error('No se encuentra el repositorio ' + cfg.owner + '/' + cfg.repo + ' o el token no tiene acceso');
+        });
+      }
+      if(!r.ok) return errorComun(r, 'el repositorio');
+      return r.json().then(function(repo){
+        if(repo.archived) throw new Error('El repositorio está archivado y no admite cambios');
+        if(repo.permissions && repo.permissions.push === false) throw new Error('Tu cuenta no tiene permiso de escritura en este repositorio');
+        var rama = base + '/branches/' + encodeURIComponent(cfg.branch);
+        return fetch(rama, {headers:headers, cache:'no-store'});
       });
+    }).then(function(r){
+      if(r.status === 404) throw new Error('La rama "' + cfg.branch + '" no existe en ese repositorio');
+      if(!r.ok) return errorComun(r, 'la rama ' + cfg.branch);
+      var archivo = base + '/contents/' + cfg.path.split('/').map(encodeURIComponent).join('/')
+        + '?ref=' + encodeURIComponent(cfg.branch);
+      return fetch(archivo, {headers:headers, cache:'no-store'});
+    }).then(function(r){
+      if(r.status === 200) return {ok:true, existe:true};
+      if(r.status === 404) return {ok:true, existe:false};
+      if(!r.ok) return errorComun(r, 'el archivo ' + cfg.path);
+      return {ok:true, existe:true};
+    });
   };
   $('#sProbar').onclick = function(){
     var cfg = leer();
