@@ -2513,7 +2513,8 @@ function fusionar(locales, borrLoc, remotos, borrRem){
     var etq = {};
     (l.etiquetas || []).concat(r.etiquetas || []).forEach(function(t){ if(t) etq[t] = 1; });
     elegido.etiquetas = Object.keys(etq).sort();
-    mods.etiquetas = marcaMasReciente(marcaCampo(l, 'etiquetas'), marcaCampo(r, 'etiquetas'));
+    if(!valoresIguales(l.etiquetas || [], r.etiquetas || []))
+      mods.etiquetas = marcaMasReciente(marcaCampo(l, 'etiquetas'), marcaCampo(r, 'etiquetas'));
 
     /* Las protecciones manuales también son acumulativas: editar "país" en un
        dispositivo y "catálogo" en otro debe conservar ambas protecciones. */
@@ -2521,7 +2522,8 @@ function fusionar(locales, borrLoc, remotos, borrRem){
     Object.keys(r.editado || {}).forEach(function(k){
       if((r.editado || {})[k]) elegido.editado[k] = r.editado[k];
     });
-    mods.editado = marcaMasReciente(marcaCampo(l, 'editado'), marcaCampo(r, 'editado'));
+    if(!valoresIguales(l.editado || {}, r.editado || {}))
+      mods.editado = marcaMasReciente(marcaCampo(l, 'editado'), marcaCampo(r, 'editado'));
 
     /* Escuchas: unión de días + máximo histórico. Antes el máximo solo se
        recalculaba cuando aparecía una fecha nueva; con las mismas fechas una
@@ -2535,7 +2537,8 @@ function fusionar(locales, borrLoc, remotos, borrRem){
       .filter(Boolean).sort();
     elegido.ultimaEscucha = ultimas.length ? ultimas[ultimas.length - 1] : '';
     ['escuchasFechas','escuchas','ultimaEscucha'].forEach(function(k){
-      mods[k] = marcaMasReciente(marcaCampo(l, k), marcaCampo(r, k));
+      if(!valoresIguales(l[k], r[k]))
+        mods[k] = marcaMasReciente(marcaCampo(l, k), marcaCampo(r, k));
     });
 
     /* Una sola marca base para los campos sin excepción. Si ambos lados ya
