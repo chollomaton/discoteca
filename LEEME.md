@@ -4,7 +4,7 @@ Catálogo de vinilos y CDs que funciona igual en el Mac y en el iPhone, con los 
 guardados en tu propio repositorio de GitHub. Sin servidor propio: la aplicación es
 un único archivo, y tu colección se sincroniza como un `datos.json` en GitHub.
 
-**Versión de esta entrega:** 2026.09.25-phase4.1 — se comprueba en Ajustes, al final de todo.
+**Versión de esta entrega:** 2026.09.25-phase4.2 — se comprueba en Ajustes, al final de todo.
 
 ## Archivos de la aplicación
 
@@ -40,7 +40,7 @@ El botón «Actualizar» activa el service worker nuevo y recarga usando exclusi
 
 ### Apple Music 2.0
 
-La colección incluye ahora una portada visual inspirada en Apple Music: recomendación diaria calculada solo con tu propia colección, accesos a «Qué escucho ahora» y Radar, carruseles de recién añadidos y discos para volver a escuchar. La ficha de un álbum usa en escritorio una composición más amplia con portada a la izquierda y metadatos/acciones a la derecha; en iPhone conserva la navegación de pantalla completa y el diseño vertical.
+La colección mantiene la estética Apple Music, pero vuelve a dar protagonismo inmediato a las portadas. En la parte superior solo hay tres accesos compactos: «Qué escucho ahora», «Recién añadidos» y «Vuelve a ponerlos». Los dos últimos abren su contenido únicamente al pulsarlos. «Recomendado para hoy» queda integrado dentro de «Qué escucho ahora», junto a la selección por tiempo. Radar vuelve a Ajustes, dentro de «Salud de la colección». La ficha de un álbum mantiene en escritorio la composición amplia con portada a la izquierda y metadatos/acciones a la derecha; en iPhone conserva la navegación de pantalla completa y el diseño vertical.
 
 ---
 
