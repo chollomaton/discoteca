@@ -2,24 +2,29 @@
 
 Catálogo de vinilos y CDs que funciona igual en el Mac y en el iPhone, con los datos
 guardados en tu propio repositorio de GitHub. Sin servidor propio: la aplicación es
-un único archivo, y tu colección se sincroniza como un `datos.json` en GitHub.
+una PWA estática modular, y tu colección se sincroniza como un `datos.json` en GitHub.
 
-**Versión de esta entrega:** 2026.09.25-phase4.2 — se comprueba en Ajustes, al final de todo.
+**Versión de esta entrega:** 2026.09.25-phase5 — se comprueba en Ajustes, al final de todo.
 
 ## Archivos de la aplicación
 
 | Archivo | Para qué sirve |
 |---|---|
-| `index.html` | La aplicación completa |
+| `index.html` | Shell HTML: estructura y puntos de montaje de la interfaz |
+| `styles.css` | Todos los estilos visuales y adaptaciones Mac/iPhone |
+| `js/core.js` | Estado global, utilidades, almacenamiento, persistencia y sincronización base |
+| `js/library.js` | Importación/exportación, colección, fichas y formularios |
+| `js/features.js` | Funciones de enriquecimiento y herramientas sobre discos |
+| `js/insights.js` | Máquina del tiempo, listas inteligentes y recomendaciones |
+| `js/stats.js` | Gráficos y estadísticas |
+| `js/settings.js` | Ajustes, mantenimiento y salud de la colección |
+| `js/bootstrap.js` | Eventos, service worker y arranque de la aplicación |
 | `manifest.webmanifest` | Permite instalarla con su icono |
 | `sw.js` | Hace que abra al instante y funcione sin cobertura |
-| `icon-192-v2.png`, `icon-512-v2.png`, `icon-512-maskable.png`, `apple-touch-icon-v2.png` | Iconos. El `-maskable` es una variante especial para Android: con fondo que llena todo el icono, para que no se vea recortado en los lanzadores que le aplican su propia forma (círculo, "squircle"...) |
-| `zxing-0.21.3.js` | El lector de códigos de barras del escáner. Antes se traía de un servicio externo cada vez que se abría; ahora vive en tu propio repositorio, así tu app no depende de nada de fuera para escanear |
+| `icon-192-v2.png`, `icon-512-v2.png`, `icon-512-maskable.png`, `apple-touch-icon-v2.png` | Iconos PWA |
+| `zxing-0.21.3.js` | Lector local de códigos de barras |
 
-Estos son los **ocho archivos** que la aplicación necesita de verdad para funcionar, y los
-que hay que subir juntos cada vez que actualizas. **Este ZIP de actualización no incluye
-`datos.json`**, precisamente para no sobrescribir tu colección — no lo eches en falta ni lo
-esperes dentro del paquete.
+La aplicación sigue siendo **vanilla JavaScript y estática**: no hay React, Vue, Next, bundler ni servidor propio. La Fase 5 solo separa responsabilidades para que tocar una zona de la app no obligue a editar un archivo gigante. `datos.json` sigue siendo independiente y no forma parte del código de la aplicación.
 
 **`datos.json`** es aparte: contiene tu colección (206 discos en colección y 14 en deseos)
 y es el único archivo que se sincroniza solo, en cada cambio. No se incluye en los ZIP de
@@ -30,9 +35,13 @@ falta subirlo a GitHub, pero tampoco pasa nada si lo subes también.
 
 Los iconos antiguos ya no forman parte del repositorio. Los únicos iconos de la app son los cuatro indicados arriba.
 
+### Arquitectura modular (Fase 5)
+
+`index.html` ya no contiene cientos de kilobytes de CSS y JavaScript. Queda reducido a la estructura HTML y carga archivos separados por responsabilidad. Los scripts siguen siendo clásicos y comparten el mismo ámbito global, de modo que la modularización no cambia el modelo de ejecución ni introduce una migración de framework. El orden de carga está fijado y protegido por CI.
+
 ### Validación automática
 
-El repositorio incluye `.github/workflows/validate.yml`, `scripts/validate.mjs`, `scripts/sync-tests.mjs` y `scripts/quality-tests.mjs`. GitHub ejecuta estas comprobaciones en cada pull request y en cada cambio que llega a `main`: sintaxis del JavaScript, manifest y service worker, assets PWA, coherencia de versión, integridad básica de `datos.json`, reglas de caché y regresiones críticas ya sufridas por la app. La batería de sincronización simula además dos dispositivos: ediciones concurrentes en campos distintos, etiquetas, protecciones manuales, escuchas, borrados y compatibilidad con versiones antiguas. La batería de calidad prueba los niveles del Detective y la detección de estados de revisión desactualizados del Radar. Si alguna falla, el cambio no debe publicarse hasta corregirla.
+El repositorio incluye `.github/workflows/validate.yml` y las baterías `validate.mjs`, `sync-tests.mjs`, `quality-tests.mjs`, `design-tests.mjs`, `pwa-update-tests.mjs` y `module-tests.mjs`. GitHub ejecuta estas comprobaciones en cada pull request y en cada cambio que llega a `main`: sintaxis de todos los módulos JavaScript, orden de carga, separación del CSS, manifest y service worker, assets PWA, coherencia de versión, integridad básica de `datos.json`, reglas de caché y regresiones críticas ya sufridas por la app. La batería de sincronización simula además dos dispositivos: ediciones concurrentes en campos distintos, etiquetas, protecciones manuales, escuchas, borrados y compatibilidad con versiones antiguas. La batería de calidad prueba los niveles del Detective y la detección de estados de revisión desactualizados del Radar. Si alguna falla, el cambio no debe publicarse hasta corregirla.
 
 ### Actualización PWA fiable
 
