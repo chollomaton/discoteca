@@ -4,7 +4,7 @@ Catálogo de vinilos y CDs que funciona igual en el Mac y en el iPhone, con los 
 guardados en tu propio repositorio de GitHub. Sin servidor propio: la aplicación es
 un único archivo, y tu colección se sincroniza como un `datos.json` en GitHub.
 
-**Versión de esta entrega:** 2026.09.25-phase4 — se comprueba en Ajustes, al final de todo.
+**Versión de esta entrega:** 2026.09.25-phase4.1 — se comprueba en Ajustes, al final de todo.
 
 ## Archivos de la aplicación
 
@@ -33,6 +33,10 @@ Los iconos antiguos ya no forman parte del repositorio. Los únicos iconos de la
 ### Validación automática
 
 El repositorio incluye `.github/workflows/validate.yml`, `scripts/validate.mjs`, `scripts/sync-tests.mjs` y `scripts/quality-tests.mjs`. GitHub ejecuta estas comprobaciones en cada pull request y en cada cambio que llega a `main`: sintaxis del JavaScript, manifest y service worker, assets PWA, coherencia de versión, integridad básica de `datos.json`, reglas de caché y regresiones críticas ya sufridas por la app. La batería de sincronización simula además dos dispositivos: ediciones concurrentes en campos distintos, etiquetas, protecciones manuales, escuchas, borrados y compatibilidad con versiones antiguas. La batería de calidad prueba los niveles del Detective y la detección de estados de revisión desactualizados del Radar. Si alguna falla, el cambio no debe publicarse hasta corregirla.
+
+### Actualización PWA fiable
+
+El botón «Actualizar» activa el service worker nuevo y recarga usando exclusivamente la caché de esa versión. Así se evita que, durante unos instantes tras `skipWaiting()`, una caché antigua pueda volver a servir el `index.html` anterior y obligar a recargar varias veces.
 
 ### Apple Music 2.0
 
