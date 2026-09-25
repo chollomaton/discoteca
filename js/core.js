@@ -10,7 +10,7 @@ var configuracionEnCurso = false;
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.25-phase7';
+var VERSION = '2026.09.25-phase8';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var firmasCampos = {};        // id -> firmas por campo, para sincronización granular
 var view = 'col';
@@ -2580,3 +2580,18 @@ async function bulkRun(lista){
 }
 
 
+
+/* Feedback puntual: un único efecto por elemento, sin animación en movimiento reducido. */
+function microFeedback(el, tipo){
+  if(!el || typeof el.animate !== 'function') return;
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if(el._microFeedback) el._microFeedback.cancel();
+  var frames = tipo === 'reveal'
+    ? [{opacity:.65, transform:'translateY(3px)'}, {opacity:1, transform:'translateY(0)'}]
+    : [{transform:'scale(1)'}, {transform:'scale(1.12)', offset:.45}, {transform:'scale(1)'}];
+  var animation = el.animate(frames, {duration:tipo === 'reveal' ? 180 : 240, easing:'ease-out', iterations:1});
+  el._microFeedback = animation;
+  animation.onfinish = animation.oncancel = function(){
+    if(el._microFeedback === animation) el._microFeedback = null;
+  };
+}
