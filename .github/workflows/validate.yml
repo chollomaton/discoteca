@@ -74,9 +74,15 @@ jobs:
       - name: Comparar 10.1 y 10.2 en escritorio y móvil
         run: node scripts/step10-2-browser.mjs
 
+      - name: Probar accesibilidad en escritorio y móvil
+        run: node scripts/accessibility-tests.mjs
+
+      - name: Comparar 10.2 y 10.3 en escritorio y móvil
+        run: node scripts/step10-3-browser.mjs
+
       - name: Guardar capturas de comparación
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: paso10-2-comparacion-visual
+          name: paso10-3-comparacion-visual
           path: visual-results/

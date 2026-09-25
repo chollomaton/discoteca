@@ -10,7 +10,7 @@ function estrellaSVG(llena){
 function estrellasHtml(n, grande, id){
   var v = Number(n) || 0, out = '<span class="stars' + (grande ? ' big' : '') + '"' + (id ? ' data-rate="' + id + '"' : '') + '>';
   for(var i = 1; i <= 5; i++){
-    out += grande ? '<span data-v="' + i + '" role="button" aria-label="' + i + ' estrellas">' + estrellaSVG(i <= v) + '</span>'
+    out += grande ? '<span data-v="' + i + '" role="button" tabindex="0" aria-pressed="' + (i === v) + '" aria-label="' + i + ' estrellas">' + estrellaSVG(i <= v) + '</span>'
                   : estrellaSVG(i <= v);
   }
   return out + '</span>';
@@ -19,12 +19,17 @@ var TEXTO_VALORACION = ['Sin valorar', 'Flojo', 'Correcto', 'Bueno', 'Muy bueno'
 function montarEstrellas(caja, d, alCambiar){
   if(!caja) return;
   caja.querySelectorAll('[data-v]').forEach(function(el){
+    el.onkeydown = function(e){
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); el.click(); }
+    };
     el.onclick = function(){
+      var conFoco = document.activeElement === el;
       var v = +el.dataset.v;
       d.valoracion = (d.valoracion === v) ? 0 : v;
       persist(true);
-      caja.innerHTML = estrellasHtml(d.valoracion, true, d.id).replace(/^<span class="stars big"[^>]*>|<\/span>$/g, '');
+      caja.innerHTML = estrellasHtml(d.valoracion, true, d.id);
       montarEstrellas(caja, d, alCambiar);
+      if(conFoco) caja.querySelector('[data-v="' + v + '"]').focus();
       if(alCambiar) alCambiar(d.valoracion);
     };
   });
