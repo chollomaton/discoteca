@@ -72,20 +72,28 @@ try{
     const initialTiles=await page.locator('.tile').count();
     assert(initialTiles>0&&initialTiles<=160,`render inicial acotado ${size}: ${initialTiles}`);
 
-    // Ejercita búsqueda, restauración y un repintado real sin materializar 5000 nodos.
+    // Busca por el título sintético inequívoco del primer disco. Esperamos al
+    // resultado en vez de usar una pausa fija: CI puede procesar el input más lento.
     const search=page.locator('#q');
     if(await search.count()){
-      await search.fill('Artista 1');
-      await page.waitForTimeout(100);
+      await search.fill('Álbum 0');
+      await page.waitForFunction(()=>{
+        const tiles=[...document.querySelectorAll('.tile')];
+        return tiles.length>0 && tiles.some(t=>(t.textContent||'').includes('Álbum 0'));
+      },null,{timeout:5000});
       assert(await page.locator('.tile').count()>0,`búsqueda ${size}`);
       await search.fill('');
-      await page.waitForTimeout(100);
+      await page.waitForFunction(()=>document.querySelectorAll('.tile').length>0,null,{timeout:5000});
     }
+    const rerenderStarted=Date.now();
     await page.evaluate(()=>{ if(typeof setView==='function') setView('col'); if(typeof paintCol==='function') paintCol(); });
     await page.waitForSelector('.tile',{timeout:30000});
+    const rerenderElapsed=Date.now()-rerenderStarted;
+    const rerenderTiles=await page.locator('.tile').count();
+    assert(rerenderTiles>0&&rerenderTiles<=160,`rerender acotado ${size}: ${rerenderTiles}`);
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`sin overflow tras rerender ${size}`);
     assert.deepEqual(errors,[],`sin errores tras interacción ${size}`);
-    console.log(`✓ escala ${size}: ${elapsed} ms, ${initialTiles} nodos iniciales, búsqueda/rerender OK, semilla ${(serialized.length/1024).toFixed(0)} KiB`);
+    console.log(`✓ escala ${size}: carga ${elapsed} ms, rerender ${rerenderElapsed} ms, ${initialTiles}/${rerenderTiles} nodos, búsqueda OK, semilla ${(serialized.length/1024).toFixed(0)} KiB`);
     await context.close();
   }
 }finally{
