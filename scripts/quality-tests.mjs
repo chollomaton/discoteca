@@ -74,9 +74,9 @@ const c2=vm.createContext({
   console, JSON, Date, Math, Number, String, Object, Array,
   localStorage:{getItem:()=> '{}',setItem:()=>{}},
   hayDiscogs:()=>true,
-  DB:{discos:[]},
-  coleccion(){return this.DB.discos.filter(d=>d.lista!=='deseos');}
+  DB:{discos:[]}
 });
+c2.coleccion=()=>c2.DB.discos.filter(d=>d.lista!=='deseos');
 vm.runInContext(slice("function faltaEsencial","function pantallaRevision"),c2);
 vm.runInContext(slice("function faltanCalculadosTexto","function radarColeccion"),c2);
 
