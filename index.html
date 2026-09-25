@@ -145,52 +145,50 @@ select:focus-visible,textarea:focus-visible,.lightbox:focus-visible{
 @keyframes fadeup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
 
-/* ---------- Apple Music 2.0 · portada de colección ---------- */
-.music-home{margin:2px 0 24px}
-.mh-title{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin:0 0 15px}
-.mh-title h2{font-size:31px;line-height:1.06;letter-spacing:-.045em;margin:0;font-weight:750}
-.mh-title p{font-size:13.5px;color:var(--txt2);margin:5px 0 0}
-.mh-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.mh-action{border:none;background:var(--fill);color:var(--txt);font-family:inherit;font-size:13.5px;font-weight:600;
-  border-radius:999px;padding:9px 13px;display:inline-flex;align-items:center;gap:7px;cursor:pointer;
-  transition:transform .14s var(--ease),background .2s var(--ease)}
-.mh-action:hover{background:var(--fill2)}.mh-action:active{transform:scale(.96)}
-.mh-action.pri{background:var(--blue);color:#fff}.mh-action.pri:hover{background:var(--blue-h)}
-.mh-action .ic{width:15px;height:15px}
-.mh-feature{position:relative;min-height:286px;border-radius:26px;overflow:hidden;background:var(--elev);
-  box-shadow:var(--sh2);display:grid;grid-template-columns:minmax(260px,.88fr) minmax(0,1.12fr);margin-bottom:23px}
-.mh-feature-bg{position:absolute;inset:-28px;background-size:cover;background-position:center;filter:blur(34px) saturate(1.25);
-  transform:scale(1.12);opacity:.34}
-.mh-feature::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,
-  color-mix(in srgb,var(--elev) 94%,transparent) 0%,color-mix(in srgb,var(--elev) 82%,transparent) 46%,color-mix(in srgb,var(--elev) 28%,transparent) 100%)}
-.mh-feature-copy,.mh-feature-art{position:relative;z-index:1}
-.mh-feature-copy{display:flex;flex-direction:column;justify-content:center;padding:30px 10px 30px 32px;min-width:0}
-.mh-kicker{font-size:11.5px;text-transform:uppercase;letter-spacing:.085em;font-weight:750;color:var(--blue);margin-bottom:7px}
-.mh-feature-copy h3{font-size:29px;line-height:1.08;letter-spacing:-.04em;margin:0;max-width:14ch}
-.mh-feature-copy .artist{font-size:15.5px;color:var(--txt2);margin-top:7px;font-weight:550}
-.mh-feature-copy .sub{font-size:13px;color:var(--txt3);margin-top:10px;line-height:1.4;max-width:38ch}
-.mh-feature-buttons{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
-.mh-feature-art{display:flex;align-items:center;justify-content:center;padding:27px 34px 27px 18px}
-.mh-feature-art .cover{width:min(250px,100%);aspect-ratio:1;border-radius:18px;overflow:hidden;background:var(--fill);
-  box-shadow:0 24px 60px rgba(0,0,0,.24);cursor:pointer;transition:transform .28s var(--ease),box-shadow .28s var(--ease)}
-.mh-feature-art .cover:hover{transform:translateY(-5px) scale(1.02);box-shadow:0 30px 70px rgba(0,0,0,.3)}
-.mh-feature-art .cover>*{width:100%;height:100%}.mh-feature-art .cover img{width:100%;height:100%;object-fit:cover}
-.mh-section{margin-top:22px}
-.mh-section-hd{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:11px}
-.mh-section-hd h3{font-size:21px;letter-spacing:-.03em;margin:0;font-weight:720}
-.mh-section-hd span{font-size:12.5px;color:var(--txt3)}
-.mh-scroll{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(132px,172px);gap:14px;overflow-x:auto;padding:1px 2px 12px;
-  scrollbar-width:none;overscroll-behavior-x:contain;scroll-snap-type:x proximity}
-.mh-scroll::-webkit-scrollbar{display:none}
-.mh-album{min-width:0;cursor:pointer;scroll-snap-align:start}
-.mh-album .art2{aspect-ratio:1;border-radius:13px;overflow:hidden;background:var(--fill);box-shadow:var(--sh2);
-  transition:transform .26s var(--ease),box-shadow .26s var(--ease);position:relative;display:flex;align-items:center;justify-content:center}
-.mh-album:hover .art2{transform:translateY(-4px);box-shadow:var(--sh3)}
-.mh-album .art2>*{width:100%;height:100%}.mh-album .art2 img{width:100%;height:100%;object-fit:cover}
-.mh-album .t{font-size:13.5px;font-weight:650;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mh-album .a{font-size:12.2px;color:var(--txt2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mh-album .y{font-size:11.5px;color:var(--txt3);margin-top:2px}
-.mh-empty{background:var(--elev);border-radius:22px;padding:22px;box-shadow:var(--sh1);color:var(--txt2);font-size:14px}
+/* ---------- Apple Music 2.0 · accesos compactos de colección ---------- */
+.music-home{margin:0 0 14px}
+.collection-actions{display:flex;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;padding:1px 1px 4px;overscroll-behavior-x:contain}
+.collection-actions::-webkit-scrollbar{display:none}
+.collection-action{flex:0 0 auto;border:none;background:var(--fill);color:var(--txt);font-family:inherit;
+  min-height:38px;border-radius:999px;padding:8px 13px;font-size:13.5px;font-weight:600;display:inline-flex;
+  align-items:center;gap:7px;cursor:pointer;transition:background .18s var(--ease),transform .12s var(--ease)}
+.collection-action:hover{background:var(--fill2)}
+.collection-action:active{transform:scale(.96)}
+.collection-action .ic{width:15px;height:15px}
+.collection-action.primary{background:var(--blue-s);color:var(--blue)}
+.collection-action.primary:hover{background:color-mix(in srgb,var(--blue) 17%,transparent)}
+.quick-albums{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:18px 13px}
+.quick-album{min-width:0;cursor:pointer}
+.quick-album .qa-art{aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--fill);box-shadow:var(--sh2);
+  position:relative;display:flex;align-items:center;justify-content:center;transition:transform .22s var(--ease),box-shadow .22s var(--ease)}
+.quick-album:hover .qa-art{transform:translateY(-3px);box-shadow:var(--sh3)}
+.quick-album .qa-art>*{width:100%;height:100%}
+.quick-album .qa-art img{width:100%;height:100%;object-fit:cover}
+.quick-album .qa-title{font-size:13.5px;font-weight:650;margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quick-album .qa-artist{font-size:12px;color:var(--txt2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.listen-choice{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-bottom:18px}
+.listen-choice button{border:none;background:var(--fill);color:var(--txt);border-radius:14px;padding:13px 12px;font:600 14px/1.2 inherit;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;min-height:48px}
+.listen-choice button.on{background:var(--blue);color:#fff}
+.listen-choice .ic{width:16px;height:16px}
+.listen-reco{background:var(--sunk);border-radius:18px;padding:14px;display:grid;grid-template-columns:104px minmax(0,1fr);
+  gap:14px;align-items:center;box-shadow:0 0 0 .5px var(--sep)}
+.listen-reco .lr-art{width:104px;height:104px;border-radius:12px;overflow:hidden;background:var(--fill);cursor:pointer}
+.listen-reco .lr-art>*{width:100%;height:100%}.listen-reco .lr-art img{width:100%;height:100%;object-fit:cover}
+.listen-reco .lr-k{font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:750;color:var(--blue)}
+.listen-reco .lr-t{font-size:18px;font-weight:700;letter-spacing:-.025em;margin-top:4px}
+.listen-reco .lr-a{font-size:13px;color:var(--txt2);margin-top:3px}
+.listen-reco .lr-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+@media (max-width:760px){
+  .music-home{margin:-2px 0 10px}
+  .collection-actions{margin-right:-14px;padding-right:14px}
+  .collection-action{min-height:36px;padding:7px 12px;font-size:13px}
+  .quick-albums{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 12px}
+  .listen-reco{grid-template-columns:82px minmax(0,1fr);padding:12px;gap:12px}
+  .listen-reco .lr-art{width:82px;height:82px}
+  .listen-reco .lr-t{font-size:16px}
+}
 
 /* La ficha se acerca más a la jerarquía de Apple Music en escritorio:
    portada a la izquierda y metadatos/acciones a la derecha. */
@@ -1831,7 +1829,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.25-phase4.1';
+var VERSION = '2026.09.25-phase4.2';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var firmasCampos = {};        // id -> firmas por campo, para sincronización granular
 var view = 'col';
@@ -5313,11 +5311,39 @@ function bloque(items, dups){
 }
 
 
-function homeAlbumHtml(d){
-  return '<div class="mh-album" data-home-disco="' + d.id + '"><div class="art2">' + coverHtml(d) + '</div>'
-    + '<div class="t">' + esc(d.titulo || 'Sin título') + '</div>'
-    + '<div class="a">' + esc(d.artista || 'Artista desconocido') + '</div>'
-    + '<div class="y">' + esc([d['año'], d.formato].filter(Boolean).join(' · ')) + '</div></div>';
+function quickAlbumHtml(d){
+  return '<div class="quick-album" data-quick-disco="' + d.id + '"><div class="qa-art">' + coverHtml(d) + '</div>'
+    + '<div class="qa-title">' + esc(d.titulo || 'Sin título') + '</div>'
+    + '<div class="qa-artist">' + esc(d.artista || 'Artista desconocido') + '</div></div>';
+}
+function listaRecienAnadidos(){
+  return coleccion().slice().sort(function(a,b){
+    return String(b.fechaAlta || '').localeCompare(String(a.fechaAlta || ''));
+  }).slice(0,24);
+}
+function listaVolverAPoner(){
+  var ds = coleccion();
+  var escuchados = ds.filter(function(d){ return d.ultimaEscucha; }).sort(function(a,b){
+    return String(a.ultimaEscucha).localeCompare(String(b.ultimaEscucha));
+  });
+  var nunca = ds.filter(function(d){ return !d.ultimaEscucha && totalEscuchas(d) === 0; }).sort(function(a,b){
+    return String(a.fechaAlta || '').localeCompare(String(b.fechaAlta || ''));
+  });
+  return escuchados.concat(nunca).slice(0,24);
+}
+function abrirSeleccionColeccion(tipo){
+  var lista = tipo === 'recientes' ? listaRecienAnadidos() : listaVolverAPoner();
+  var titulo = tipo === 'recientes' ? 'Recién añadidos' : 'Vuelve a ponerlos';
+  var sub = tipo === 'recientes'
+    ? 'Lo último que ha entrado en tu colección.'
+    : 'Discos que llevan más tiempo sin sonar, más algunos que aún no has estrenado.';
+  var body = '<p style="font-size:13.5px;color:var(--txt2);margin:0 0 14px">' + esc(sub) + '</p>'
+    + (lista.length ? '<div class="quick-albums">' + lista.map(quickAlbumHtml).join('') + '</div>'
+      : '<div class="tl-empty">No hay discos para mostrar.</div>');
+  var sh = sheet(titulo, body, null, true);
+  sh.querySelectorAll('[data-quick-disco]').forEach(function(el){
+    el.onclick = function(){ sh.remove(); openDetail(el.dataset.quickDisco); };
+  });
 }
 function pintarAppleHome(){
   var box = document.getElementById('musicHome');
@@ -5325,62 +5351,18 @@ function pintarAppleHome(){
   var qel = document.getElementById('q');
   var hayFiltro = fType !== 'all' || fGen || fArt || fTag || fDec || fPais || fSello
     || grupo !== 'none' || (qel && qel.value.trim());
-  if(hayFiltro){ box.innerHTML = ''; return; }
-  var ds = coleccion();
-  if(!ds.length){
-    box.innerHTML = '<div class="music-home"><div class="mh-title"><div><h2>Tu música</h2>'
-      + '<p>Tu colección empezará a tomar forma aquí.</p></div></div>'
-      + '<div class="mh-empty">Añade tu primer disco para ver recomendaciones, novedades y accesos rápidos.</div></div>';
-    return;
-  }
-  var recientes = ds.slice().sort(function(a,b){
-    return String(b.fechaAlta || '').localeCompare(String(a.fechaAlta || ''));
-  }).slice(0,8);
-  var nunca = ds.filter(function(d){ return totalEscuchas(d) === 0 && d.portada; });
-  var candidatos = nunca.length ? nunca : ds.filter(function(d){ return d.portada; });
-  if(!candidatos.length) candidatos = ds.slice();
-  var seed = parseInt(hoyISO().replace(/-/g,''),10) || 1;
-  var elegido = rngShuffle(candidatos, seed)[0] || ds[0];
-  var viejos = ds.filter(function(d){ return d.ultimaEscucha; }).sort(function(a,b){
-    return String(a.ultimaEscucha).localeCompare(String(b.ultimaEscucha));
-  }).slice(0,8);
-  if(!viejos.length) viejos = nunca.slice(0,8);
-  var bg = elegido.portada ? 'style="background-image:url(&quot;' + esc(elegido.portada) + '&quot;)"' : '';
-  var escuchas = totalEscuchas(elegido);
-  var sub = escuchas
-    ? 'Lleva ' + escuchas + (escuchas === 1 ? ' escucha registrada.' : ' escuchas registradas.')
-    : 'Aún no lo has marcado como escuchado.';
-  box.innerHTML = '<div class="music-home">'
-    + '<div class="mh-title"><div><h2>Tu música</h2><p>' + ds.length + (ds.length === 1 ? ' disco' : ' discos')
-      + ' · una portada distinta para escuchar cada día.</p></div>'
-    + '<div class="mh-actions">'
-      + '<button type="button" class="mh-action" data-home-action="radar">' + I.warn + 'Radar</button>'
-      + '<button type="button" class="mh-action" data-home-action="sesion">' + I.reloj2 + 'Qué escucho</button>'
-      + (readOnly ? '' : '<button type="button" class="mh-action pri" data-home-action="add">' + I.plus + 'Añadir</button>')
-      + '</div></div>'
-    + '<div class="mh-feature">'
-      + '<div class="mh-feature-bg" ' + bg + '></div>'
-      + '<div class="mh-feature-copy"><div class="mh-kicker">Recomendado para hoy</div>'
-      + '<h3>' + esc(elegido.titulo || 'Sin título') + '</h3><div class="artist">' + esc(elegido.artista || 'Artista desconocido') + '</div>'
-      + '<div class="sub">' + esc(sub) + '</div>'
-      + '<div class="mh-feature-buttons"><button type="button" class="btn pri" data-home-open="' + elegido.id + '">' + I.play + 'Abrir disco</button>'
-      + '<button type="button" class="btn" data-home-action="sesion">' + I.reloj2 + 'Tengo un rato</button></div></div>'
-      + '<div class="mh-feature-art"><div class="cover" data-home-open="' + elegido.id + '">' + coverHtml(elegido) + '</div></div>'
-    + '</div>'
-    + '<div class="mh-section"><div class="mh-section-hd"><h3>Recién añadidos</h3><span>Lo último que ha entrado</span></div>'
-      + '<div class="mh-scroll">' + recientes.map(homeAlbumHtml).join('') + '</div></div>'
-    + (viejos.length ? '<div class="mh-section"><div class="mh-section-hd"><h3>Vuelve a ponerlos</h3><span>Hace tiempo que no suenan</span></div>'
-      + '<div class="mh-scroll">' + viejos.map(homeAlbumHtml).join('') + '</div></div>' : '')
-    + '</div>';
-  box.querySelectorAll('[data-home-disco],[data-home-open]').forEach(function(el){
-    el.onclick = function(){ openDetail(el.dataset.homeDisco || el.dataset.homeOpen); };
-  });
-  box.querySelectorAll('[data-home-action]').forEach(function(el){
+  if(hayFiltro || !coleccion().length){ box.innerHTML = ''; return; }
+  box.innerHTML = '<div class="music-home"><div class="collection-actions">'
+    + '<button type="button" class="collection-action primary" data-collection-action="sesion">' + I.playF + 'Qué escucho ahora</button>'
+    + '<button type="button" class="collection-action" data-collection-action="recientes">' + I.plus + 'Recién añadidos</button>'
+    + '<button type="button" class="collection-action" data-collection-action="volver">' + I.reloj2 + 'Vuelve a ponerlos</button>'
+    + '</div></div>';
+  box.querySelectorAll('[data-collection-action]').forEach(function(el){
     el.onclick = function(){
-      var a = el.dataset.homeAction;
-      if(a === 'radar') radarColeccion();
-      else if(a === 'sesion') sesionEscucha();
-      else if(a === 'add' && !readOnly) openForm();
+      var a = el.dataset.collectionAction;
+      if(a === 'sesion') sesionEscucha();
+      else if(a === 'recientes') abrirSeleccionColeccion('recientes');
+      else if(a === 'volver') abrirSeleccionColeccion('volver');
     };
   });
 }
@@ -9948,8 +9930,21 @@ function construirSesion(minutos, filtro){
   });
   return {discos: elegidos, segundos: total, objetivo: objetivo};
 }
+function recomendadoColeccion(seed){
+  var ds = coleccion();
+  if(!ds.length) return null;
+  var preferidos = ds.filter(function(d){ return totalEscuchas(d) === 0; });
+  if(!preferidos.length) preferidos = ds.slice();
+  return rngShuffle(preferidos, seed)[0] || preferidos[0] || ds[0];
+}
 function sesionEscucha(){
-  var body = '<p style="font-size:14px;color:var(--txt2);margin:0 0 14px">¿Cuánto tiempo tienes?</p>'
+  var body = '<div class="listen-choice">'
+    + '<button type="button" class="on" data-modo-escucha="uno">' + I.disc + 'Recomiéndame uno</button>'
+    + '<button type="button" data-modo-escucha="tiempo">' + I.reloj2 + 'Tengo un tiempo</button>'
+    + '</div>'
+    + '<div id="sesUno"></div>'
+    + '<div id="sesTiempo" style="display:none">'
+    + '<p style="font-size:14px;color:var(--txt2);margin:0 0 14px">¿Cuánto tiempo tienes?</p>'
     + '<div class="rowb" id="sesMin" style="flex-wrap:wrap;margin-bottom:16px">'
     + [20, 30, 45, 60, 90].map(function(m){ return '<button type="button" class="btn sm" data-min="' + m + '">' + m + ' min</button>'; }).join('')
     + '</div>'
@@ -9959,12 +9954,36 @@ function sesionEscucha(){
        ['vinilo', 'Vinilo'], ['cd', 'CD']].map(function(f){
         return '<button type="button" class="btn sm' + (f[0] === 'todos' ? ' on' : '') + '" data-f="' + f[0] + '">' + f[1] + '</button>';
       }).join('')
-    + '</div><div id="sesRes"></div>';
-  var s = sheet('Qué escucho ahora', body, null, true);
-  var minSel = 45, filtroSel = 'todos';
+    + '</div><div id="sesRes"></div></div>';
+  var sh = sheet('Qué escucho ahora', body, null, true);
+  var minSel = 45, filtroSel = 'todos', semillaExtra = 0;
+
+  var pintarUno = function(otro){
+    if(otro) semillaExtra++;
+    var seed = otro ? ((Date.now() + semillaExtra * 7919) % 99991)
+      : (parseInt(hoyISO().replace(/-/g,''),10) || 1);
+    var d = recomendadoColeccion(seed);
+    var caja = sh.querySelector('#sesUno');
+    if(!d){
+      caja.innerHTML = '<div class="tl-empty">Tu colección está vacía.</div>';
+      return;
+    }
+    caja.innerHTML = '<div class="listen-reco">'
+      + '<div class="lr-art" data-reco-open="' + d.id + '">' + coverHtml(d) + '</div>'
+      + '<div><div class="lr-k">' + (otro ? 'Otra propuesta' : 'Recomendado para hoy') + '</div>'
+      + '<div class="lr-t">' + esc(d.titulo || 'Sin título') + '</div>'
+      + '<div class="lr-a">' + esc(d.artista || 'Artista desconocido') + '</div>'
+      + '<div class="lr-actions"><button type="button" class="btn pri sm" data-reco-open="' + d.id + '">' + I.play + 'Abrir disco</button>'
+      + '<button type="button" class="btn sm" id="sesOtroDisco">' + I.refresh + 'Otro</button></div></div></div>';
+    caja.querySelectorAll('[data-reco-open]').forEach(function(el){
+      el.onclick = function(){ sh.remove(); openDetail(el.dataset.recoOpen); };
+    });
+    caja.querySelector('#sesOtroDisco').onclick = function(){ pintarUno(true); };
+  };
+
   var construir = function(){
     var r = construirSesion(minSel, filtroSel === 'todos' ? '' : filtroSel);
-    var caja = s.querySelector('#sesRes');
+    var caja = sh.querySelector('#sesRes');
     if(!r.discos.length){
       caja.innerHTML = '<div class="tl-empty">No hay discos que encajen con ese filtro y ese tiempo.</div>';
       return;
@@ -9977,24 +9996,35 @@ function sesionEscucha(){
     enlazarTiles(caja, {});
     caja.querySelector('#sesOtra').onclick = construir;
   };
-  s.querySelectorAll('#sesMin button').forEach(function(b){
+
+  sh.querySelectorAll('[data-modo-escucha]').forEach(function(b){
     b.onclick = function(){
-      s.querySelectorAll('#sesMin button').forEach(function(x){ x.className = 'btn sm'; });
+      sh.querySelectorAll('[data-modo-escucha]').forEach(function(x){ x.className = ''; });
+      b.className = 'on';
+      var uno = b.dataset.modoEscucha === 'uno';
+      sh.querySelector('#sesUno').style.display = uno ? '' : 'none';
+      sh.querySelector('#sesTiempo').style.display = uno ? 'none' : '';
+      if(!uno) construir();
+    };
+  });
+  sh.querySelectorAll('#sesMin button').forEach(function(b){
+    b.onclick = function(){
+      sh.querySelectorAll('#sesMin button').forEach(function(x){ x.className = 'btn sm'; });
       b.className = 'btn sm on';
       minSel = +b.dataset.min;
       construir();
     };
   });
-  s.querySelectorAll('#sesFiltro button').forEach(function(b){
+  sh.querySelectorAll('#sesFiltro button').forEach(function(b){
     b.onclick = function(){
-      s.querySelectorAll('#sesFiltro button').forEach(function(x){ x.className = 'btn sm'; });
+      sh.querySelectorAll('#sesFiltro button').forEach(function(x){ x.className = 'btn sm'; });
       b.className = 'btn sm on';
       filtroSel = b.dataset.f;
       construir();
     };
   });
-  s.querySelector('#sesMin [data-min="45"]').className = 'btn sm on';
-  construir();
+  sh.querySelector('#sesMin [data-min="45"]').className = 'btn sm on';
+  pintarUno(false);
 }
 
 /* ============================================================
@@ -11602,18 +11632,21 @@ function paintDb(){
       + accion(I.file, 'Exportar CSV', 'Con las columnas de Discogs más tus campos propios.', 'expcsv', '', 'Exportar')
     + '</div>'
 
-    /* ---- poner al día ---- */
-    + seccion(I.spark, 'Poner los datos al día', 'Lo que rellena y arregla tu colección')
+    /* ---- salud de la colección ---- */
+    + seccion(I.aguja, 'Salud de la colección', 'Diagnóstico y mantenimiento')
     + '<div class="dbact">'
-      + accion(I.aguja, 'Radar de la colección', 'Todo lo que merece tu atención, reunido en un sitio: fichas incompletas, '
-          + 'reparaciones pendientes, duplicados y más.', 'radar', 'pri', 'Ver')
-      + accion(I.playF, 'Qué escucho ahora', 'Dime cuánto tiempo tienes y te armo una selección que encaje, con tus filtros.', 'sesion', '', 'Elegir')
+      + accion(I.aguja, 'Radar de la colección', 'Fichas incompletas, contradicciones, duplicados y otras señales que conviene revisar.', 'radar', 'pri', 'Ver')
       + accion(I.refresh, 'Revisar y actualizar todo', 'Recorre los ' + DB.discos.length
           + ' discos y rellena lo que falte: caras del tracklist, créditos, foto del disco, Apple Music. No pisa nada tuyo.', 'revisar', 'pri', 'Revisar')
       + accion(I.warn, 'Reparar la base de datos', 'Busca variantes del mismo artista, sellos sucios y años imposibles.', 'reparar', '', 'Analizar')
+      + accion(I.copy, 'Buscar repetidos', 'Revisa si hay fichas duplicadas del mismo disco y te deja fusionarlas.', 'dups', '', 'Revisar')
+    + '</div>'
+
+    /* ---- completar/importar desde servicios ---- */
+    + seccion(I.spark, 'Poner los datos al día', 'Completar e importar información')
+    + '<div class="dbact">'
       + (hayDiscogs() ? accion(I.down, 'Traer de Discogs', 'Añade los discos que tengas allí y aquí no.', 'dgcol', '', 'Consultar') : '')
       + accion(I.spark, 'Completar fichas', 'Busca carátula, tracklist, sello y género de lo que esté incompleto.', 'bulk', '', 'Completar')
-      + accion(I.copy, 'Buscar repetidos', 'Revisa si hay fichas duplicadas del mismo disco y te deja fusionarlas.', 'dups', '', 'Revisar')
     + '</div>'
 
     /* ---- lo que hacen las apps de streaming, adaptado a una colección física ---- */
