@@ -28,3 +28,6 @@ jobs:
 
       - name: Probar sincronización multicliente
         run: node scripts/sync-tests.mjs
+
+      - name: Probar Radar y Detective
+        run: node scripts/quality-tests.mjs
