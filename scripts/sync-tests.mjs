@@ -49,6 +49,8 @@ function baseDisc(){
   const a=baseDisc(), b=clone(a);
   const r=ctx.fusionar([a],[],[b],[]);
   eq([r.aLocal,r.aRemoto],[0,0],'estado idéntico no genera cambios');
+  assert(!r.discos[0].modsBase && Object.keys(r.discos[0].modsCampos || {}).length===0,
+    'una lectura idéntica de datos antiguos no infla la ficha con metadata');
 }
 
 /* 2. Compatibilidad: sin metadata granular se conserva el LWW histórico. */
