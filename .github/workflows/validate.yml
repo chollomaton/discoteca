@@ -25,3 +25,6 @@ jobs:
 
       - name: Ejecutar validaciones
         run: node scripts/validate.mjs
+
+      - name: Probar sincronización multicliente
+        run: node scripts/sync-tests.mjs
