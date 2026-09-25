@@ -103,6 +103,12 @@ select:focus-visible,textarea:focus-visible,.lightbox:focus-visible{
 .tabs button.on{background:var(--elev);box-shadow:var(--sh1)}
 .tabs .ic{width:14px;height:14px}
 
+.tabs{background:transparent;padding:0;gap:4px}
+.tabs button{color:var(--txt2);border-radius:999px;padding:8px 13px;font-weight:600}
+.tabs button:hover{background:var(--fill);color:var(--txt)}
+.tabs button.on{background:var(--fill);box-shadow:none;color:var(--blue)}
+
+
 .sync{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:550;padding:6px 12px;border-radius:999px;
   cursor:pointer;border:none;background:var(--fill);color:var(--txt2);transition:background .2s,transform .1s}
 .sync:hover{background:var(--fill2)}
@@ -137,6 +143,98 @@ select:focus-visible,textarea:focus-visible,.lightbox:focus-visible{
 .page{max-width:1320px;margin:0 auto;padding:22px max(22px,var(--sar)) calc(120px + var(--sab)) max(22px,var(--sal))}
 .view{display:none}.view.on{display:block;animation:fadeup .3s var(--ease)}
 @keyframes fadeup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+
+/* ---------- Apple Music 2.0 · portada de colección ---------- */
+.music-home{margin:2px 0 24px}
+.mh-title{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin:0 0 15px}
+.mh-title h2{font-size:31px;line-height:1.06;letter-spacing:-.045em;margin:0;font-weight:750}
+.mh-title p{font-size:13.5px;color:var(--txt2);margin:5px 0 0}
+.mh-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.mh-action{border:none;background:var(--fill);color:var(--txt);font-family:inherit;font-size:13.5px;font-weight:600;
+  border-radius:999px;padding:9px 13px;display:inline-flex;align-items:center;gap:7px;cursor:pointer;
+  transition:transform .14s var(--ease),background .2s var(--ease)}
+.mh-action:hover{background:var(--fill2)}.mh-action:active{transform:scale(.96)}
+.mh-action.pri{background:var(--blue);color:#fff}.mh-action.pri:hover{background:var(--blue-h)}
+.mh-action .ic{width:15px;height:15px}
+.mh-feature{position:relative;min-height:286px;border-radius:26px;overflow:hidden;background:var(--elev);
+  box-shadow:var(--sh2);display:grid;grid-template-columns:minmax(260px,.88fr) minmax(0,1.12fr);margin-bottom:23px}
+.mh-feature-bg{position:absolute;inset:-28px;background-size:cover;background-position:center;filter:blur(34px) saturate(1.25);
+  transform:scale(1.12);opacity:.34}
+.mh-feature::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,
+  color-mix(in srgb,var(--elev) 94%,transparent) 0%,color-mix(in srgb,var(--elev) 82%,transparent) 46%,color-mix(in srgb,var(--elev) 28%,transparent) 100%)}
+.mh-feature-copy,.mh-feature-art{position:relative;z-index:1}
+.mh-feature-copy{display:flex;flex-direction:column;justify-content:center;padding:30px 10px 30px 32px;min-width:0}
+.mh-kicker{font-size:11.5px;text-transform:uppercase;letter-spacing:.085em;font-weight:750;color:var(--blue);margin-bottom:7px}
+.mh-feature-copy h3{font-size:29px;line-height:1.08;letter-spacing:-.04em;margin:0;max-width:14ch}
+.mh-feature-copy .artist{font-size:15.5px;color:var(--txt2);margin-top:7px;font-weight:550}
+.mh-feature-copy .sub{font-size:13px;color:var(--txt3);margin-top:10px;line-height:1.4;max-width:38ch}
+.mh-feature-buttons{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.mh-feature-art{display:flex;align-items:center;justify-content:center;padding:27px 34px 27px 18px}
+.mh-feature-art .cover{width:min(250px,100%);aspect-ratio:1;border-radius:18px;overflow:hidden;background:var(--fill);
+  box-shadow:0 24px 60px rgba(0,0,0,.24);cursor:pointer;transition:transform .28s var(--ease),box-shadow .28s var(--ease)}
+.mh-feature-art .cover:hover{transform:translateY(-5px) scale(1.02);box-shadow:0 30px 70px rgba(0,0,0,.3)}
+.mh-feature-art .cover>*{width:100%;height:100%}.mh-feature-art .cover img{width:100%;height:100%;object-fit:cover}
+.mh-section{margin-top:22px}
+.mh-section-hd{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:11px}
+.mh-section-hd h3{font-size:21px;letter-spacing:-.03em;margin:0;font-weight:720}
+.mh-section-hd span{font-size:12.5px;color:var(--txt3)}
+.mh-scroll{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(132px,172px);gap:14px;overflow-x:auto;padding:1px 2px 12px;
+  scrollbar-width:none;overscroll-behavior-x:contain;scroll-snap-type:x proximity}
+.mh-scroll::-webkit-scrollbar{display:none}
+.mh-album{min-width:0;cursor:pointer;scroll-snap-align:start}
+.mh-album .art2{aspect-ratio:1;border-radius:13px;overflow:hidden;background:var(--fill);box-shadow:var(--sh2);
+  transition:transform .26s var(--ease),box-shadow .26s var(--ease);position:relative;display:flex;align-items:center;justify-content:center}
+.mh-album:hover .art2{transform:translateY(-4px);box-shadow:var(--sh3)}
+.mh-album .art2>*{width:100%;height:100%}.mh-album .art2 img{width:100%;height:100%;object-fit:cover}
+.mh-album .t{font-size:13.5px;font-weight:650;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mh-album .a{font-size:12.2px;color:var(--txt2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mh-album .y{font-size:11.5px;color:var(--txt3);margin-top:2px}
+.mh-empty{background:var(--elev);border-radius:22px;padding:22px;box-shadow:var(--sh1);color:var(--txt2);font-size:14px}
+
+/* La ficha se acerca más a la jerarquía de Apple Music en escritorio:
+   portada a la izquierda y metadatos/acciones a la derecha. */
+.album-sheet{max-width:900px}
+.album-sheet .dhero{display:grid;grid-template-columns:250px minmax(0,1fr);gap:30px;align-items:center;text-align:left;padding:32px 34px}
+.album-sheet .dhero .covwrap{grid-column:1;grid-row:1;align-self:center}
+.album-sheet .dhero .cov{width:250px;height:250px;margin:0}
+.album-sheet .dhero .dmeta{grid-column:2;grid-row:1;min-width:0}
+.album-sheet .dhero h3{font-size:34px;line-height:1.06}
+.album-sheet .dhero .art2{font-size:18px;margin-top:8px}
+.album-sheet .dhero .starbox{align-items:flex-start;margin-top:18px}
+.album-sheet .dhero .tags{justify-content:flex-start;margin-top:18px;margin-left:-11px}
+.album-sheet .dhero .linkrow{justify-content:flex-start;margin-top:20px}
+.album-sheet .sheet-bd{padding:24px 28px 28px}
+.album-sheet .specs{margin-top:0}
+
+@media (max-width:760px){
+  .music-home{margin:0 0 18px}
+  .mh-title{align-items:flex-start;margin-bottom:12px}
+  .mh-title h2{font-size:28px}
+  .mh-title p{font-size:12.8px}
+  .mh-actions{display:none}
+  .mh-feature{display:block;min-height:0;border-radius:22px;margin-bottom:20px}
+  .mh-feature::after{background:linear-gradient(180deg,color-mix(in srgb,var(--elev) 36%,transparent) 0%,
+    color-mix(in srgb,var(--elev) 92%,transparent) 52%,var(--elev) 100%)}
+  .mh-feature-art{padding:20px 20px 0}
+  .mh-feature-art .cover{width:min(62vw,260px);border-radius:17px}
+  .mh-feature-copy{padding:18px 20px 22px;text-align:center;align-items:center}
+  .mh-feature-copy h3{font-size:25px;max-width:100%}
+  .mh-feature-copy .sub{max-width:34ch}
+  .mh-feature-buttons{justify-content:center;margin-top:15px}
+  .mh-section{margin-top:18px}
+  .mh-section-hd h3{font-size:19px}
+  .mh-scroll{grid-auto-columns:138px;gap:12px;margin-right:-14px;padding-right:14px}
+  .mh-album .t{font-size:13px}
+  .album-sheet .dhero{display:block;text-align:center;padding:14px 18px 20px}
+  .album-sheet .dhero .cov{width:min(74vw,320px);height:min(74vw,320px);margin:0 auto 20px}
+  .album-sheet .dhero h3{font-size:26px;line-height:1.16}
+  .album-sheet .dhero .art2{font-size:17px;margin-top:6px}
+  .album-sheet .dhero .starbox{align-items:center;margin-top:16px}
+  .album-sheet .dhero .tags{justify-content:center;margin-left:0;margin-top:16px}
+  .album-sheet .dhero .linkrow{justify-content:center;margin-top:18px}
+  .album-sheet .sheet-bd{padding:16px 16px calc(20px + var(--sab))}
+}
 
 /* ---------- kpis ---------- */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(152px,1fr));gap:12px;margin-bottom:18px}
@@ -1612,6 +1710,7 @@ label.trk{cursor:pointer}
 <div class="page">
 
   <section class="view on" id="v-col">
+    <div id="musicHome"></div>
     <div class="kpis" id="kpis"></div>
     <div class="resumen" id="resumen"></div>
     <div id="bannerSlot"></div>
@@ -1732,7 +1831,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.25-phase3';
+var VERSION = '2026.09.25-phase4';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var firmasCampos = {};        // id -> firmas por campo, para sincronización granular
 var view = 'col';
@@ -5213,10 +5312,84 @@ function bloque(items, dups){
   return '<div class="grid">' + items.map(function(d){ return tileHtml(d, dups); }).join('') + '</div>';
 }
 
+
+function homeAlbumHtml(d){
+  return '<div class="mh-album" data-home-disco="' + d.id + '"><div class="art2">' + coverHtml(d) + '</div>'
+    + '<div class="t">' + esc(d.titulo || 'Sin título') + '</div>'
+    + '<div class="a">' + esc(d.artista || 'Artista desconocido') + '</div>'
+    + '<div class="y">' + esc([d['año'], d.formato].filter(Boolean).join(' · ')) + '</div></div>';
+}
+function pintarAppleHome(){
+  var box = document.getElementById('musicHome');
+  if(!box) return;
+  var qel = document.getElementById('q');
+  var hayFiltro = fType !== 'all' || fGen || fArt || fTag || fDec || fPais || fSello
+    || grupo !== 'none' || (qel && qel.value.trim());
+  if(hayFiltro){ box.innerHTML = ''; return; }
+  var ds = coleccion();
+  if(!ds.length){
+    box.innerHTML = '<div class="music-home"><div class="mh-title"><div><h2>Tu música</h2>'
+      + '<p>Tu colección empezará a tomar forma aquí.</p></div></div>'
+      + '<div class="mh-empty">Añade tu primer disco para ver recomendaciones, novedades y accesos rápidos.</div></div>';
+    return;
+  }
+  var recientes = ds.slice().sort(function(a,b){
+    return String(b.fechaAlta || '').localeCompare(String(a.fechaAlta || ''));
+  }).slice(0,8);
+  var nunca = ds.filter(function(d){ return totalEscuchas(d) === 0 && d.portada; });
+  var candidatos = nunca.length ? nunca : ds.filter(function(d){ return d.portada; });
+  if(!candidatos.length) candidatos = ds.slice();
+  var seed = parseInt(hoyISO().replace(/-/g,''),10) || 1;
+  var elegido = rngShuffle(candidatos, seed)[0] || ds[0];
+  var viejos = ds.filter(function(d){ return d.ultimaEscucha; }).sort(function(a,b){
+    return String(a.ultimaEscucha).localeCompare(String(b.ultimaEscucha));
+  }).slice(0,8);
+  if(!viejos.length) viejos = nunca.slice(0,8);
+  var bg = elegido.portada ? 'style="background-image:url(&quot;' + esc(elegido.portada) + '&quot;)"' : '';
+  var escuchas = totalEscuchas(elegido);
+  var sub = escuchas
+    ? 'Lleva ' + escuchas + (escuchas === 1 ? ' escucha registrada.' : ' escuchas registradas.')
+    : 'Aún no lo has marcado como escuchado.';
+  box.innerHTML = '<div class="music-home">'
+    + '<div class="mh-title"><div><h2>Tu música</h2><p>' + ds.length + (ds.length === 1 ? ' disco' : ' discos')
+      + ' · una portada distinta para escuchar cada día.</p></div>'
+    + '<div class="mh-actions">'
+      + '<button type="button" class="mh-action" data-home-action="radar">' + I.warn + 'Radar</button>'
+      + '<button type="button" class="mh-action" data-home-action="sesion">' + I.reloj2 + 'Qué escucho</button>'
+      + (readOnly ? '' : '<button type="button" class="mh-action pri" data-home-action="add">' + I.plus + 'Añadir</button>')
+      + '</div></div>'
+    + '<div class="mh-feature">'
+      + '<div class="mh-feature-bg" ' + bg + '></div>'
+      + '<div class="mh-feature-copy"><div class="mh-kicker">Recomendado para hoy</div>'
+      + '<h3>' + esc(elegido.titulo || 'Sin título') + '</h3><div class="artist">' + esc(elegido.artista || 'Artista desconocido') + '</div>'
+      + '<div class="sub">' + esc(sub) + '</div>'
+      + '<div class="mh-feature-buttons"><button type="button" class="btn pri" data-home-open="' + elegido.id + '">' + I.play + 'Abrir disco</button>'
+      + '<button type="button" class="btn" data-home-action="sesion">' + I.reloj2 + 'Tengo un rato</button></div></div>'
+      + '<div class="mh-feature-art"><div class="cover" data-home-open="' + elegido.id + '">' + coverHtml(elegido) + '</div></div>'
+    + '</div>'
+    + '<div class="mh-section"><div class="mh-section-hd"><h3>Recién añadidos</h3><span>Lo último que ha entrado</span></div>'
+      + '<div class="mh-scroll">' + recientes.map(homeAlbumHtml).join('') + '</div></div>'
+    + (viejos.length ? '<div class="mh-section"><div class="mh-section-hd"><h3>Vuelve a ponerlos</h3><span>Hace tiempo que no suenan</span></div>'
+      + '<div class="mh-scroll">' + viejos.map(homeAlbumHtml).join('') + '</div></div>' : '')
+    + '</div>';
+  box.querySelectorAll('[data-home-disco],[data-home-open]').forEach(function(el){
+    el.onclick = function(){ openDetail(el.dataset.homeDisco || el.dataset.homeOpen); };
+  });
+  box.querySelectorAll('[data-home-action]').forEach(function(el){
+    el.onclick = function(){
+      var a = el.dataset.homeAction;
+      if(a === 'radar') radarColeccion();
+      else if(a === 'sesion') sesionEscucha();
+      else if(a === 'add' && !readOnly) openForm();
+    };
+  });
+}
+
 function paintCol(){
   if(!document.getElementById('board')) return;
   var dups = dupSet();
   var base = coleccion();
+  pintarAppleHome();
 
   var gsel = document.getElementById('fGenre');
   var gs = [];
@@ -6111,6 +6284,7 @@ function openDetail(id, desde){
       + '<div class="rowb"><button type="button" class="btn sm" id="mas">···</button><button type="button" class="btn pri sm" id="edit">' + I.pencil + 'Editar</button></div>';
 
   var s = sheet(d.titulo || 'Sin título', body, pie);
+  s.classList.add('album-sheet');
   var $ = function(q){ return s.querySelector(q); };
 
   var tint = d.color ? 'linear-gradient(180deg, rgba(' + d.color + ',.30), rgba(' + d.color + ',.05))' : 'var(--sunk)';
@@ -6118,7 +6292,7 @@ function openDetail(id, desde){
     '<div class="dhero" style="--herobg:' + tint + '"><div class="covwrap">'
     + '<div class="cov' + (d.formato === 'Vinilo' ? ' vin' : '') + '" id="cov"><div class="caraA">' + coverHtml(d) + '</div></div>'
     + '<button type="button" class="covzoom" id="covZoom" data-tip="Ver la portada grande">' + I.lupa + '</button></div>'
-    + '<h3>' + (esc(d.titulo) || 'Sin título') + '</h3>'
+    + '<div class="dmeta"><h3>' + (esc(d.titulo) || 'Sin título') + '</h3>'
     + '<div class="art2" id="byArt">' + (esc(d.artista) || 'Artista desconocido')
     + '<svg class="ic" viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg></div>'
     + '<div class="starbox"><div id="dStars">' + estrellasHtml(d.valoracion, true, d.id) + '</div>'
@@ -6159,7 +6333,7 @@ function openDetail(id, desde){
     + '<button type="button" class="lnk" id="btnShare">' + I.compartir + 'Compartir</button>'
     + (readOnly ? '' : '<button type="button" class="lnk' + (escuchadoHoy(d) ? ' hecho' : '') + '" id="escuchado">'
         + (escuchadoHoy(d) ? I.check + 'Escuchado hoy' : I.playF + 'Escuchado hoy') + '</button>')
-    + '</div></div>');
+    + '</div></div></div>');
 
   aseguraColor(d).then(function(c){
     if(c) { var h = s.querySelector('.dhero'); if(h) h.style.setProperty('--herobg', 'linear-gradient(180deg, rgba(' + c + ',.30), rgba(' + c + ',.05))'); }

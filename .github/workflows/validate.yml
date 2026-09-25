@@ -31,3 +31,6 @@ jobs:
 
       - name: Probar Radar y Detective
         run: node scripts/quality-tests.mjs
+
+      - name: Probar diseño Apple Music
+        run: node scripts/design-tests.mjs
