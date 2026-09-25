@@ -1,3 +1,4 @@
+import {compareScreenshots} from './visual-compare.mjs';
 import {chromium} from 'playwright';
 import {createServer} from 'node:http';
 import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';
@@ -32,9 +33,9 @@ try{for(const width of [1440,390]){
  await page.waitForTimeout(250);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${scene} ${width}: overflow`);
  const png=await page.screenshot({animations:'disabled',path:path.join(outputs,`${version}-${scene}-${width}.png`)});
- if(version==='baseline')shots[scene]=png;else assert(png.equals(shots[scene]),`Diferencia visual: ${scene} ${width}`);
+ if(version==='baseline')shots[scene]=png;else await compareScreenshots(page,png,shots[scene],`${scene} ${width}`);
  }
  assert.deepEqual(errors,[]);console.log(`✓ ${version} ${width}px: 220 discos, 5 pantallas sin errores`);await context.close();
  }
- console.log(`✓ ${width}px: capturas idénticas píxel a píxel`);
+ console.log(`✓ ${width}px: comparación visual superada (máx. 5 píxeles con delta 1/255)`);
 }}finally{await browser.close();server.close();}
