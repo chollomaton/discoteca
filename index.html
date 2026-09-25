@@ -1831,7 +1831,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.25-phase4';
+var VERSION = '2026.09.25-phase4.1';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var firmasCampos = {};        // id -> firmas por campo, para sincronización granular
 var view = 'col';
@@ -11926,7 +11926,15 @@ function montarEventos(){
         if(recargado) return;
         recargado = true;
         if(fallbackTimer){ clearTimeout(fallbackTimer); fallbackTimer = null; }
-        setTimeout(function(){ location.reload(); }, 100);
+        /* Con el worker nuevo ya como controlador, navegamos explícitamente
+           a index.html con una marca anti-cache de la navegación. El SW
+           seguirá sirviendo SU index.html precacheado, pero evitamos que
+           Safari/PWA reutilice además una entrada de su caché de navegación. */
+        setTimeout(function(){
+          var base = new URL('./index.html', location.href);
+          base.searchParams.set('app-update', Date.now());
+          location.replace(base.href);
+        }, 120);
       };
       navigator.serviceWorker.addEventListener('controllerchange', finalizarActualizacion);
       sw.addEventListener('statechange', function(){
