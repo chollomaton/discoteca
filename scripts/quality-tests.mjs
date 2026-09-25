@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { readAppSource } from './app-source.mjs';
 
-const src=fs.readFileSync('index.html','utf8');
+const src = readAppSource();
 const ok=(m)=>console.log('✓ '+m);
 const fail=(m)=>{console.error('✗ '+m);process.exitCode=1;};
 const assert=(c,m)=>c?ok(m):fail(m);
