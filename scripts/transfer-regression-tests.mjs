@@ -39,8 +39,7 @@ assert.equal(ctx.csvCell('a,b'),'"a,b"','exporta comas');
 assert.equal(ctx.csvCell('a"b'),'"a""b"','exporta comillas');
 assert.equal(ctx.csvCell('a\nb'),'"a\nb"','exporta saltos');
 
-const invalid=ctx.filaADisco({Artist:'',Title:''});
-assert.equal(invalid,null,'fila vacía ignorada');
+assert.equal(ctx.filaADisco({Artist:'',Title:''}),null,'fila vacía ignorada');
 const cd=ctx.filaADisco({Artist:'Pearl Jam',Title:'Ten',Format:'CD, Album',Released:'1991'});
 assert.equal(cd.formato,'CD','detecta CD');
 const lp=ctx.filaADisco({Artist:'New Order',Title:'Power, Corruption & Lies',Format:'LP',Released:'1983'});
@@ -52,12 +51,12 @@ assert.equal(an.identicos.length,1,'duplicado exacto detectado');
 assert.equal(an.nuevos.length,0,'duplicado exacto no se añade');
 
 ctx.DB.discos=[ctx.normDisc({id:'b',artista:'Pet Shop Boys',titulo:'Behaviour',formato:'CD',numeroCatalogo:'CAT-1',tracklist:[]})];
-an=ctx.analizarImportacion([{Artist:'Pet Shop Boys',Title:'Behaviour Deluxe Edition',Format:'CD',Catalog#:'CAT-2'}]);
+an=ctx.analizarImportacion([{'Artist':'Pet Shop Boys','Title':'Behaviour Deluxe Edition','Format':'CD','Catalog#':'CAT-2'}]);
 assert.equal(an.dudosos.length,1,'edición distinta se revisa, no se pisa');
 assert.match(an.dudosos[0].motivo,/edición distinta|parecidos/,'motivo de revisión');
 
 ctx.DB.discos=[ctx.normDisc({id:'c',artista:'Artista A',titulo:'Disco A',formato:'Vinilo',numeroCatalogo:'XYZ-7',tracklist:[]})];
-an=ctx.analizarImportacion([{Artist:'Otro artista',Title:'Otro título',Format:'LP',Catalog#:'XYZ-7'}]);
+an=ctx.analizarImportacion([{'Artist':'Otro artista','Title':'Otro título','Format':'LP','Catalog#':'XYZ-7'}]);
 assert.equal(an.dudosos.length,1,'catálogo coincidente obliga a revisión');
 assert.equal(an.nuevos.length,0,'catálogo coincidente no crea duplicado silencioso');
 
