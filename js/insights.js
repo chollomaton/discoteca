@@ -227,6 +227,131 @@ function sugerenciasDelDia(){
   }
   return out;
 }
+
+function diasDesdeEscucha(d){
+  if(!d || !d.ultimaEscucha) return Infinity;
+  var t = new Date(d.ultimaEscucha + 'T12:00:00').getTime();
+  return isFinite(t) ? Math.max(0, Math.floor((Date.now() - t) / 86400000)) : Infinity;
+}
+function itemExplorarHtml(x){
+  var d = x.d;
+  return '<button type="button" class="explore-album" data-explore-disco="' + d.id + '">'
+    + '<span class="ea-art">' + coverHtml(d) + '</span>'
+    + '<span class="ea-copy"><span class="ea-title">' + esc(d.titulo || 'Sin título') + '</span>'
+    + '<span class="ea-artist">' + esc(d.artista || 'Artista desconocido') + '</span>'
+    + '<span class="ea-reason">' + esc(x.motivo || '') + '</span></span>'
+    + '<span class="ea-arrow">›</span></button>';
+}
+function seleccionExplorar(modo, semilla){
+  var ds = coleccion().slice();
+  var out = [];
+  var seed = semilla || (parseInt(hoyISO().replace(/-/g,''), 10) || 1);
+
+  if(modo === 'hoy'){
+    return sugerenciasDelDia().map(function(x){ return {d:x.d, motivo:x.motivo}; });
+  }
+
+  if(modo === 'joyas'){
+    out = ds.filter(function(d){ return +d.valoracion >= 4; })
+      .sort(function(a,b){
+        var da = diasDesdeEscucha(a), db = diasDesdeEscucha(b);
+        if(da !== db) return db - da;
+        return totalEscuchas(a) - totalEscuchas(b);
+      }).slice(0,18).map(function(d){
+        var dias = diasDesdeEscucha(d);
+        var motivo = !isFinite(dias)
+          ? (+d.valoracion) + ' estrellas · aún no lo has marcado como escuchado'
+          : (+d.valoracion) + ' estrellas · hace ' + dias + (dias === 1 ? ' día' : ' días');
+        return {d:d, motivo:motivo};
+      });
+  }else if(modo === 'nunca'){
+    out = ds.filter(function(d){ return totalEscuchas(d) === 0; })
+      .sort(function(a,b){ return String(a.fechaAlta || '').localeCompare(String(b.fechaAlta || '')); })
+      .slice(0,18).map(function(d){
+        return {d:d, motivo:d['año'] ? 'De ' + d['año'] + ' · todavía sin escucha' : 'Todavía sin escucha'};
+      });
+  }else if(modo === 'parecidos'){
+    var ultimo = ds.filter(function(d){ return d.ultimaEscucha; })
+      .sort(function(a,b){ return String(b.ultimaEscucha).localeCompare(String(a.ultimaEscucha)); })[0];
+    if(!ultimo) return [];
+    out = ds.filter(function(d){ return d.id !== ultimo.id; }).map(function(d){
+      var puntos = 0, razones = [];
+      if(ultimo.genero && d.genero === ultimo.genero){ puntos += 3; razones.push(d.genero); }
+      if(ultimo.sello && d.sello === ultimo.sello){ puntos += 2; razones.push('mismo sello'); }
+      if(ultimo.formato && d.formato === ultimo.formato) puntos += .25;
+      puntos -= Math.min(2, totalEscuchas(d) * .08);
+      return {d:d, puntos:puntos, razones:razones};
+    }).filter(function(x){ return x.puntos > 0; })
+      .sort(function(a,b){ return b.puntos - a.puntos || totalEscuchas(a.d) - totalEscuchas(b.d); })
+      .slice(0,18).map(function(x){
+        return {d:x.d, motivo:(x.razones.length ? x.razones.join(' · ') : 'afinidad')
+          + ' · relacionado con ' + ultimo.titulo};
+      });
+  }else if(modo === 'decadas'){
+    var grupos = {};
+    ds.forEach(function(d){
+      var y = parseInt(d['año']);
+      if(!y) return;
+      var dec = Math.floor(y / 10) * 10;
+      (grupos[dec] = grupos[dec] || []).push(d);
+    });
+    Object.keys(grupos).sort(function(a,b){ return +b - +a; }).forEach(function(dec, idx){
+      var candidatos = grupos[dec].slice().sort(function(a,b){
+        return totalEscuchas(a) - totalEscuchas(b) || diasDesdeEscucha(b) - diasDesdeEscucha(a);
+      });
+      var d = rngShuffle(candidatos.slice(0, Math.min(5,candidatos.length)), seed + idx * 37)[0] || candidatos[0];
+      if(d) out.push({d:d, motivo:'Una parada en los ' + String(dec).slice(2) + ' · ' + (d['año'] || dec)});
+    });
+  }
+  return out;
+}
+function explorarColeccion(){
+  var modos = [
+    ['hoy','Para hoy'],
+    ['joyas','Joyas olvidadas'],
+    ['nunca','Sin escuchar'],
+    ['parecidos','Parecido a lo último'],
+    ['decadas','Viaje por décadas']
+  ];
+  var body = '<p style="font-size:13.5px;color:var(--txt2);margin:0 0 13px">'
+    + 'Elige una forma de redescubrir tu propia colección. Todo se calcula en el dispositivo.</p>'
+    + '<div class="explore-modes">' + modos.map(function(m){
+      return '<button type="button" class="' + (m[0] === 'hoy' ? 'on' : '') + '" data-explore-mode="' + m[0] + '">' + m[1] + '</button>';
+    }).join('') + '</div><div id="exploreResults"></div>';
+  var sh = sheet('Explorar la colección', body, null, true);
+  var actual = 'hoy', extraSeed = 0;
+
+  var pintar = function(modo, otra){
+    actual = modo || actual;
+    if(otra) extraSeed++;
+    var lista = seleccionExplorar(actual, (Date.now() % 99991) + extraSeed * 97);
+    var caja = sh.querySelector('#exploreResults');
+    if(!lista.length){
+      caja.innerHTML = '<div class="tl-empty">No hay suficientes datos para esta selección.</div>';
+      return;
+    }
+    caja.innerHTML = '<div class="explore-head"><span>' + lista.length
+      + (lista.length === 1 ? ' propuesta' : ' propuestas') + '</span>'
+      + '<button type="button" class="btn xs" id="exploreOtra">' + I.refresh + 'Cambiar</button></div>'
+      + '<div class="explore-list">' + lista.map(itemExplorarHtml).join('') + '</div>';
+    caja.querySelectorAll('[data-explore-disco]').forEach(function(el){
+      el.onclick = function(){ sh.remove(); openDetail(el.dataset.exploreDisco); };
+    });
+    var otraBtn = caja.querySelector('#exploreOtra');
+    if(otraBtn) otraBtn.onclick = function(){ pintar(actual, true); };
+  };
+
+  sh.querySelectorAll('[data-explore-mode]').forEach(function(b){
+    b.onclick = function(){
+      sh.querySelectorAll('[data-explore-mode]').forEach(function(x){ x.className = ''; });
+      b.className = 'on';
+      extraSeed = 0;
+      pintar(b.dataset.exploreMode, false);
+    };
+  });
+  pintar('hoy', false);
+}
+
 function pintarSugerencias(){
   var caja = document.getElementById('sugerencias');
   if(!caja) return;

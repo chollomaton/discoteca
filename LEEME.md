@@ -4,7 +4,7 @@ Catálogo de vinilos y CDs que funciona igual en el Mac y en el iPhone, con los 
 guardados en tu propio repositorio de GitHub. Sin servidor propio: la aplicación es
 una PWA estática modular, y tu colección se sincroniza como un `datos.json` en GitHub.
 
-**Versión de esta entrega:** 2026.09.25-phase5 — se comprueba en Ajustes, al final de todo.
+**Versión de esta entrega:** 2026.09.25-phase6 — se comprueba en Ajustes, al final de todo.
 
 ## Archivos de la aplicación
 
@@ -35,13 +35,17 @@ falta subirlo a GitHub, pero tampoco pasa nada si lo subes también.
 
 Los iconos antiguos ya no forman parte del repositorio. Los únicos iconos de la app son los cuatro indicados arriba.
 
+### Descubrimiento inteligente (Fase 6)
+
+La colección mantiene las portadas como contenido principal. Las recomendaciones avanzadas ya no aparecen automáticamente ocupando espacio: se abren desde el acceso compacto **Explorar**. Allí hay cinco modos calculados solo con los datos locales: **Para hoy**, **Joyas olvidadas**, **Sin escuchar**, **Parecido a lo último** y **Viaje por décadas**. «Qué escucho ahora» también mejora las sesiones por tiempo: intenta aprovechar mejor los minutos disponibles y prioriza artistas distintos antes de repetir uno.
+
 ### Arquitectura modular (Fase 5)
 
 `index.html` ya no contiene cientos de kilobytes de CSS y JavaScript. Queda reducido a la estructura HTML y carga archivos separados por responsabilidad. Los scripts siguen siendo clásicos y comparten el mismo ámbito global, de modo que la modularización no cambia el modelo de ejecución ni introduce una migración de framework. El orden de carga está fijado y protegido por CI.
 
 ### Validación automática
 
-El repositorio incluye `.github/workflows/validate.yml` y las baterías `validate.mjs`, `sync-tests.mjs`, `quality-tests.mjs`, `design-tests.mjs`, `pwa-update-tests.mjs` y `module-tests.mjs`. GitHub ejecuta estas comprobaciones en cada pull request y en cada cambio que llega a `main`: sintaxis de todos los módulos JavaScript, orden de carga, separación del CSS, manifest y service worker, assets PWA, coherencia de versión, integridad básica de `datos.json`, reglas de caché y regresiones críticas ya sufridas por la app. La batería de sincronización simula además dos dispositivos: ediciones concurrentes en campos distintos, etiquetas, protecciones manuales, escuchas, borrados y compatibilidad con versiones antiguas. La batería de calidad prueba los niveles del Detective y la detección de estados de revisión desactualizados del Radar. Si alguna falla, el cambio no debe publicarse hasta corregirla.
+El repositorio incluye `.github/workflows/validate.yml` y las baterías `validate.mjs`, `sync-tests.mjs`, `quality-tests.mjs`, `design-tests.mjs`, `pwa-update-tests.mjs`, `module-tests.mjs` y `phase6-tests.mjs`. GitHub ejecuta estas comprobaciones en cada pull request y en cada cambio que llega a `main`: sintaxis de todos los módulos JavaScript, orden de carga, separación del CSS, manifest y service worker, assets PWA, coherencia de versión, integridad básica de `datos.json`, reglas de caché y regresiones críticas ya sufridas por la app. La batería de sincronización simula además dos dispositivos: ediciones concurrentes en campos distintos, etiquetas, protecciones manuales, escuchas, borrados y compatibilidad con versiones antiguas. La batería de calidad prueba los niveles del Detective y la detección de estados de revisión desactualizados del Radar. Si alguna falla, el cambio no debe publicarse hasta corregirla.
 
 ### Actualización PWA fiable
 
@@ -156,9 +160,8 @@ cambias el icono, borra el acceso directo y vuelve a añadirlo desde Safari para
     un identificador, lo dice claramente.
   - **Radar de la colección**: todo lo que merece revisión reunido en un sitio —
     fichas incompletas, posibles duplicados, discos sin foto, reparaciones pendientes.
-  - **Qué escucho ahora**: eliges cuánto tiempo tienes y arma una sesión con discos
-    reales que encajan en ese tiempo, con los filtros que quieras (no escuchados,
-    favoritos, vinilo, CD…).
+  - **Qué escucho ahora**: puedes pedir un disco recomendado o indicar cuánto tiempo tienes. Las sesiones intentan acercarse al tiempo disponible y dar variedad de artistas, con filtros de no escuchados, favoritos, vinilo o CD.
+  - **Explorar la colección**: cinco formas de redescubrir lo que ya tienes — para hoy, joyas olvidadas, sin escuchar, parecido a lo último y viaje por décadas — sin consultar servicios externos.
   - **El ADN de tu colección**: perfil calculado solo con tus propios datos —
     décadas, géneros, países, sellos, concentración por artista.
   - **Tendencia de escucha**: cómo ha cambiado el ritmo de escucha mes a mes, artistas

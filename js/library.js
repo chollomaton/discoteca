@@ -1021,6 +1021,7 @@ function pintarAppleHome(){
   if(hayFiltro || !coleccion().length){ box.innerHTML = ''; return; }
   box.innerHTML = '<div class="music-home"><div class="collection-actions">'
     + '<button type="button" class="collection-action primary" data-collection-action="sesion">' + I.playF + 'Qué escucho ahora</button>'
+    + '<button type="button" class="collection-action" data-collection-action="explorar">' + I.spark + 'Explorar</button>'
     + '<button type="button" class="collection-action" data-collection-action="recientes">' + I.plus + 'Recién añadidos</button>'
     + '<button type="button" class="collection-action" data-collection-action="volver">' + I.reloj2 + 'Vuelve a ponerlos</button>'
     + '</div></div>';
@@ -1028,6 +1029,7 @@ function pintarAppleHome(){
     el.onclick = function(){
       var a = el.dataset.collectionAction;
       if(a === 'sesion') sesionEscucha();
+      else if(a === 'explorar') explorarColeccion();
       else if(a === 'recientes') abrirSeleccionColeccion('recientes');
       else if(a === 'volver') abrirSeleccionColeccion('volver');
     };
@@ -1165,7 +1167,10 @@ function paintCol(){
     });
   }
   pintarListas();
-  pintarSugerencias();
+  /* Las recomendaciones avanzadas ya no ocupan espacio por defecto:
+     se abren solo cuando el usuario pulsa «Explorar». */
+  var sugerencias = document.getElementById('sugerencias');
+  if(sugerencias) sugerencias.innerHTML = '';
   enlazarTiles(board, dups);
   if(modo === 'shelf'){ montarPeek(board); coloresParaEstanteria(list); }
   montarPulsacionLarga(board);
