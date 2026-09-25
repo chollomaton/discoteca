@@ -34,3 +34,6 @@ jobs:
 
       - name: Probar diseño Apple Music
         run: node scripts/design-tests.mjs
+
+      - name: Probar actualización PWA
+        run: node scripts/pwa-update-tests.mjs
