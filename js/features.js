@@ -2387,57 +2387,67 @@ function listaPendientesGenerica(titulo, lista, detalleFn){
    digas, usando la duración real de sus pistas, con los filtros que
    elijas. Todo con datos que ya hay, sin ninguna consulta externa.
    ============================================================ */
-function duracionSegundos(d){
-  var seg = 0;
-  (d.tracklist || []).forEach(function(t){
-    var m = String(t.duracion || '').match(/^(\d+):(\d{2})$/);
-    if(m) seg += (+m[1]) * 60 + (+m[2]);
+function duracionSesion(d){
+  var pistas = d.tracklist || [], seg = 0, completa = pistas.length > 0;
+  pistas.forEach(function(t){
+    var m = String(t.duracion || '').match(/^(\d+):([0-5]\d)$/);
+    var dur = m ? (+m[1]) * 60 + (+m[2]) : 0;
+    if(dur > 0 && Number.isSafeInteger(dur)) seg += dur;
+    else completa = false;
   });
-  return seg;
+  return {segundos:seg, completa:completa && Number.isSafeInteger(seg)};
 }
+function duracionSegundos(d){ return duracionSesion(d).segundos; }
 function candidatosSesion(filtro){
-  var ds = coleccion().filter(function(d){ return duracionSegundos(d) > 0; });
+  var ds = coleccion();
   if(filtro === 'noescuchados') ds = ds.filter(function(d){ return totalEscuchas(d) === 0; });
   else if(filtro === 'favoritos') ds = ds.filter(function(d){ return d.valoracion >= 4; });
   else if(filtro === 'vinilo') ds = ds.filter(function(d){ return d.formato === 'Vinilo'; });
   else if(filtro === 'cd') ds = ds.filter(function(d){ return d.formato === 'CD'; });
   return ds;
 }
-/* Selección voraz: mezcla al azar y va añadiendo discos mientras quepan
-   en el tiempo disponible, con un margen razonable de sobra. No es un
-   ajuste perfecto (eso sería una mochila NP-completa por un minuto de
-   diferencia, no merece la pena); es sencillo y funciona bien en la
-   práctica con álbumes de 20 a 70 minutos. */
+/* Mochila por segundos: cada disco se usa una vez. El límite conserva el margen
+   anterior, pero se compara el total de todas las combinaciones alcanzables.
+   A igual distancia se prefiere no exceder el objetivo; a igual total, variedad. */
 function construirSesion(minutos, filtro){
+  var objetivo = minutos * 60;
+  if(![20,30,45,60,90].includes(minutos)) return {discos:[], segundos:0, objetivo:objetivo};
   var candidatos = rngShuffle(candidatosSesion(filtro), Date.now() % 99991);
-  var objetivo = minutos * 60, elegidos = [], total = 0, usados = {}, artistas = {};
-  var margen = Math.max(300, objetivo * 0.12); /* hasta un 12% de margen o 5 min */
-
-  /* Primera pasada: variedad de artistas. En cada paso se escoge, entre lo que
-     todavía cabe, el álbum que mejor aprovecha el tiempo restante. */
-  var escoger = function(permitirArtistaRepetido){
-    var limite = objetivo + margen, mejor = null, mejorDist = Infinity;
-    candidatos.forEach(function(d){
-      if(usados[d.id]) return;
-      var ak = plain(d.artista || '');
-      if(!permitirArtistaRepetido && ak && artistas[ak]) return;
-      var dur = duracionSegundos(d);
-      if(!dur || total + dur > limite) return;
-      var dist = Math.abs(objetivo - (total + dur));
-      if(dist < mejorDist){ mejor = d; mejorDist = dist; }
-    });
-    if(!mejor) return false;
-    elegidos.push(mejor); usados[mejor.id] = true;
-    var k = plain(mejor.artista || ''); if(k) artistas[k] = true;
-    total += duracionSegundos(mejor);
-    return true;
-  };
-
-  while(escoger(false)){}
-  /* Si aún queda un hueco útil, se permite repetir artista antes que dejar
-     tiempo desaprovechado. */
-  while(total < objetivo - 300 && escoger(true)){}
-  return {discos: elegidos, segundos: total, objetivo: objetivo};
+  var limite = Math.floor(objetivo + Math.max(300, objetivo * 0.12));
+  var estados = new Array(limite + 1);
+  estados[0] = {discos:[], artistas:[]};
+  candidatos.forEach(function(d){
+    var info = duracionSesion(d), dur = info.segundos, artista = plain(d.artista || '');
+    if(!info.completa || dur > limite) return;
+    for(var t = limite - dur; t >= 0; t--){
+      var previo = estados[t];
+      if(!previo) continue;
+      var artistas = previo.artistas;
+      if(artista && artistas.indexOf(artista) < 0) artistas = artistas.concat([artista]);
+      var existente = estados[t + dur];
+      if(!existente || artistas.length > existente.artistas.length){
+        estados[t + dur] = {discos:previo.discos.concat([d]), artistas:artistas};
+      }
+    }
+  });
+  var mejor = 0;
+  for(var t = 1; t <= limite; t++){
+    if(estados[t] && (!mejor || Math.abs(t - objetivo) < Math.abs(mejor - objetivo))) mejor = t;
+  }
+  return {discos:mejor ? estados[mejor].discos : [], segundos:mejor, objetivo:objetivo};
+}
+function tiempoSesion(segundos){
+  var min = Math.floor(segundos / 60), resto = segundos % 60;
+  return min + ' min' + (resto ? ' ' + resto + ' s' : '');
+}
+function resumenTiempoSesion(discos, minutos){
+  var total = 0, faltan = 0;
+  discos.forEach(function(d){ var info = duracionSesion(d); total += info.segundos; if(!info.completa) faltan++; });
+  var texto = 'Duración prevista: ' + (faltan ? 'al menos ' : '') + tiempoSesion(total);
+  if(minutos) texto += ' de ' + minutos + ' min';
+  if(minutos && total > minutos * 60) texto += ' · Excede el objetivo en ' + tiempoSesion(total - minutos * 60);
+  if(faltan) texto += ' · Faltan duraciones en ' + faltan + (faltan === 1 ? ' disco' : ' discos') + '; el total es incompleto';
+  return texto;
 }
 function recomendadoColeccion(seed){
   var ds = coleccion();
@@ -2517,7 +2527,7 @@ function sesionEscucha(){
       return '<button type="button" class="btn sm" data-f="' + f[0] + '">' + f[1] + '</button>';
     }).join('') + '</div></div>'
     + '<p class="session-hint" id="sesConservacion"></p><p class="session-progress" id="sesProgreso" role="status" aria-live="polite"></p>'
-    + '<div id="sesRes"></div><div class="session-options session-footer">'
+    + '<p class="session-hint" id="sesDuracion" role="status" aria-live="polite"></p><div id="sesRes"></div><div class="session-options session-footer">'
     + '<button type="button" class="btn sm" id="sesOtra">' + I.refresh + 'Otra selección</button>'
     + '<button type="button" class="btn sm" id="sesTerminar">Terminar sesión</button></div>';
   var sh = sheet('Qué escucho ahora', body, null, true);
@@ -2556,11 +2566,17 @@ function sesionEscucha(){
     sh.querySelector('#sesProgreso').textContent = discos.length
       ? progreso.escuchados + ' de ' + progreso.total + ' escuchados hoy'
         + (progreso.escuchados === progreso.total ? ' · Sesión completada' : progreso.segundosPendientes
-          ? ' · ' + Math.ceil(progreso.segundosPendientes / 60) + ' min pendientes según las pistas' : '') : '';
+          ? ' · ' + (discos.some(function(d){ return !escuchadoHoy(d) && !duracionSesion(d).completa; }) ? 'Al menos ' : '') + tiempoSesion(progreso.segundosPendientes) + ' pendientes según las pistas' : '') : '';
+    var aviso = discos.length ? resumenTiempoSesion(discos, estado.modo === 'tiempo' ? estado.minutos : 0) : '';
+    if(estado.modo === 'tiempo'){
+      var incompletos = candidatosSesion(estado.filtro).filter(function(d){ return !duracionSesion(d).completa; }).length;
+      if(incompletos) aviso += (aviso ? ' · ' : '') + incompletos + ' discos del filtro sin duración completa; no se incluyen en nuevas selecciones por tiempo.';
+    }
+    sh.querySelector('#sesDuracion').textContent = aviso;
     var caja = sh.querySelector('#sesRes');
     caja.innerHTML = discos.length ? '<div class="explore-list">' + discos.map(function(d){
       return itemExplorarHtml({d:d, motivo:escuchadoHoy(d) ? 'Escuchado hoy · puedes volver a abrirlo' :
-        d.formato + (duracionSegundos(d) ? ' · ' + Math.ceil(duracionSegundos(d)/60) + ' min' : ' · duración sin datos')});
+        d.formato + (duracionSegundos(d) ? ' · ' + (duracionSesion(d).completa ? '' : 'al menos ') + tiempoSesion(duracionSegundos(d)) : ' · duración sin datos')});
     }).join('') + '</div>' : '<div class="tl-empty">' + (!coleccion().length ? 'Tu colección está vacía.'
       : 'No hay discos en esta selección. Cambia el tiempo o el filtro, o pide otra selección.') + '</div>';
     var otra = sh.querySelector('#sesOtra');
