@@ -3,8 +3,13 @@ name: Validar Discoteca
 on:
   pull_request:
     branches: [main]
+    types: [ready_for_review, reopened]
   push:
     branches: [main]
+
+concurrency:
+  group: validar-discoteca-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
