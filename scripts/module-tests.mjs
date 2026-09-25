@@ -39,7 +39,7 @@ assert(/var VERSION = '2026\.09\.25-phase5'/.test(core),'VERSION vive en core.js
 assert(/function fusionar\(/.test(core),'sincronización base vive en core.js');
 assert(/function paintCol\(/.test(library),'colección vive en library.js');
 assert(/function openDetail\(/.test(library),'ficha vive en library.js');
-assert(/function diagnosticarEdicion\(/.test(features),'Detective vive en features.js');
+assert(/function diagnosticarEdicion\(/.test(library),'Detective de la ficha vive en library.js');
 assert(/function radarColeccion\(/.test(features),'Radar vive en features.js');
 assert(/function maquinaDelTiempo\(/.test(insights),'Máquina del tiempo vive en insights.js');
 assert(/function paintStats\(/.test(stats),'estadísticas viven en stats.js');
