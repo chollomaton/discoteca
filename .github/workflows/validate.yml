@@ -60,10 +60,16 @@ jobs:
         run: node scripts/phase6-tests.mjs
       - name: Probar privacidad y recuperación
         run: node scripts/phase7-tests.mjs
+      - name: Fase 7 · auditoría final de privacidad y recuperación
+        run: node scripts/phase7-final-security-tests.mjs
       - name: Probar descubrimiento práctico y microanimaciones
         run: node scripts/phase8-tests.mjs
+      - name: Fase 8 · auditoría final de descubrimiento y movimiento
+        run: node scripts/phase8-final-ux-tests.mjs
       - name: Probar sesiones retomables
         run: node scripts/phase9-tests.mjs
+      - name: Fase 9 · auditoría final de sesiones retomables
+        run: node scripts/phase9-final-session-tests.mjs
       - name: Probar ajuste temporal 10.1
         run: node scripts/step10-1-tests.mjs
       - name: Probar saneamiento arquitectónico 10.2
