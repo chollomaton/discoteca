@@ -4,7 +4,7 @@ Catálogo de vinilos y CDs que funciona igual en el Mac y en el iPhone, con los 
 guardados en tu propio repositorio de GitHub. Sin servidor propio: la aplicación es
 un único archivo, y tu colección se sincroniza como un `datos.json` en GitHub.
 
-**Versión de esta entrega:** 2026.09.19-revision8 — se comprueba en Ajustes, al final de todo.
+**Versión de esta entrega:** 2026.09.25-phase1 — se comprueba en Ajustes, al final de todo.
 
 ## Archivos de la aplicación
 
@@ -28,10 +28,11 @@ actualización de la aplicación por esa misma razón.
 Este propio **`LEEME.md`** es solo documentación para ti: no lo usa la aplicación, no hace
 falta subirlo a GitHub, pero tampoco pasa nada si lo subes también.
 
-**Si en tu repositorio de GitHub todavía existen `icon-192.png` e `icon-512.png` (sin `-v2`)**,
-son del diseño antiguo y ya no los usa ni `index.html`, ni `manifest.webmanifest`, ni `sw.js`.
-Puedes borrarlos tú mismo desde GitHub (en el repositorio, ábrelos y pulsa la papelera) — esta
-aplicación no puede borrar archivos de tu repositorio por sí sola, solo puede subir los suyos.
+Los iconos antiguos ya no forman parte del repositorio. Los únicos iconos de la app son los cuatro indicados arriba.
+
+### Validación automática
+
+El repositorio incluye `.github/workflows/validate.yml` y `scripts/validate.mjs`. GitHub ejecuta estas comprobaciones en cada pull request y en cada cambio que llega a `main`: sintaxis del JavaScript, manifest y service worker, assets PWA, coherencia de versión, integridad básica de `datos.json`, reglas de caché y regresiones críticas ya sufridas por la app (por ejemplo, un botón de Ajustes sin handler o volver a persistir `preview` vacío). Si alguna falla, el cambio no debe publicarse hasta corregirla.
 
 ---
 
