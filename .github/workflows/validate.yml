@@ -24,77 +24,56 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Preparar Node
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-
       - name: Ejecutar validaciones
         run: node scripts/validate.mjs
-
       - name: Probar sincronización multicliente
         run: node scripts/sync-tests.mjs
-
       - name: Probar importación y transferencia
         run: node scripts/transfer-regression-tests.mjs
-
       - name: Probar robustez de metadata, red y persistencia
         run: node scripts/robustness-source-tests.mjs
-
+      - name: Probar datos extremos y recuperación
+        run: node scripts/extreme-recovery-tests.mjs
       - name: Probar Radar y Detective
         run: node scripts/quality-tests.mjs
-
       - name: Probar diseño Apple Music
         run: node scripts/design-tests.mjs
-
       - name: Probar actualización PWA
         run: node scripts/pwa-update-tests.mjs
-
       - name: Probar arquitectura modular
         run: node scripts/module-tests.mjs
-
       - name: Probar descubrimiento inteligente
         run: node scripts/phase6-tests.mjs
-
       - name: Probar privacidad y recuperación
         run: node scripts/phase7-tests.mjs
-
       - name: Probar descubrimiento práctico y microanimaciones
         run: node scripts/phase8-tests.mjs
-
       - name: Probar sesiones retomables
         run: node scripts/phase9-tests.mjs
-
       - name: Probar ajuste temporal 10.1
         run: node scripts/step10-1-tests.mjs
-
       - name: Probar saneamiento arquitectónico 10.2
         run: node scripts/step10-2-tests.mjs
-
       - name: Preparar comparación visual Chromium
         run: |
           npm install --no-save --package-lock=false playwright@1.58.2
           npx playwright install --with-deps chromium
-
       - name: Verificar límites de comparación visual
         run: node scripts/visual-compare-tests.mjs
-
       - name: Comparar 10.1 y 10.2 en escritorio y móvil
         run: node scripts/step10-2-browser.mjs
-
       - name: Probar accesibilidad en escritorio y móvil
         run: node scripts/accessibility-tests.mjs
-
       - name: Comparar 10.2 y 10.3 en escritorio y móvil
         run: node scripts/step10-3-browser.mjs
-
       - name: Probar UX conservadora y PWA sin conexión
         run: node scripts/step10-4-browser.mjs
-
       - name: Probar escala con 250, 1000 y 5000 discos
         run: node scripts/scale-browser.mjs
-
       - name: Guardar capturas de comparación
         if: always()
         uses: actions/upload-artifact@v4
