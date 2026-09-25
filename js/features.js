@@ -2446,94 +2446,164 @@ function recomendadoColeccion(seed){
   if(!preferidos.length) preferidos = ds.slice();
   return rngShuffle(preferidos, seed)[0] || preferidos[0] || ds[0];
 }
+/* La sesión guarda solo referencias en esta pestaña, nunca copias de discos o claves. */
+var K_SESION_ESCUCHA = 'discoteca.sesionEscucha.v1';
+var sesionEscuchaMemoria = null;
+var sesionEscuchaDurable = true;
+function destinoSesionEscucha(){
+  return JSON.stringify([CFG.owner || '', CFG.repo || '', CFG.branch || 'main', CFG.path || 'datos.json']);
+}
+function normalizarSesionEscucha(valor, discos, destino){
+  var base = {version:1, destino:destino, modo:'uno', minutos:45, filtro:'todos', uno:'', unoGenerado:false, ids:[], generada:false};
+  if(!valor || valor.version !== 1 || valor.destino !== destino) return base;
+  var disponibles = new Set(discos.map(function(d){ return d.id; }));
+  base.modo = valor.modo === 'tiempo' ? 'tiempo' : 'uno';
+  if([20,30,45,60,90].indexOf(valor.minutos) >= 0) base.minutos = valor.minutos;
+  if(['todos','noescuchados','favoritos','vinilo','cd'].indexOf(valor.filtro) >= 0) base.filtro = valor.filtro;
+  base.uno = typeof valor.uno === 'string' && disponibles.has(valor.uno) ? valor.uno : '';
+  var vistos = new Set();
+  if(Array.isArray(valor.ids)) valor.ids.slice(0,200).forEach(function(id){
+    if(typeof id === 'string' && disponibles.has(id) && !vistos.has(id)){ base.ids.push(id); vistos.add(id); }
+  });
+  base.generada = valor.generada === true;
+  base.unoGenerado = valor.unoGenerado === true;
+  return base;
+}
+function cargarSesionEscucha(){
+  var valor = sesionEscuchaMemoria;
+  if(!valor){
+    try{ valor = JSON.parse(sessionStorage.getItem(K_SESION_ESCUCHA) || 'null'); }
+    catch(e){ sesionEscuchaDurable = false; }
+  }
+  sesionEscuchaMemoria = normalizarSesionEscucha(valor, coleccion(), destinoSesionEscucha());
+  return sesionEscuchaMemoria;
+}
+function guardarSesionEscucha(estado){
+  sesionEscuchaMemoria = normalizarSesionEscucha(estado, coleccion(), destinoSesionEscucha());
+  try{ sessionStorage.setItem(K_SESION_ESCUCHA, JSON.stringify(sesionEscuchaMemoria)); sesionEscuchaDurable = true; }
+  catch(e){ sesionEscuchaDurable = false; }
+  return sesionEscuchaMemoria;
+}
+function terminarSesionEscucha(){
+  /* Escribir el estado vacío también invalida el anterior si removeItem no está disponible. */
+  guardarSesionEscucha(null);
+  try{ sessionStorage.removeItem(K_SESION_ESCUCHA); sesionEscuchaDurable = true; }
+  catch(e){}
+}
+function discosSesionEscucha(estado, discos){
+  var ids = estado.modo === 'uno' ? [estado.uno] : estado.ids;
+  return ids.map(function(id){ return discos.filter(function(d){ return d.id === id; })[0]; }).filter(Boolean);
+}
+function progresoSesionEscucha(discos){
+  var pendientes = discos.filter(function(d){ return !escuchadoHoy(d); });
+  return {total:discos.length, escuchados:discos.length - pendientes.length,
+    segundosPendientes:pendientes.reduce(function(n,d){ return n + duracionSegundos(d); },0)};
+}
 function sesionEscucha(){
-  var body = '<div class="listen-choice">'
-    + '<button type="button" class="on" data-modo-escucha="uno">' + I.disc + 'Recomiéndame uno</button>'
-    + '<button type="button" data-modo-escucha="tiempo">' + I.reloj2 + 'Tengo un tiempo</button>'
-    + '</div>'
-    + '<div id="sesUno"></div>'
-    + '<div id="sesTiempo" style="display:none">'
-    + '<p style="font-size:14px;color:var(--txt2);margin:0 0 14px">¿Cuánto tiempo tienes?</p>'
-    + '<div class="rowb" id="sesMin" style="flex-wrap:wrap;margin-bottom:16px">'
-    + [20, 30, 45, 60, 90].map(function(m){ return '<button type="button" class="btn sm" data-min="' + m + '">' + m + ' min</button>'; }).join('')
-    + '</div>'
-    + '<p style="font-size:14px;color:var(--txt2);margin:0 0 10px">¿Algún filtro?</p>'
-    + '<div class="rowb" id="sesFiltro" style="flex-wrap:wrap;margin-bottom:18px">'
-    + [['todos', 'Cualquiera'], ['noescuchados', 'No escuchados'], ['favoritos', 'Favoritos'],
-       ['vinilo', 'Vinilo'], ['cd', 'CD']].map(function(f){
-        return '<button type="button" class="btn sm' + (f[0] === 'todos' ? ' on' : '') + '" data-f="' + f[0] + '">' + f[1] + '</button>';
-      }).join('')
-    + '</div><div id="sesRes"></div></div>';
+  var estado = cargarSesionEscucha();
+  if(!estado.unoGenerado && estado.modo === 'uno'){
+    var primero = recomendadoColeccion(parseInt(hoyISO().replace(/-/g,''),10));
+    estado.uno = primero ? primero.id : '';
+    estado.unoGenerado = true;
+  }
+  var body = '<div class="listen-choice" role="group" aria-label="Tipo de sesión">'
+    + '<button type="button" data-modo-escucha="uno">' + I.disc + 'Recomiéndame uno</button>'
+    + '<button type="button" data-modo-escucha="tiempo">' + I.reloj2 + 'Tengo un tiempo</button></div>'
+    + '<div id="sesTiempo"><p class="session-label">¿Cuánto tiempo tienes?</p>'
+    + '<div class="session-options" id="sesMin" role="group" aria-label="Tiempo disponible">'
+    + [20,30,45,60,90].map(function(m){ return '<button type="button" class="btn sm" data-min="' + m + '">' + m + ' min</button>'; }).join('')
+    + '</div><p class="session-label">¿Algún filtro?</p><div class="session-options" id="sesFiltro" role="group" aria-label="Filtro de sesión">'
+    + [['todos','Cualquiera'],['noescuchados','No escuchados'],['favoritos','Favoritos'],['vinilo','Vinilo'],['cd','CD']].map(function(f){
+      return '<button type="button" class="btn sm" data-f="' + f[0] + '">' + f[1] + '</button>';
+    }).join('') + '</div></div>'
+    + '<p class="session-hint" id="sesConservacion"></p><p class="session-progress" id="sesProgreso" role="status" aria-live="polite"></p>'
+    + '<div id="sesRes"></div><div class="session-options session-footer">'
+    + '<button type="button" class="btn sm" id="sesOtra">' + I.refresh + 'Otra selección</button>'
+    + '<button type="button" class="btn sm" id="sesTerminar">Terminar sesión</button></div>';
   var sh = sheet('Qué escucho ahora', body, null, true);
-  var minSel = 45, filtroSel = 'todos', semillaExtra = 0;
-
-  var pintarUno = function(otro){
-    if(otro) semillaExtra++;
-    var seed = otro ? ((Date.now() + semillaExtra * 7919) % 99991)
-      : (parseInt(hoyISO().replace(/-/g,''),10) || 1);
-    var d = recomendadoColeccion(seed);
-    var caja = sh.querySelector('#sesUno');
-    if(!d){
-      caja.innerHTML = '<div class="tl-empty">Tu colección está vacía.</div>';
-      return;
-    }
-    caja.innerHTML = '<div class="listen-reco">'
-      + '<div class="lr-art" data-reco-open="' + d.id + '">' + coverHtml(d) + '</div>'
-      + '<div><div class="lr-k">' + (otro ? 'Otra propuesta' : 'Recomendado para hoy') + '</div>'
-      + '<div class="lr-t">' + esc(d.titulo || 'Sin título') + '</div>'
-      + '<div class="lr-a">' + esc(d.artista || 'Artista desconocido') + '</div>'
-      + '<div class="lr-actions"><button type="button" class="btn pri sm" data-reco-open="' + d.id + '">' + I.play + 'Abrir disco</button>'
-      + '<button type="button" class="btn sm" id="sesOtroDisco">' + I.refresh + 'Otro</button></div></div></div>';
-    caja.querySelectorAll('[data-reco-open]').forEach(function(el){
-      el.onclick = function(){ sh.remove(); openDetail(el.dataset.recoOpen); };
-    });
-    caja.querySelector('#sesOtroDisco').onclick = function(){ pintarUno(true); };
-  };
-
   var construir = function(){
-    var r = construirSesion(minSel, filtroSel === 'todos' ? '' : filtroSel);
-    var caja = sh.querySelector('#sesRes');
-    if(!r.discos.length){
-      caja.innerHTML = '<div class="tl-empty">No hay discos que encajen con ese filtro y ese tiempo.</div>';
-      return;
+    if(estado.modo === 'tiempo'){
+      estado.ids = construirSesion(estado.minutos, estado.filtro === 'todos' ? '' : estado.filtro).discos.map(function(d){ return d.id; });
+      estado.generada = true;
+    }else{
+      var alternativas = coleccion().filter(function(d){ return d.id !== estado.uno; });
+      var sinEscuchar = alternativas.filter(function(d){ return totalEscuchas(d) === 0; });
+      var otro = rngShuffle(sinEscuchar.length ? sinEscuchar : alternativas, Date.now() % 99991)[0];
+      if(otro) estado.uno = otro.id;
+      estado.unoGenerado = true;
     }
-    var h = Math.floor(r.segundos / 3600), m = Math.round(r.segundos % 3600 / 60);
-    caja.innerHTML = '<div class="tl-hd"><h4>' + r.discos.length + (r.discos.length === 1 ? ' disco' : ' discos')
-      + '</h4><span class="n">' + (h ? h + ' h ' : '') + m + ' min en total</span></div>'
-      + '<div class="grid paisgrid">' + r.discos.map(function(d){ return tileHtml(d, null); }).join('') + '</div>'
-      + '<div class="rowb" style="margin-top:16px"><button type="button" class="btn" id="sesOtra">' + I.refresh + 'Otra selección</button></div>';
-    enlazarTiles(caja, {});
-    caja.querySelector('#sesOtra').onclick = construir;
   };
-
+  var pintar = function(animar){
+    estado = guardarSesionEscucha(estado);
+    var discos = discosSesionEscucha(estado, coleccion());
+    var progreso = progresoSesionEscucha(discos);
+    sh.querySelector('#sesTiempo').hidden = estado.modo !== 'tiempo';
+    sh.querySelectorAll('[data-modo-escucha]').forEach(function(b){
+      var on = b.dataset.modoEscucha === estado.modo;
+      b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+    });
+    sh.querySelectorAll('[data-min]').forEach(function(b){
+      var on = +b.dataset.min === estado.minutos;
+      b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+    });
+    sh.querySelectorAll('#sesFiltro [data-f]').forEach(function(b){
+      var on = b.dataset.f === estado.filtro;
+      b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+    });
+    sh.querySelector('#sesConservacion').textContent = sesionEscuchaDurable
+      ? 'Tu selección se conserva al volver de una ficha o recargar esta pestaña. No reproduce audio.'
+      : 'Tu selección se mantiene mientras la app siga abierta; el navegador no permite guardarla al recargar.';
+    sh.querySelector('#sesProgreso').textContent = discos.length
+      ? progreso.escuchados + ' de ' + progreso.total + ' escuchados hoy'
+        + (progreso.escuchados === progreso.total ? ' · Sesión completada' : progreso.segundosPendientes
+          ? ' · ' + Math.ceil(progreso.segundosPendientes / 60) + ' min pendientes según las pistas' : '') : '';
+    var caja = sh.querySelector('#sesRes');
+    caja.innerHTML = discos.length ? '<div class="explore-list">' + discos.map(function(d){
+      return itemExplorarHtml({d:d, motivo:escuchadoHoy(d) ? 'Escuchado hoy · puedes volver a abrirlo' :
+        d.formato + (duracionSegundos(d) ? ' · ' + Math.ceil(duracionSegundos(d)/60) + ' min' : ' · duración sin datos')});
+    }).join('') + '</div>' : '<div class="tl-empty">' + (!coleccion().length ? 'Tu colección está vacía.'
+      : 'No hay discos en esta selección. Cambia el tiempo o el filtro, o pide otra selección.') + '</div>';
+    var otra = sh.querySelector('#sesOtra');
+    otra.textContent = estado.modo === 'uno' ? 'Otro disco' : 'Otra selección';
+    otra.disabled = estado.modo === 'uno' ? !coleccion().some(function(d){ return d.id !== estado.uno; }) : !coleccion().length;
+    caja.querySelectorAll('[data-explore-disco]').forEach(function(b){
+      b.onclick = function(){
+        guardarSesionEscucha(estado);
+        sh.querySelector('[data-close]').click();
+        openDetail(b.dataset.exploreDisco, null, sesionEscucha);
+      };
+    });
+    caja.querySelectorAll('[data-explore-listen]').forEach(function(b){
+      b.onclick = function(){
+        if(readOnly) return;
+        var id = b.dataset.exploreListen;
+        marcarEscucha(id); paintCol(); pintar(false);
+        var nuevo = Array.from(caja.querySelectorAll('[data-explore-listen]')).filter(function(x){ return x.dataset.exploreListen === id; })[0];
+        if(nuevo){ nuevo.focus(); microFeedback(nuevo); }
+      };
+    });
+    if(animar) microFeedback(caja, 'reveal');
+  };
   sh.querySelectorAll('[data-modo-escucha]').forEach(function(b){
     b.onclick = function(){
-      sh.querySelectorAll('[data-modo-escucha]').forEach(function(x){ x.className = ''; });
-      b.className = 'on';
-      var uno = b.dataset.modoEscucha === 'uno';
-      sh.querySelector('#sesUno').style.display = uno ? '' : 'none';
-      sh.querySelector('#sesTiempo').style.display = uno ? 'none' : '';
-      if(!uno) construir();
+      estado.modo = b.dataset.modoEscucha;
+      if(estado.modo === 'tiempo' && !estado.generada) construir();
+      if(estado.modo === 'uno' && !estado.unoGenerado) construir();
+      pintar(true);
     };
   });
-  sh.querySelectorAll('#sesMin button').forEach(function(b){
-    b.onclick = function(){
-      sh.querySelectorAll('#sesMin button').forEach(function(x){ x.className = 'btn sm'; });
-      b.className = 'btn sm on';
-      minSel = +b.dataset.min;
-      construir();
-    };
+  sh.querySelectorAll('[data-min]').forEach(function(b){
+    b.onclick = function(){ estado.minutos = +b.dataset.min; construir(); pintar(true); };
   });
-  sh.querySelectorAll('#sesFiltro button').forEach(function(b){
-    b.onclick = function(){
-      sh.querySelectorAll('#sesFiltro button').forEach(function(x){ x.className = 'btn sm'; });
-      b.className = 'btn sm on';
-      filtroSel = b.dataset.f;
-      construir();
-    };
+  sh.querySelectorAll('#sesFiltro [data-f]').forEach(function(b){
+    b.onclick = function(){ estado.filtro = b.dataset.f; construir(); pintar(true); };
   });
-  sh.querySelector('#sesMin [data-min="45"]').className = 'btn sm on';
-  pintarUno(false);
+  sh.querySelector('#sesOtra').onclick = function(){ construir(); pintar(true); };
+  sh.querySelector('#sesTerminar').onclick = function(){
+    terminarSesionEscucha(); sh.querySelector('[data-close]').click();
+    toast(sesionEscuchaDurable ? 'Sesión terminada · tus escuchas se conservan' : 'Sesión terminada aquí; el navegador no pudo borrar la selección guardada');
+  };
+  pintar(false);
 }
 
 /* ============================================================

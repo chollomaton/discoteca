@@ -4,7 +4,7 @@ Catálogo de vinilos y CDs que funciona igual en el Mac y en el iPhone, con los 
 guardados en tu propio repositorio de GitHub. Sin servidor propio: la aplicación es
 una PWA estática modular, y tu colección se sincroniza como un `datos.json` en GitHub.
 
-**Versión de esta entrega:** 2026.09.25-phase8 — se comprueba en Ajustes, al final de todo.
+**Versión de esta entrega:** 2026.09.25-phase9 — se comprueba en Ajustes, al final de todo.
 
 ## Archivos de la aplicación
 
@@ -300,7 +300,7 @@ vez de duplicarla.
 - Ante pérdida del dispositivo, revoca sus credenciales, conecta otro dispositivo al repositorio privado
   y restaura la última copia si faltan cambios. El historial de GitHub es una segunda vía de recuperación.
 - Antes de actualizar: confirma «Al día» y conserva una copia reciente. Después: verifica en Ajustes
-  `2026.09.25-phase8`. La caché de esta versión es `discoteca-v54`; nunca incluye JSON de colección.
+  `2026.09.25-phase9`. La caché de esta versión es `discoteca-v55`; nunca incluye JSON de colección.
 
 Las pruebas de Fase 7 cubren almacenamiento de claves, censura de diagnósticos, rutas inválidas,
 validación de copias, falta de espacio, recuperación de borrados, API privada para archivos grandes,
@@ -317,3 +317,18 @@ El botón junto a cada disco registra la escucha de hoy y permite quitarla sin a
 No reproduce audio. El historial usa la sincronización habitual; los filtros y la tanda son temporales.
 Las escuchas, favoritas y cambios de propuestas tienen feedback breve, desactivado con movimiento reducido.
 No se modifica datos.json en esta entrega ni se migra la estructura de la colección.
+
+
+### Sesiones retomables (Fase 9)
+
+«Qué escucho ahora» conserva el modo, los minutos, el filtro y los discos elegidos.
+Abre una ficha y usa «Volver a mi sesión», Atrás o Cerrar para regresar a la misma selección.
+Las escuchas de hoy muestran el progreso y se pueden marcar o deshacer desde la sesión.
+Cambiar de modo conserva la selección de cada modo; cambiar tiempo/filtro genera una nueva.
+«Terminar sesión» borra la selección temporal, pero conserva todas las escuchas.
+
+La selección se guarda solo en esta pestaña (sessionStorage): sobrevive a recargas, no se sincroniza
+entre dispositivos y puede desaparecer al cerrar la pestaña/PWA. Contiene IDs y preferencias,
+no fichas ni claves, y se invalida si cambia el destino de datos. Si el navegador no permite
+almacenarla, la pantalla avisa y mantiene una copia en memoria. Los discos borrados o pasados a
+deseos se excluyen al retomar; las fichas se leen siempre de la colección actual.

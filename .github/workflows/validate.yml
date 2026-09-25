@@ -55,3 +55,6 @@ jobs:
 
       - name: Probar descubrimiento práctico y microanimaciones
         run: node scripts/phase8-tests.mjs
+
+      - name: Probar sesiones retomables
+        run: node scripts/phase9-tests.mjs

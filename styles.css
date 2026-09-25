@@ -1659,3 +1659,15 @@ label.trk{cursor:pointer}
 @media(prefers-reduced-motion:reduce){.explore-album{transition:none}.explore-album:active{transform:none}}
 
 .explore-formats button.on{background:var(--blue);color:#fff}
+
+/* Sesión retomable: misma jerarquía compacta en móvil y escritorio. */
+.session-label{font-size:14px;color:var(--txt2);margin:0 0 10px}
+.session-options{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.session-options button{min-height:44px}
+.session-options button.on{background:var(--blue);color:#fff}
+.session-options button:focus-visible,.session-return:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+.session-hint{font-size:12px;color:var(--txt2);line-height:1.5;margin:0 0 12px}
+.session-progress{font-size:13px;font-weight:600;color:var(--txt);margin:0 0 12px}
+.session-footer{margin-top:16px;margin-bottom:0}
+.session-return{margin-bottom:16px;min-height:44px}
+#sesTiempo[hidden]{display:none}
