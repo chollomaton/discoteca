@@ -9,7 +9,7 @@ const ctx=vm.createContext({CFG:{owner:'user',repo:'records',branch:'main',path:
   coleccion:()=>discs,escuchadoHoy:d=>d.escuchasFechas.includes('2026-09-25'),
   sessionStorage:{getItem:k=>{if(fail)throw Error('blocked');return storage.get(k)||null;},
     setItem:(k,v)=>{if(fail)throw Error('quota');storage.set(k,v);},removeItem:k=>{if(fail)throw Error('blocked');storage.delete(k);}}});
-vm.runInContext(source.slice(source.indexOf('function duracionSegundos(d){'),source.indexOf('function candidatosSesion(')),ctx);
+vm.runInContext(source.slice(source.indexOf('function duracionSesion(d){'),source.indexOf('function candidatosSesion(')),ctx);
 vm.runInContext(source.slice(source.indexOf('var K_SESION_ESCUCHA'),source.indexOf('function sesionEscucha(){')),ctx);
 let state=ctx.cargarSesionEscucha();assert.equal(state.minutos,45);assert.equal(state.modo,'uno');
 state={...state,modo:'tiempo',minutos:60,filtro:'vinilo',ids:['a','b','a','missing'],generada:true,uno:'b',unoGenerado:true,token:'INJECTED'};

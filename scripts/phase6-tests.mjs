@@ -24,7 +24,7 @@ if(ei>=0 && ej>ei){
 }
 
 /* Prueba real del algoritmo de sesión por tiempo. */
-const a=src.indexOf('function duracionSegundos(d){');
+const a=src.indexOf('function duracionSesion(d){');
 const b=src.indexOf('function recomendadoColeccion(seed){',a);
 assert(a>=0 && b>a,'se puede aislar el algoritmo de sesión');
 if(a>=0 && b>a){

@@ -10,7 +10,7 @@ var configuracionEnCurso = false;
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.25-phase9';
+var VERSION = '2026.09.25-phase10.1';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var firmasCampos = {};        // id -> firmas por campo, para sincronización granular
 var view = 'col';
