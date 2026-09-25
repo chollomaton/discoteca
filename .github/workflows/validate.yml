@@ -38,6 +38,10 @@ jobs:
         run: node scripts/robustness-source-tests.mjs
       - name: Probar datos extremos y recuperación
         run: node scripts/extreme-recovery-tests.mjs
+      - name: Probar persistencia y migraciones
+        run: node scripts/persistence-migration-tests.mjs
+      - name: Probar sincronización extrema
+        run: node scripts/extreme-sync-contract-tests.mjs
       - name: Probar Radar y Detective
         run: node scripts/quality-tests.mjs
       - name: Probar diseño Apple Music
