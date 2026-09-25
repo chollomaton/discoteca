@@ -37,3 +37,6 @@ jobs:
 
       - name: Probar actualización PWA
         run: node scripts/pwa-update-tests.mjs
+
+      - name: Probar arquitectura modular
+        run: node scripts/module-tests.mjs

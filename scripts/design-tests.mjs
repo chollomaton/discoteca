@@ -1,6 +1,8 @@
 import fs from 'node:fs';
+import { readAppSource, readCss } from './app-source.mjs';
 
-const src=fs.readFileSync('index.html','utf8');
+const html=fs.readFileSync('index.html','utf8');
+const src=html+'\n'+readCss()+'\n'+readAppSource();
 const fail=(m)=>{console.error('✗ '+m);process.exitCode=1;};
 const ok=(m)=>console.log('✓ '+m);
 const assert=(c,m)=>c?ok(m):fail(m);
@@ -49,7 +51,7 @@ assert(src.includes("seccion(I.aguja, 'Salud de la colección'"),'Radar vive en 
 
 /* Evita que una futura edición vuelva a meter un sexto destino móvil:
    esta fase cambia el aspecto, no la arquitectura de navegación. */
-const tabbar=(src.match(/<nav class="tabbar"[\s\S]*?<\/nav>/)||[''])[0];
+const tabbar=(html.match(/<nav class="tabbar"[\s\S]*?<\/nav>/)||[''])[0];
 const destinos=[...tabbar.matchAll(/data-v="([^"]+)"/g)].map(x=>x[1]);
 assert(JSON.stringify(destinos)===JSON.stringify(['col','wish','stats','db']),
   'la navegación móvil conserva sus cuatro destinos existentes');
