@@ -11,10 +11,13 @@ assert(src.includes('id="musicHome"'),'existe el contenedor Apple Music de la co
 assert(/function\s+pintarAppleHome\s*\(/.test(src),'existe pintarAppleHome()');
 assert(/var base = coleccion\(\);\s*pintarAppleHome\(\);/.test(src),'paintCol actualiza la portada Apple Music');
 assert(src.includes('data-collection-action="sesion"'),'colección ofrece acceso compacto a Qué escucho ahora');
+assert(src.includes('data-collection-action="explorar"'),'colección ofrece acceso compacto a Explorar');
 assert(src.includes('data-collection-action="recientes"'),'colección ofrece acceso compacto a Recién añadidos');
 assert(src.includes('data-collection-action="volver"'),'colección ofrece acceso compacto a Vuelve a ponerlos');
 assert(!src.includes('data-home-action="radar"'),'Radar ya no ocupa la portada de colección');
 assert(src.includes("if(a === 'sesion') sesionEscucha()"),'Qué escucho ahora está enlazado');
+assert(src.includes("else if(a === 'explorar') explorarColeccion()"),'Explorar está enlazado');
+assert(!/\bpintarSugerencias\(\);/.test(src),'la colección no pinta recomendaciones automáticamente');
 assert(src.includes("abrirSeleccionColeccion('recientes')"),'Recién añadidos abre una selección bajo demanda');
 assert(src.includes("abrirSeleccionColeccion('volver')"),'Vuelve a ponerlos abre una selección bajo demanda');
 assert(src.includes("s.classList.add('album-sheet')"),'ficha de álbum activa el layout amplio');
