@@ -86,6 +86,9 @@ jobs:
       - name: Probar UX conservadora y PWA sin conexión
         run: node scripts/step10-4-browser.mjs
 
+      - name: Probar escala con 250, 1000 y 5000 discos
+        run: node scripts/scale-browser.mjs
+
       - name: Guardar capturas de comparación
         if: always()
         uses: actions/upload-artifact@v4
