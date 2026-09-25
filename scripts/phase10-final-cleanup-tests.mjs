@@ -12,7 +12,10 @@ for(const f of APP_JS_FILES){
   assert.ok(html.includes(f),`${f} cargado por index`);
 }
 assert.ok(!/<script[^>]+src=["'][^"']+["'][^>]*>\s*[^<]+<\/script>/i.test(html),'scripts externos sin cuerpo accidental');
-assert.ok(!/\b(?:TODO|FIXME|HACK)\b/.test(src),'sin deuda marcada pendiente en código de producción');
+
+// Solo comentarios de deuda explícitos; palabras normales dentro de strings/UI no son deuda técnica.
+const debtComment=/(?:\/\/[^\n]*\b(?:TODO|FIXME|HACK)\b|\/\*[\s\S]*?\b(?:TODO|FIXME|HACK)\b[\s\S]*?\*\/)/i;
+assert.ok(!debtComment.test(src),'sin comentarios TODO/FIXME/HACK pendientes en código de producción');
 
 // No reintroducir funciones críticas duplicadas.
 for(const name of ['validarCopia','fusionar','guardarLocal','pull','push','microFeedback']){
@@ -20,4 +23,4 @@ for(const name of ['validarCopia','fusionar','guardarLocal','pull','push','micro
   assert.equal(n,1,`${name} debe tener una única implementación`);
 }
 console.log('✓ fase 10: módulos, referencias y funciones críticas sin duplicación');
-console.log('✓ fase 10: sin TODO/FIXME/HACK pendientes en producción');
+console.log('✓ fase 10: sin comentarios TODO/FIXME/HACK pendientes en producción');
