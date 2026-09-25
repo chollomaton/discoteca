@@ -166,12 +166,13 @@ function pintarListas(){
 /* ============================================================
    31. HOY ME APETECE
    ============================================================ */
-function sugerenciasDelDia(){
-  var ds = coleccion().filter(function(d){ return d.portada; });
-  if(ds.length < 6) return [];
+function sugerenciasDelDia(candidatos, seed){
+  var ds = (candidatos || coleccion()).slice();
+  if(!ds.length) return [];
   var hoy = hoyISO();
   var semilla = 0;
   for(var i = 0; i < hoy.length; i++) semilla = (semilla * 31 + hoy.charCodeAt(i)) % 99991;
+  if(seed !== undefined) semilla = seed;
   var out = [], usados = {};
   var mete = function(d, motivo){
     if(!d || usados[d.id] || out.length >= 4) return;
@@ -235,20 +236,27 @@ function diasDesdeEscucha(d){
 }
 function itemExplorarHtml(x){
   var d = x.d;
-  return '<button type="button" class="explore-album" data-explore-disco="' + d.id + '">'
+  return '<div class="explore-row"><button type="button" class="explore-album" data-explore-disco="' + esc(d.id) + '">'
     + '<span class="ea-art">' + coverHtml(d) + '</span>'
     + '<span class="ea-copy"><span class="ea-title">' + esc(d.titulo || 'Sin título') + '</span>'
     + '<span class="ea-artist">' + esc(d.artista || 'Artista desconocido') + '</span>'
     + '<span class="ea-reason">' + esc(x.motivo || '') + '</span></span>'
-    + '<span class="ea-arrow">›</span></button>';
+    + '<span class="ea-arrow">›</span></button>'
+    + (readOnly ? '' : '<button type="button" class="explore-listen' + (escuchadoHoy(d) ? ' on' : '')
+      + '" data-explore-listen="' + esc(d.id) + '" aria-pressed="' + escuchadoHoy(d)
+      + '" aria-label="' + esc((escuchadoHoy(d) ? 'Quitar escucha de hoy: ' : 'Marcar escuchado hoy: ') + d.titulo)
+      + '">' + (escuchadoHoy(d) ? I.check : I.playF) + '</button>') + '</div>';
 }
-function seleccionExplorar(modo, semilla){
-  var ds = coleccion().slice();
+function seleccionExplorar(modo, semilla, formato){
+  var ds = coleccion().filter(function(d){ return !formato || d.formato === formato; });
   var out = [];
   var seed = semilla || (parseInt(hoyISO().replace(/-/g,''), 10) || 1);
 
   if(modo === 'hoy'){
-    return sugerenciasDelDia().map(function(x){ return {d:x.d, motivo:x.motivo}; });
+    var primeras = sugerenciasDelDia(ds, seed);
+    var ids = new Set(primeras.map(function(x){ return x.d.id; }));
+    return primeras.concat(rngShuffle(ds, seed).filter(function(d){ return !ids.has(d.id); })
+      .map(function(d){ return {d:d, motivo:'De tu colección · por descubrir'}; }));
   }
 
   if(modo === 'joyas'){
@@ -257,7 +265,7 @@ function seleccionExplorar(modo, semilla){
         var da = diasDesdeEscucha(a), db = diasDesdeEscucha(b);
         if(da !== db) return db - da;
         return totalEscuchas(a) - totalEscuchas(b);
-      }).slice(0,18).map(function(d){
+      }).map(function(d){
         var dias = diasDesdeEscucha(d);
         var motivo = !isFinite(dias)
           ? (+d.valoracion) + ' estrellas · aún no lo has marcado como escuchado'
@@ -267,11 +275,11 @@ function seleccionExplorar(modo, semilla){
   }else if(modo === 'nunca'){
     out = ds.filter(function(d){ return totalEscuchas(d) === 0; })
       .sort(function(a,b){ return String(a.fechaAlta || '').localeCompare(String(b.fechaAlta || '')); })
-      .slice(0,18).map(function(d){
+      .map(function(d){
         return {d:d, motivo:d['año'] ? 'De ' + d['año'] + ' · todavía sin escucha' : 'Todavía sin escucha'};
       });
   }else if(modo === 'parecidos'){
-    var ultimo = ds.filter(function(d){ return d.ultimaEscucha; })
+    var ultimo = coleccion().filter(function(d){ return d.ultimaEscucha; })
       .sort(function(a,b){ return String(b.ultimaEscucha).localeCompare(String(a.ultimaEscucha)); })[0];
     if(!ultimo) return [];
     out = ds.filter(function(d){ return d.id !== ultimo.id; }).map(function(d){
@@ -283,7 +291,7 @@ function seleccionExplorar(modo, semilla){
       return {d:d, puntos:puntos, razones:razones};
     }).filter(function(x){ return x.puntos > 0; })
       .sort(function(a,b){ return b.puntos - a.puntos || totalEscuchas(a.d) - totalEscuchas(b.d); })
-      .slice(0,18).map(function(x){
+      .map(function(x){
         return {d:x.d, motivo:(x.razones.length ? x.razones.join(' · ') : 'afinidad')
           + ' · relacionado con ' + ultimo.titulo};
       });
@@ -295,61 +303,108 @@ function seleccionExplorar(modo, semilla){
       var dec = Math.floor(y / 10) * 10;
       (grupos[dec] = grupos[dec] || []).push(d);
     });
-    Object.keys(grupos).sort(function(a,b){ return +b - +a; }).forEach(function(dec, idx){
-      var candidatos = grupos[dec].slice().sort(function(a,b){
-        return totalEscuchas(a) - totalEscuchas(b) || diasDesdeEscucha(b) - diasDesdeEscucha(a);
+    var decadas = Object.keys(grupos).sort(function(a,b){ return +b - +a; });
+    decadas.forEach(function(dec, idx){ grupos[dec] = rngShuffle(grupos[dec], seed + idx * 37); });
+    /* Una vuelta por décadas antes de repetir década: todas las fichas son accesibles. */
+    for(var vuelta = 0; vuelta < ds.length; vuelta++){
+      decadas.forEach(function(dec){
+        var d = grupos[dec][vuelta];
+        if(d) out.push({d:d, motivo:'Una parada en los ' + dec + ' · ' + d['año']});
       });
-      var d = rngShuffle(candidatos.slice(0, Math.min(5,candidatos.length)), seed + idx * 37)[0] || candidatos[0];
-      if(d) out.push({d:d, motivo:'Una parada en los ' + String(dec).slice(2) + ' · ' + (d['año'] || dec)});
-    });
+    }
   }
   return out;
 }
+/* Recorre candidatos sin repetir hasta agotar la tanda. No escribe en la colección. */
+function tandaExplorar(candidatos, vistos, limite){
+  var unicos = [], ids = new Set();
+  candidatos.forEach(function(x){
+    if(x.d && !ids.has(x.d.id)){ ids.add(x.d.id); unicos.push(x); }
+  });
+  var pendientes = unicos.filter(function(x){ return vistos.indexOf(x.d.id) < 0; });
+  var reinicio = !pendientes.length && unicos.length > 0;
+  if(reinicio) pendientes = unicos;
+  var items = pendientes.slice(0, limite || 6);
+  return {items:items, total:unicos.length, reinicio:reinicio,
+    vistos:(reinicio ? [] : vistos).concat(items.map(function(x){ return x.d.id; })),
+    restantes:Math.max(0, pendientes.length - items.length)};
+}
 function explorarColeccion(){
   var modos = [
-    ['hoy','Para hoy'],
-    ['joyas','Joyas olvidadas'],
-    ['nunca','Sin escuchar'],
-    ['parecidos','Parecido a lo último'],
-    ['decadas','Viaje por décadas']
+    ['hoy','Para hoy'], ['joyas','Joyas olvidadas'], ['nunca','Sin escuchar'],
+    ['parecidos','Parecido a lo último'], ['decadas','Viaje por décadas']
   ];
-  var body = '<p style="font-size:13.5px;color:var(--txt2);margin:0 0 13px">'
-    + 'Elige una forma de redescubrir tu propia colección. Todo se calcula en el dispositivo.</p>'
-    + '<div class="explore-modes">' + modos.map(function(m){
-      return '<button type="button" class="' + (m[0] === 'hoy' ? 'on' : '') + '" data-explore-mode="' + m[0] + '">' + m[1] + '</button>';
-    }).join('') + '</div><div id="exploreResults"></div>';
+  var body = '<p class="explore-intro">Redescubre tus discos, a tu ritmo. Las propuestas se calculan en tu dispositivo.</p>'
+    + '<div class="explore-modes" role="group" aria-label="Forma de explorar">' + modos.map(function(m){
+      return '<button type="button" aria-pressed="' + (m[0] === 'hoy') + '" class="' + (m[0] === 'hoy' ? 'on' : '')
+        + '" data-explore-mode="' + m[0] + '">' + m[1] + '</button>';
+    }).join('') + '</div><div class="explore-formats" role="group" aria-label="Formato">'
+    + [['','Todos'],['Vinilo','Vinilo'],['CD','CD']].map(function(f){
+      return '<button type="button" class="btn sm' + (!f[0] ? ' on' : '') + '" data-explore-format="' + f[0]
+        + '" aria-pressed="' + !f[0] + '">' + f[1] + '</button>';
+    }).join('') + '</div><p id="exploreStatus" class="explore-status" role="status" aria-live="polite"></p>'
+    + '<div id="exploreResults"></div><button type="button" class="btn sm" id="exploreOtra">' + I.refresh + 'Ver más</button>';
   var sh = sheet('Explorar la colección', body, null, true);
-  var actual = 'hoy', extraSeed = 0;
-
-  var pintar = function(modo, otra){
-    actual = modo || actual;
-    if(otra) extraSeed++;
-    var lista = seleccionExplorar(actual, (Date.now() % 99991) + extraSeed * 97);
-    var caja = sh.querySelector('#exploreResults');
-    if(!lista.length){
-      caja.innerHTML = '<div class="tl-empty">No hay suficientes datos para esta selección.</div>';
-      return;
-    }
-    caja.innerHTML = '<div class="explore-head"><span>' + lista.length
-      + (lista.length === 1 ? ' propuesta' : ' propuestas') + '</span>'
-      + '<button type="button" class="btn xs" id="exploreOtra">' + I.refresh + 'Cambiar</button></div>'
-      + '<div class="explore-list">' + lista.map(itemExplorarHtml).join('') + '</div>';
-    caja.querySelectorAll('[data-explore-disco]').forEach(function(el){
-      el.onclick = function(){ sh.remove(); openDetail(el.dataset.exploreDisco); };
-    });
-    var otraBtn = caja.querySelector('#exploreOtra');
-    if(otraBtn) otraBtn.onclick = function(){ pintar(actual, true); };
+  var actual = 'hoy', formato = '', vistos = [], seed = parseInt(hoyISO().replace(/-/g,''),10) || 1;
+  var mensajes = {
+    hoy:'No hay discos de este formato en tu colección.',
+    joyas:'Aquí aparecen los discos con cuatro o cinco estrellas que llevan más tiempo sin sonar.',
+    nunca:'No quedan discos sin escuchar con este formato.',
+    parecidos:'Necesitas una escucha previa y discos afines por género, sello o formato.',
+    decadas:'Añade el año a las fichas para recorrer tu colección por décadas.'
   };
-
+  var pintar = function(animar){
+    var r = tandaExplorar(seleccionExplorar(actual, seed, formato), vistos, 6);
+    vistos = r.vistos;
+    var caja = sh.querySelector('#exploreResults');
+    sh.querySelector('#exploreStatus').textContent = r.total
+      ? (r.reinicio ? 'Volvemos al principio · ' : '') + r.items.length + ' de ' + r.total + ' propuestas · '
+        + (r.restantes ? r.restantes + ' por descubrir' : 'Has visto todas las propuestas') : '';
+    caja.innerHTML = r.items.length ? '<div class="explore-list">' + r.items.map(itemExplorarHtml).join('') + '</div>'
+      : '<div class="tl-empty">' + mensajes[actual] + (formato ? ' Prueba también con Todos.' : '') + '</div>';
+    var siguiente = sh.querySelector('#exploreOtra');
+    siguiente.hidden = r.total <= 6;
+    siguiente.textContent = r.restantes ? 'Ver más' : 'Volver al principio';
+    caja.querySelectorAll('[data-explore-disco]').forEach(function(el){
+      el.onclick = function(){ sh.querySelector('[data-close]').click(); openDetail(el.dataset.exploreDisco); };
+    });
+    caja.querySelectorAll('[data-explore-listen]').forEach(function(el){
+      el.onclick = function(){
+        if(readOnly) return;
+        var d = coleccion().filter(function(d){ return d.id === el.dataset.exploreListen; })[0];
+        if(!d) return;
+        var puesto = marcarEscucha(d.id);
+        el.classList.toggle('on', puesto);
+        el.setAttribute('aria-pressed', String(puesto));
+        el.setAttribute('aria-label', (puesto ? 'Quitar escucha de hoy: ' : 'Marcar escuchado hoy: ') + d.titulo);
+        el.innerHTML = puesto ? I.check : I.playF;
+        microFeedback(el);
+        /* Se mantiene la fila para poder deshacer; la siguiente tanda recalcula candidatos. */
+        paintCol();
+      };
+    });
+    if(animar) microFeedback(caja, 'reveal');
+  };
   sh.querySelectorAll('[data-explore-mode]').forEach(function(b){
     b.onclick = function(){
-      sh.querySelectorAll('[data-explore-mode]').forEach(function(x){ x.className = ''; });
-      b.className = 'on';
-      extraSeed = 0;
-      pintar(b.dataset.exploreMode, false);
+      actual = b.dataset.exploreMode; vistos = [];
+      sh.querySelectorAll('[data-explore-mode]').forEach(function(x){
+        x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', String(x === b));
+      });
+      pintar(true);
     };
   });
-  pintar('hoy', false);
+  sh.querySelectorAll('[data-explore-format]').forEach(function(b){
+    b.onclick = function(){
+      formato = b.dataset.exploreFormat; vistos = [];
+      sh.querySelectorAll('[data-explore-format]').forEach(function(x){
+        x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', String(x === b));
+      });
+      pintar(true);
+    };
+  });
+  sh.querySelector('#exploreOtra').onclick = function(){ pintar(true); };
+  pintar(false);
 }
 
 function pintarSugerencias(){

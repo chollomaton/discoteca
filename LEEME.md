@@ -4,7 +4,7 @@ Catálogo de vinilos y CDs que funciona igual en el Mac y en el iPhone, con los 
 guardados en tu propio repositorio de GitHub. Sin servidor propio: la aplicación es
 una PWA estática modular, y tu colección se sincroniza como un `datos.json` en GitHub.
 
-**Versión de esta entrega:** 2026.09.25-phase7 — se comprueba en Ajustes, al final de todo.
+**Versión de esta entrega:** 2026.09.25-phase8 — se comprueba en Ajustes, al final de todo.
 
 ## Archivos de la aplicación
 
@@ -300,8 +300,20 @@ vez de duplicarla.
 - Ante pérdida del dispositivo, revoca sus credenciales, conecta otro dispositivo al repositorio privado
   y restaura la última copia si faltan cambios. El historial de GitHub es una segunda vía de recuperación.
 - Antes de actualizar: confirma «Al día» y conserva una copia reciente. Después: verifica en Ajustes
-  `2026.09.25-phase7`. La caché de esta versión es `discoteca-v53`; nunca incluye JSON de colección.
+  `2026.09.25-phase8`. La caché de esta versión es `discoteca-v54`; nunca incluye JSON de colección.
 
 Las pruebas de Fase 7 cubren almacenamiento de claves, censura de diagnósticos, rutas inválidas,
 validación de copias, falta de espacio, recuperación de borrados, API privada para archivos grandes,
 respuestas corruptas, bloqueo de sincronización al cambiar ajustes y aislamiento de caché.
+
+
+### Descubrimiento práctico (Fase 8)
+
+Explorar permite elegir Todos, Vinilo o CD y recorrer propuestas de seis en seis. «Ver más»
+recorre los candidatos sin repetir hasta terminar; «Volver al principio» inicia otra vuelta.
+Los cinco modos conservan su criterio y muestran una explicación si no hay candidatos.
+«Para hoy» también funciona con colecciones pequeñas y discos sin portada.
+El botón junto a cada disco registra la escucha de hoy y permite quitarla sin abrir la ficha.
+No reproduce audio. El historial usa la sincronización habitual; los filtros y la tanda son temporales.
+Las escuchas, favoritas y cambios de propuestas tienen feedback breve, desactivado con movimiento reducido.
+No se modifica datos.json en esta entrega ni se migra la estructura de la colección.

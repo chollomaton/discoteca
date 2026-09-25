@@ -16,6 +16,7 @@ permissions:
 
 jobs:
   validate:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     name: Integridad de la app y datos
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -51,3 +52,6 @@ jobs:
 
       - name: Probar privacidad y recuperación
         run: node scripts/phase7-tests.mjs
+
+      - name: Probar descubrimiento práctico y microanimaciones
+        run: node scripts/phase8-tests.mjs

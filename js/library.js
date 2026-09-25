@@ -1342,8 +1342,10 @@ function enlazarTiles(root, dups){
       e.stopPropagation();
       var puesto = marcarEscucha(b.dataset.oir);
       b.className = 'oir' + (puesto ? ' hoy' : '');
+      microFeedback(b);
       b.innerHTML = puesto ? I.check : I.playF;
       b.dataset.tip = puesto ? 'Ya lo marcaste hoy' : 'Marcar que lo has escuchado';
+      b.setAttribute('aria-label', b.dataset.tip);
       var d = DB.discos.filter(function(x){ return x.id === b.dataset.oir; })[0];
       var y = b.closest('.tile') && b.closest('.tile').querySelector('.meta .y .txt');
       if(y && d) y.textContent = (d['año'] || '—') + (d.genero ? ' · ' + d.genero : '')
@@ -1909,7 +1911,7 @@ function filaTrack(d, t, i, n){
     + '<span class="nm">' + esc(t.titulo) + '</span>'
     + (t.duracion ? '<span class="dur">' + esc(t.duracion) + '</span>' : '<span class="dur"></span>')
     + (readOnly ? '' : '<button type="button" class="cora' + (t.fav ? ' on' : '') + '" data-fav="' + i
-        + '" data-tip="' + (t.fav ? 'Quitar de favoritas' : 'Marcar como favorita') + '">' + I.corazon + '</button>')
+        + '" aria-pressed="' + !!t.fav + '" data-tip="' + (t.fav ? 'Quitar de favoritas' : 'Marcar como favorita') + '">' + I.corazon + '</button>')
     + '<a class="lyr" target="_blank" rel="noopener" data-tip="Ver la letra en Genius" href="'
     + esc(urlLetra(d.artista, t.titulo)) + '">' + I.letra + '</a></div>';
 }
@@ -2180,6 +2182,7 @@ function openDetail(id, desde){
     var puesto = marcarEscucha(d.id);
     var b = $('#escuchado');
     b.className = 'lnk' + (puesto ? ' hecho' : '');
+    microFeedback(b);
     b.innerHTML = puesto ? I.check + 'Escuchado hoy' : I.playF + 'Escuchado hoy';
     var sp = s.querySelectorAll('.spec');
     for(var i = 0; i < sp.length; i++){
@@ -2214,7 +2217,10 @@ function openDetail(id, desde){
           d.tracklist = tracks;
           persist(true);
           b.className = 'cora' + (t.fav ? ' on' : '');
+          b.setAttribute('aria-pressed', String(!!t.fav));
+          microFeedback(b);
           b.dataset.tip = t.fav ? 'Quitar de favoritas' : 'Marcar como favorita';
+          b.setAttribute('aria-label', b.dataset.tip);
           b.closest('.trk').className = 'trk' + (t.fav ? ' fav' : '');
         };
       });

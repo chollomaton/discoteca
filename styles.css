@@ -1638,3 +1638,24 @@ label.trk{cursor:pointer}
   body{background:#fff}
   .tile{break-inside:avoid}
 }
+
+/* Fase 8: exploración compacta, acciones separadas y objetivos táctiles de 44 px. */
+.explore-intro{font-size:13.5px;color:var(--txt2);margin:0 0 13px}
+.explore-formats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.explore-formats button,.explore-modes button,#exploreOtra{min-height:44px}
+.explore-status{font-size:12.5px;color:var(--txt2);margin:0 0 12px}
+.explore-row{display:flex;align-items:center;gap:8px;min-width:0}
+.explore-row .explore-album{min-width:0;flex:1}
+.explore-listen{flex:0 0 44px;width:44px;height:44px;border:0;border-radius:50%;background:var(--fill);color:var(--txt2);display:grid;place-items:center;cursor:pointer}
+.explore-listen svg{width:19px;height:19px}
+.explore-listen.on{background:var(--blue);color:white}
+#exploreOtra{margin-top:14px}
+#exploreOtra[hidden]{display:none}
+.explore-row button:focus-visible,.explore-formats button:focus-visible,.explore-modes button:focus-visible,#exploreOtra:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+@media(max-width:430px){
+  .explore-row .explore-album{grid-template-columns:48px minmax(0,1fr) 12px;gap:8px;padding:8px}
+  .explore-row .ea-art{width:48px;height:48px}
+}
+@media(prefers-reduced-motion:reduce){.explore-album{transition:none}.explore-album:active{transform:none}}
+
+.explore-formats button.on{background:var(--blue);color:#fff}
