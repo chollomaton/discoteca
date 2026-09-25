@@ -72,15 +72,16 @@ try{
     const initialTiles=await page.locator('.tile').count();
     assert(initialTiles>0&&initialTiles<=160,`render inicial acotado ${size}: ${initialTiles}`);
 
-    // Busca por el título sintético inequívoco del primer disco. Esperamos al
-    // resultado en vez de usar una pausa fija: CI puede procesar el input más lento.
+    // Usa el título realmente generado para la primera ficha; así la prueba no
+    // depende de que el catálogo base tenga o no un fallback llamado «Álbum».
     const search=page.locator('#q');
     if(await search.count()){
-      await search.fill('Álbum 0');
-      await page.waitForFunction(()=>{
+      const probe=data.discos[0].titulo;
+      await search.fill(probe);
+      await page.waitForFunction(expected=>{
         const tiles=[...document.querySelectorAll('.tile')];
-        return tiles.length>0 && tiles.some(t=>(t.textContent||'').includes('Álbum 0'));
-      },null,{timeout:5000});
+        return tiles.length>0 && tiles.some(t=>(t.textContent||'').includes(expected));
+      },probe,{timeout:5000});
       assert(await page.locator('.tile').count()>0,`búsqueda ${size}`);
       await search.fill('');
       await page.waitForFunction(()=>document.querySelectorAll('.tile').length>0,null,{timeout:5000});
