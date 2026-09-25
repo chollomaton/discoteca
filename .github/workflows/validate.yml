@@ -42,6 +42,12 @@ jobs:
         run: node scripts/persistence-migration-tests.mjs
       - name: Probar sincronización extrema
         run: node scripts/extreme-sync-contract-tests.mjs
+      - name: Fase 4 · integridad de importación y transferencia
+        run: node scripts/phase4-import-integrity-tests.mjs
+      - name: Fase 5 · seguridad y límites de red
+        run: node scripts/phase5-security-network-tests.mjs
+      - name: Fase 6 · arquitectura y contratos PWA
+        run: node scripts/phase6-architecture-pwa-tests.mjs
       - name: Probar Radar y Detective
         run: node scripts/quality-tests.mjs
       - name: Probar diseño Apple Music
