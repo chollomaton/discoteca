@@ -45,3 +45,6 @@ jobs:
 
       - name: Probar arquitectura modular
         run: node scripts/module-tests.mjs
+
+      - name: Probar descubrimiento inteligente
+        run: node scripts/phase6-tests.mjs
