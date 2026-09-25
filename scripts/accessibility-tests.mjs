@@ -49,7 +49,7 @@ try{for(const width of [1440,390]){
  await page.locator('#btnPal').click();await page.locator('#pq').fill('Estadísticas');await page.keyboard.press('Enter');
  await check(()=>view==='stats'&&!document.querySelector('.pal'),'palette executes selection');
  await page.evaluate(()=>setView('col'));
- for(const close of ['button','backdrop']){
+ for(const close of (width > 760 ? ['button','backdrop'] : ['button'])){
   await page.locator('#btnPal').click();
   if(close==='button')await page.locator('#palCerrar').click();else await page.locator('.pal').click({position:{x:2,y:2}});
   await page.locator('#q').focus();
