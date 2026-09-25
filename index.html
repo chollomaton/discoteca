@@ -1732,7 +1732,7 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.25-phase2';
+var VERSION = '2026.09.25-phase3';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var firmasCampos = {};        // id -> firmas por campo, para sincronización granular
 var view = 'col';
@@ -6706,7 +6706,17 @@ function diagnosticarEdicion(d, mb, dg){
   }else{
     nivel = 'revisar';
   }
-  return {nivel: nivel, problemas: problemas, coincidencias: coincidencias, detalles: detalles};
+  return {
+    nivel: nivel,
+    problemas: problemas,
+    coincidencias: coincidencias,
+    detalles: detalles,
+    camposEvidencia: camposEvidencia,
+    peorSeveridad: peorSeveridad,
+    fuentesConsultadas: fuentes.map(function(x){ return x[0]; }),
+    evidenciaCampos: evidenciaCampos,
+    contradiceCampos: contradiceCampos
+  };
 }
 var INFO_NIVEL_EDICION = {
   solida: ['Identificación sólida', 'var(--green)',
@@ -6771,18 +6781,32 @@ function detectiveEdiciones(d){
     if(!d.codigoBarras) faltan.push('añadir el código de barras');
 
     s.querySelector('#dnote').remove();
+    var fuentesTxt = [];
+    fuentesTxt.push('Tu ficha');
+    if(mb) fuentesTxt.push('MusicBrainz');
+    if(dg) fuentesTxt.push('Discogs');
+    var severidadTxt = diag.peorSeveridad
+      ? ' · discrepancia ' + ({critica:'crítica', fuerte:'fuerte', moderada:'moderada', informativa:'informativa'}[diag.peorSeveridad] || diag.peorSeveridad)
+      : '';
+    var evidenciaTxt = diag.camposEvidencia
+      ? diag.camposEvidencia + (diag.camposEvidencia === 1 ? ' campo coincide' : ' campos coinciden')
+      : 'sin coincidencias comparables';
     s.querySelector('#dres').innerHTML =
       '<div class="confbadge" style="--cb-c:' + info[1] + '"><span>' + I.info + '</span>'
       + '<span><span class="tt">' + info[0] + '</span>' + info[2] + '</span></div>'
+      + '<div class="creds" style="margin-top:12px">'
+      + '<div class="cred"><span class="k">Fuentes usadas</span><span class="v">' + esc(fuentesTxt.join(' · ')) + '</span></div>'
+      + '<div class="cred"><span class="k">Evidencia</span><span class="v">' + esc(evidenciaTxt + severidadTxt) + '</span></div>'
+      + '</div>'
       /* diag.problemas lleva dentro valores de la propia ficha y de MusicBrainz/
          Discogs -no texto nuestro-: hay que escapar cada mensaje antes de
          meterlo en innerHTML, o un valor con "<" o comillas podría inyectar
          HTML. El <br> de separación se añade fuera de lo escapado, a propósito. */
-      + (diag.problemas.length ? '<p style="font-size:13px;color:var(--red);margin:12px 3px 0">'
-          + diag.problemas.map(esc).join('<br>') + '</p>' : '')
+      + (diag.problemas.length ? '<div class="warnb" style="margin-top:12px">' + I.warn
+          + '<span><b>Qué no cuadra</b><br>' + diag.problemas.map(esc).join('<br>') + '</span></div>' : '')
       + tabla
       + (faltan.length ? '<p style="font-size:13px;color:var(--txt3);margin:14px 3px 0">Para subir la confianza: '
-          + faltan.join(', ') + '.</p>' : '')
+          + faltan.map(esc).join(', ') + '.</p>' : '')
       + '<div class="rowb" style="margin-top:16px">'
       + (readOnly ? '' : '<button type="button" class="btn" id="dCambiar">' + I.layers + 'Buscar otra edición</button>') + '</div>';
     var bc = s.querySelector('#dCambiar');
@@ -9550,6 +9574,65 @@ function analizarReparacion(){
    No hace ninguna consulta nueva a ningún servidor: todo sale de datos
    que ya están cargados o de funciones que ya existían.
    ============================================================ */
+function faltanCalculadosTexto(d){
+  return calcularFaltan(d).join(', ');
+}
+function faltanDesactualizados(){
+  return coleccion().filter(function(d){
+    if(!fechaRevision(d)) return false;
+    return String(d.faltan || '') !== faltanCalculadosTexto(d);
+  });
+}
+function detalleDiagnosticoRadar(d){
+  var diag = diagnosticarEdicion(d, null, null);
+  var info = INFO_NIVEL_EDICION[diag.nivel];
+  if(diag.problemas.length) return info[0] + ' · ' + diag.problemas[0];
+  if(d.confianza === 'baja') return 'Coincidencia inicial marcada como dudosa';
+  var faltan = [];
+  if(!d.mbid) faltan.push('sin MusicBrainz');
+  if(!d.discogs) faltan.push('sin Discogs');
+  if(!d.codigoBarras) faltan.push('sin código');
+  return info[0] + (faltan.length ? ' · ' + faltan.join(' · ') : '');
+}
+function resumenCalidadEdiciones(ds){
+  var r = {solida:0, probable:0, parcial:0, revisar:0, contradictoria:0};
+  ds.forEach(function(d){
+    var n = diagnosticarEdicion(d, null, null).nivel;
+    if(r[n] !== undefined) r[n]++;
+  });
+  return r;
+}
+function repararFaltanCache(lista, volver){
+  if(!lista.length){ if(volver) volver(); return; }
+  var body = '<div class="warnb info">' + I.info + '<span>Esto no cambia título, edición, portada ni ningún dato bibliográfico. '
+    + 'Solo vuelve a calcular el texto interno <b>faltan</b> de fichas que ya habían sido revisadas.</span></div>'
+    + '<div class="tl">' + lista.slice(0,40).map(function(d){
+      var ahora = faltanCalculadosTexto(d);
+      return '<div class="trk"><span class="nm">' + esc(d.titulo)
+        + '<span style="color:var(--txt3)"> · ' + esc(d.artista) + '</span>'
+        + '<span class="pfalta">Guardado: ' + esc(d.faltan || 'nada') + '</span>'
+        + '<span class="pfalta">Actual: ' + esc(ahora || 'nada') + '</span></span></div>';
+    }).join('') + '</div>'
+    + (lista.length > 40 ? '<p style="font-size:12.5px;color:var(--txt3)">Y ' + (lista.length - 40) + ' más.</p>' : '');
+  var pie = '<button type="button" class="btn" data-cancel>Cerrar</button>'
+    + (readOnly ? '' : '<button type="button" class="btn pri" id="fixFaltan">Recalcular ' + lista.length + '</button>');
+  var sh = sheet('Estado de revisión desactualizado', body, pie, true);
+  sh.querySelector('[data-cancel]').onclick = function(){ sh.remove(); };
+  var b = sh.querySelector('#fixFaltan');
+  if(b) b.onclick = function(){
+    lista.forEach(function(d){ d.faltan = faltanCalculadosTexto(d); });
+    persist(true);
+    sh.remove();
+    toast('Estado de revisión actualizado');
+    if(volver) volver();
+  };
+}
+/* ============================================================
+   RADAR DE LA COLECCIÓN
+   Un único sitio que agrega señales que ya se calculan por separado
+   en otras pantallas. No consulta servidores: usa solo la colección
+   cargada y la misma lógica de diagnóstico que el Detective.
+   ============================================================ */
 function radarColeccion(){
   var ds = coleccion();
   var incompletas = ds.filter(function(d){ return faltaEsencial(d).length; });
@@ -9563,13 +9646,14 @@ function radarColeccion(){
   var olvidados = ds.filter(function(d){
     return d.ultimaEscucha && (Date.now() - new Date(d.ultimaEscucha + 'T12:00:00').getTime()) > 180 * 86400000;
   });
-  /* misma lógica que el Detective (diagnosticarEdicion), en modo estático
-     -sin red, solo con lo ya guardado-: se marca lo que quedó como
-     coincidencia dudosa al rellenar, o lo que ya se sabe que se contradice */
-  var dudosas = ds.filter(function(d){
-    return d.confianza === 'baja' || diagnosticarEdicion(d, null, null).nivel === 'contradictoria';
-  });
+  var diagnosticos = ds.map(function(d){ return {d:d, x:diagnosticarEdicion(d, null, null)}; });
+  var contradictorias = diagnosticos.filter(function(x){ return x.x.nivel === 'contradictoria'; }).map(function(x){ return x.d; });
+  var porConfirmar = diagnosticos.filter(function(x){
+    return x.d.confianza === 'baja' || x.x.nivel === 'revisar' || x.x.nivel === 'parcial';
+  }).map(function(x){ return x.d; }).filter(function(d){ return contradictorias.indexOf(d) < 0; });
+  var calidad = resumenCalidadEdiciones(ds);
   var fotosViejas = ds.filter(fotoDiscoDesactualizada);
+  var stale = faltanDesactualizados();
   var fallos = fallosGuardados();
 
   var fila = function(icono, titulo, n, detalle, accion){
@@ -9579,26 +9663,37 @@ function radarColeccion(){
       + '<div class="rt"><div class="rn">' + titulo + '</div><div class="rd">' + detalle + '</div></div>'
       + '<div class="rv">' + n + '</div></button>';
   };
-  var body = (!incompletas.length && !totalReparar && !sinFoto.length && !dup && !dudosas.length && !fotosViejas.length && !fallos.length
-      ? '<div class="warnb info">' + I.check + '<span>Tu colección está sana: sin fichas incompletas, sin nada '
-        + 'pendiente de reparar, sin duplicados y sin fallos recientes.</span></div>'
-      : '<p style="font-size:13.5px;color:var(--txt2);margin:0 0 4px">Lo que puede merecer tu atención, reunido en un sitio.</p>')
+  var resumen = '<div class="creds" style="margin:0 0 14px">'
+    + '<div class="cred"><span class="k">Identificación sólida</span><span class="v">' + calidad.solida + '</span></div>'
+    + '<div class="cred"><span class="k">Probable</span><span class="v">' + calidad.probable + '</span></div>'
+    + '<div class="cred"><span class="k">Parcial / sin confirmar</span><span class="v">' + (calidad.parcial + calidad.revisar) + '</span></div>'
+    + '<div class="cred"><span class="k">Contradictoria</span><span class="v" style="color:' + (calidad.contradictoria ? 'var(--red)' : 'var(--green)') + '">' + calidad.contradictoria + '</span></div>'
+    + '</div>';
+  var nadaCritico = !incompletas.length && !totalReparar && !sinFoto.length && !dup
+    && !contradictorias.length && !porConfirmar.length && !fotosViejas.length && !stale.length && !fallos.length;
+  var body = resumen
+    + (nadaCritico
+      ? '<div class="warnb info">' + I.check + '<span>Tu colección está sana: sin fichas incompletas, contradicciones, '
+        + 'duplicados, estados de revisión desactualizados ni fallos recientes.</span></div>'
+      : '<p style="font-size:13.5px;color:var(--txt2);margin:0 0 4px">Lo que puede merecer tu atención, ordenado por tipo de problema.</p>')
     + '<div class="radarlist">'
     + fila(I.warn, 'Fichas incompletas', incompletas.length, 'Les falta algún dato esencial', 'revision')
+    + fila(I.layers, 'Datos contradictorios', contradictorias.length, 'Código, catálogo, país o soporte no coinciden entre las fuentes disponibles', 'contradictorias')
+    + fila(I.search, 'Identificación parcial o sin confirmar', porConfirmar.length, 'Falta evidencia suficiente o la coincidencia inicial fue dudosa', 'porconfirmar')
     + fila(I.spark, 'Cosas para reparar', totalReparar, 'Nombres, sellos, años o enlaces por limpiar', 'reparar')
+    + fila(I.clock, 'Estado de revisión desactualizado', stale.length, 'El campo interno «faltan» ya no refleja los datos actuales', 'faltanstale')
     + fila(I.img, 'Sin portada', sinFoto.length, 'Discos sin ninguna imagen', 'sinfoto')
     + fila(I.copy, 'Posibles duplicados', dup, 'Fichas que podrían ser el mismo disco', 'dups')
-    + fila(I.layers, 'Revisar identificación', dudosas.length, 'Código de barras, catálogo, país o soporte no coinciden con Discogs/MusicBrainz, o la coincidencia inicial fue dudosa', 'dudosas')
     + fila(I.img, 'Foto del disco desactualizada', fotosViejas.length, 'Pertenece a otra edición de MusicBrainz distinta de la enlazada ahora', 'fotosviejas')
     + fila(I.reloj2, 'Llevan tiempo sin sonar', olvidados.length, 'Más de 6 meses sin marcar una escucha', 'olvidados')
     + fila(I.lampara, 'En tu lista de deseos', deseos2.length, 'Discos que buscas', 'deseos')
     + fila(I.bug || I.warn, 'Fallos recientes de la app', fallos.length, 'Registrados en Ajustes', 'fallos')
     + '</div>';
-  var s = sheet('Radar de la colección', body, null, true);
-  s.querySelectorAll('[data-accion]').forEach(function(b){
+  var sh = sheet('Radar de la colección', body, null, true);
+  sh.querySelectorAll('[data-accion]').forEach(function(b){
     b.onclick = function(){
       var a = b.dataset.accion;
-      s.remove();
+      sh.remove();
       if(a === 'revision') pantallaRevision();
       else if(a === 'reparar') pantallaReparar();
       else if(a === 'dups'){
@@ -9607,27 +9702,38 @@ function radarColeccion(){
         setView('col'); paintCol();
       }else if(a === 'deseos') setView('wish');
       else if(a === 'fallos') setView('db');
-      else if(a === 'sinfoto' || a === 'olvidados'){
-        var lista = a === 'sinfoto' ? sinFoto : olvidados;
-        listaPendientesGenerica(a === 'sinfoto' ? 'Discos sin portada' : 'Llevan tiempo sin sonar', lista);
-      }else if(a === 'dudosas'){
-        listaPendientesGenerica('Revisar identificación', dudosas);
+      else if(a === 'sinfoto'){
+        listaPendientesGenerica('Discos sin portada', sinFoto, function(){ return 'Sin imagen de portada'; });
+      }else if(a === 'olvidados'){
+        listaPendientesGenerica('Llevan tiempo sin sonar', olvidados, function(d){
+          return d.ultimaEscucha ? 'Última escucha: ' + fdate(d.ultimaEscucha).split(',')[0] : 'Sin fecha de escucha';
+        });
+      }else if(a === 'contradictorias'){
+        listaPendientesGenerica('Datos contradictorios', contradictorias, detalleDiagnosticoRadar);
+      }else if(a === 'porconfirmar'){
+        listaPendientesGenerica('Identificación parcial o sin confirmar', porConfirmar, detalleDiagnosticoRadar);
       }else if(a === 'fotosviejas'){
-        listaPendientesGenerica('Foto del disco desactualizada', fotosViejas);
+        listaPendientesGenerica('Foto del disco desactualizada', fotosViejas, function(d){
+          return 'Foto: ' + (d.fotoDiscoMbid || 'edición anterior') + ' · ficha: ' + (d.mbid || 'sin MusicBrainz');
+        });
+      }else if(a === 'faltanstale'){
+        repararFaltanCache(stale, radarColeccion);
       }
     };
   });
 }
-/* Lista simple y pulsable, reutilizada por el radar para los dos casos
-   que no tenían ya su propia pantalla dedicada */
-function listaPendientesGenerica(titulo, lista){
-  var s = sheet(titulo, '<div class="tl">' + lista.map(function(d){
+/* Lista simple y pulsable reutilizada por el Radar. detalleFn permite que
+   cada señal explique SU problema concreto en vez de mostrar una fecha de
+   escucha irrelevante para todos los casos. */
+function listaPendientesGenerica(titulo, lista, detalleFn){
+  var sh = sheet(titulo, '<div class="tl">' + lista.map(function(d){
+    var detalle = detalleFn ? detalleFn(d) : '';
     return '<div class="trk" data-disco="' + d.id + '" style="cursor:pointer"><span class="nm">' + esc(d.titulo)
-      + '<span style="color:var(--txt3)"> · ' + esc(d.artista) + '</span></span>'
-      + '<span class="dur">' + (d.ultimaEscucha ? 'último ' + fdate(d.ultimaEscucha).split(',')[0] : '') + '</span></div>';
+      + '<span style="color:var(--txt3)"> · ' + esc(d.artista) + '</span>'
+      + (detalle ? '<span class="pfalta">' + esc(detalle) + '</span>' : '') + '</span></div>';
   }).join('') + '</div>');
-  s.querySelectorAll('[data-disco]').forEach(function(el){
-    el.onclick = function(){ s.remove(); openDetail(el.dataset.disco); };
+  sh.querySelectorAll('[data-disco]').forEach(function(el){
+    el.onclick = function(){ sh.remove(); openDetail(el.dataset.disco); };
   });
 }
 
