@@ -57,7 +57,7 @@ try{for(const width of [1440,390]){
   await check(()=>!document.querySelector('.pal,.scrim'),'no stale palette keyboard handler');
  }
  // Nested lightbox must keep sheet open and restore the real opener.
- await page.evaluate(()=>{ DB.discos[0].valoracion=0; openDetail(DB.discos[0].id); });await page.waitForTimeout(50);
+ await page.evaluate(()=>{ readOnly=false; DB.discos[0].valoracion=0; openDetail(DB.discos[0].id); });await page.waitForTimeout(50);
  await page.locator('#covZoom').focus();
  await page.evaluate(()=>lightbox('https://example.com/cover.png'));
  await page.keyboard.press('Tab');await check(()=>document.activeElement.className==='lightbox','lightbox focus containment');
