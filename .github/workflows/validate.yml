@@ -39,6 +39,9 @@ jobs:
       - name: Probar importación y transferencia
         run: node scripts/transfer-regression-tests.mjs
 
+      - name: Probar robustez de metadata, red y persistencia
+        run: node scripts/robustness-source-tests.mjs
+
       - name: Probar Radar y Detective
         run: node scripts/quality-tests.mjs
 
