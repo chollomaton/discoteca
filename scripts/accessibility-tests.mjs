@@ -52,6 +52,7 @@ try{for(const width of [1440,390]){
  for(const close of ['button','backdrop']){
   await page.locator('#btnPal').click();
   if(close==='button')await page.locator('#palCerrar').click();else await page.locator('.pal').click({position:{x:2,y:2}});
+  await page.locator('#q').focus();
   await page.keyboard.press('ArrowDown');await page.keyboard.press('Enter');
   await check(()=>!document.querySelector('.pal,.scrim'),'no stale palette keyboard handler');
  }
@@ -72,6 +73,9 @@ try{for(const width of [1440,390]){
  await check(()=>document.activeElement.dataset.v==='3'&&document.activeElement.getAttribute('aria-pressed')==='false','rating Space clears');
  await page.keyboard.press('Tab');await check(()=>document.activeElement.dataset.v==='4','rating tab order');
  await page.keyboard.press('Escape');
+ await page.evaluate(()=>{readOnly=true;openDetail(DB.discos[0].id);});
+ await check(()=>[...document.querySelectorAll('.scrim .stars.big [role=button]')].every(b=>b.tabIndex===-1&&b.getAttribute('aria-disabled')==='true'),'read-only ratings are not interactive');
+ await page.keyboard.press('Escape');await page.evaluate(()=>readOnly=false);
  // Repeated progress within one sync state must not flood the live region.
  await page.evaluate(()=>{marcar('busy','Uno');marcar('busy','Dos');marcar('ok');toast('Guardado');toast('Guardado');});
  await page.waitForTimeout(450);

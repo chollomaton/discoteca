@@ -10,7 +10,7 @@ function estrellaSVG(llena){
 function estrellasHtml(n, grande, id){
   var v = Number(n) || 0, out = '<span class="stars' + (grande ? ' big' : '') + '"' + (id ? ' data-rate="' + id + '"' : '') + '>';
   for(var i = 1; i <= 5; i++){
-    out += grande ? '<span data-v="' + i + '" role="button" tabindex="0" aria-pressed="' + (i === v) + '" aria-label="' + i + ' estrellas">' + estrellaSVG(i <= v) + '</span>'
+    out += grande ? '<span data-v="' + i + '" role="button" tabindex="' + (readOnly ? -1 : 0) + '" aria-disabled="' + !!readOnly + '" aria-pressed="' + (i === v) + '" aria-label="' + i + ' estrellas">' + estrellaSVG(i <= v) + '</span>'
                   : estrellaSVG(i <= v);
   }
   return out + '</span>';
