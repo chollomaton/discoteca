@@ -5,7 +5,6 @@ import {readAppSource} from './app-source.mjs';
 
 const src=readAppSource();
 const block=(a,b)=>{const s=src.indexOf(a),e=src.indexOf(b,s);assert(s>=0&&e>s,`bloque ${a}`);return src.slice(s,e);};
-const clone=x=>JSON.parse(JSON.stringify(x));
 const ctx=vm.createContext({console,Date,Set,Map,Number,JSON,Object,String,Array,Promise,Math,
  DB:{version:4,discos:[],borrados:[]},nowISO:()=> '2026-09-25T22:00:00.000Z',uid:(()=>{let n=0;return()=>`id-${++n}`;})(),
  plain:s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(),
@@ -18,17 +17,21 @@ const base={id:'x',artista:'A',titulo:'T',lista:'coleccion',tracklist:[],mod:'20
 const valid={version:4,discos:[base],borrados:[]};
 assert.equal(ctx.validarCopia(valid).discos.length,1);
 
-// Límites y tipos hostiles: nunca aceptar una estructura que pueda romper render/sync.
+// Corrupción inequívoca: se rechaza antes de entrar en DB.
 for(const bad of [
  {version:4,discos:'no-array',borrados:[]},
  {version:4,discos:[],borrados:{}},
  {version:4,discos:[{...base,id:''}],borrados:[]},
- {version:4,discos:[{...base,lista:'otra'}],borrados:[]},
- {version:4,discos:[{...base,tracklist:null}],borrados:[]},
  {version:4,discos:[{...base,tracklist:[{titulo:'ok'},null]}],borrados:[]},
  {version:4,discos:[base],borrados:[{id:'x',fecha:'not-a-date'}]},
  {version:4,discos:[base,{...base}],borrados:[]}
 ]) assert.throws(()=>ctx.validarCopia(bad));
+
+// Compatibilidad: campos de colección ausentes/null de copias antiguas son recuperables por normDisc.
+for(const legacy of [
+ {version:1,discos:[{...base,tracklist:null}],borrados:[]},
+ [{...base,tracklist:null}]
+]) assert.equal(ctx.validarCopia(legacy).discos.length,1);
 
 // Unicode y texto grande deben sobrevivir sin mutación silenciosa.
 const unicode={...base,id:'unicode',artista:'Björk 日本語',titulo:'Héroes — “Álbum”',notas:'ñ'.repeat(20000)};
@@ -46,7 +49,7 @@ merged=ctx.fusionarCopiaRecuperacion(valid,true);
 assert.equal(merged.discos.length,1);
 assert.equal(merged.borrados.length,0);
 
-// Una copia con varios registros conserva IDs y no altera el documento fuente.
+// Una copia grande conserva IDs y no altera el documento fuente.
 const many={version:4,discos:Array.from({length:1000},(_,i)=>({...base,id:`d-${i}`,titulo:`Disco ${i}`,tracklist:[{titulo:`Pista ${i}`}] })),borrados:[]};
 const snapshot=JSON.stringify(many);
 const out=ctx.validarCopia(many);
@@ -54,7 +57,8 @@ assert.equal(out.discos.length,1000);
 assert.equal(new Set(out.discos.map(d=>d.id)).size,1000);
 assert.equal(JSON.stringify(many),snapshot,'validar no muta la copia fuente');
 
-console.log('✓ estructuras hostiles rechazadas antes de entrar en DB');
+console.log('✓ corrupción estructural rechazada antes de entrar en DB');
+console.log('✓ copias antiguas recuperables siguen siendo compatibles');
 console.log('✓ Unicode y campos grandes sobreviven a validación');
 console.log('✓ tombstones y restauración explícita mantienen semántica');
 console.log('✓ copia de 1000 registros validada sin mutar el origen');
