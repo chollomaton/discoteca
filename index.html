@@ -1732,8 +1732,9 @@ var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', 
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.25-phase1';
+var VERSION = '2026.09.25-phase2';
 var firmas = {};              // id -> firma, para detectar qué cambió
+var firmasCampos = {};        // id -> firmas por campo, para sincronización granular
 var view = 'col';
 var fType = 'all', fGen = '', fArt = '', fTag = '', fDec = '', fPais = '', fSello = '';
 var sortBy = 'artist', grupo = 'none', modo = 'grid';
@@ -1973,15 +1974,48 @@ function normDisc(d){
     ultimaEscucha: d.ultimaEscucha || '',
     prestadoA: d.prestadoA || '',
     prestadoDesde: d.prestadoDesde || '',
+    /* Marcas de modificación por campo. Las versiones antiguas no las tienen:
+       en ese caso la fusión sigue usando d.mod como antes. Se van sembrando
+       únicamente cuando una ficha se modifica, sin migrar masivamente la base. */
+    modsCampos: (d.modsCampos && typeof d.modsCampos === 'object') ? d.modsCampos : {},
     fechaAlta: d.fechaAlta || nowISO(),
     mod: d.mod || d.fechaAlta || nowISO()
   };
 }
 function firma(d){
   var c = {};
-  Object.keys(d).forEach(function(k){ if(k !== 'mod') c[k] = d[k]; });
+  /* mod y modsCampos son metadata de sincronización: no deben provocar por sí
+     solos otra ronda de cambios al recalcular la firma de contenido. */
+  Object.keys(d).forEach(function(k){ if(k !== 'mod' && k !== 'modsCampos') c[k] = d[k]; });
   return JSON.stringify(c);
 }
+function firmaValorCampo(v){
+  try{ return JSON.stringify(v === undefined ? null : v); }
+  catch(e){ return String(v); }
+}
+function firmasDeCampos(d){
+  var out = {};
+  Object.keys(d || {}).forEach(function(k){
+    if(k === 'id' || k === 'mod' || k === 'modsCampos') return;
+    out[k] = firmaValorCampo(d[k]);
+  });
+  return out;
+}
+function marcaCampo(d, campo){
+  return (d && d.modsCampos && d.modsCampos[campo]) || (d && d.mod) || '';
+}
+function compararMarca(a, b){
+  var ta = Date.parse(a || ''), tb = Date.parse(b || '');
+  if(!isNaN(ta) && !isNaN(tb)){
+    if(ta > tb) return 1;
+    if(tb > ta) return -1;
+    return 0;
+  }
+  a = String(a || ''); b = String(b || '');
+  return a > b ? 1 : (b > a ? -1 : 0);
+}
+function marcaMasReciente(a, b){ return compararMarca(a, b) >= 0 ? (a || b) : (b || a); }
+function valoresIguales(a, b){ return firmaValorCampo(a) === firmaValorCampo(b); }
 function hoyISO(){
   var d = new Date();
   return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
@@ -2292,14 +2326,37 @@ function sellarCambios(){
     vistos[d.id] = 1;
     var f = firma(d);
     if(firmas[d.id] !== f){
-      if(firmas[d.id] !== undefined || !d.mod) d.mod = ahora;
-      firmas[d.id] = f;
+      var yaExistia = firmas[d.id] !== undefined;
+      var modAnterior = d.mod || d.fechaAlta || ahora;
+      var anteriores = firmasCampos[d.id] || {};
+      var actuales = firmasDeCampos(d);
+      if(yaExistia){
+        /* Primera edición tras actualizar desde una versión sin marcas por
+           campo: se siembran los campos conocidos con el mod ANTERIOR de la
+           ficha. Después solo los campos que realmente cambiaron reciben
+           "ahora". Dos dispositivos que partan de la misma ficha pueden así
+           editar campos distintos sin pisarse al volver a encontrarse. */
+        d.modsCampos = (d.modsCampos && typeof d.modsCampos === 'object')
+          ? Object.assign({}, d.modsCampos) : {};
+        Object.keys(actuales).forEach(function(k){
+          if(!d.modsCampos[k]) d.modsCampos[k] = modAnterior;
+        });
+        Object.keys(actuales).forEach(function(k){
+          if(anteriores[k] !== actuales[k]) d.modsCampos[k] = ahora;
+        });
+        d.mod = ahora;
+      }else if(!d.mod){
+        d.mod = ahora;
+      }
+      firmas[d.id] = firma(d);
+      firmasCampos[d.id] = firmasDeCampos(d);
       n++;
     }
   });
   Object.keys(firmas).forEach(function(id){
     if(!vistos[id]){
       delete firmas[id];
+      delete firmasCampos[id];
       DB.borrados = (DB.borrados || []).filter(function(b){ return b.id !== id; });
       DB.borrados.push({id:id, fecha:ahora});
       n++;
@@ -2311,8 +2368,11 @@ function sellarCambios(){
   return n;
 }
 function indexarFirmas(){
-  firmas = {};
-  DB.discos.forEach(function(d){ firmas[d.id] = firma(d); });
+  firmas = {}; firmasCampos = {};
+  DB.discos.forEach(function(d){
+    firmas[d.id] = firma(d);
+    firmasCampos[d.id] = firmasDeCampos(d);
+  });
 }
 /* revisionDatos sube cada vez que hay un cambio real que sincronizar; push()
    la usa para saber si el PUT que acaba de subir ya incluye lo último, o si
@@ -2403,48 +2463,84 @@ function fusionar(locales, borrLoc, remotos, borrRem){
   });
   Object.keys(mapa).forEach(function(id){
     var par = mapa[id], l = par.l, r = par.r;
-    var elegido = null;
-    if(l && r) elegido = fechaMasReciente(l.mod, r.mod) ? l : r;
-    else elegido = l || r;
+    var base = l && r ? (fechaMasReciente(l.mod, r.mod) ? l : r) : (l || r);
     var borr = borrados[id];
-    if(borr && fechaMasReciente(borr, elegido.mod)){
+    if(borr && fechaMasReciente(borr, base.mod)){
       if(l) cambiosLocales++;
       if(r) cambiosRemotos++;
       return;
     }
-    if(l && r){
-      var union = {}, antes = (elegido.escuchasFechas || []).length;
-      (l.escuchasFechas || []).concat(r.escuchasFechas || []).forEach(function(f){ union[f] = 1; });
-      var todas = Object.keys(union).sort();
-      if(todas.length !== antes){
-        elegido = Object.assign({}, elegido, {
-          escuchasFechas: todas,
-          escuchas: Math.max(todas.length, l.escuchas || 0, r.escuchas || 0),
-          ultimaEscucha: todas.length ? todas[todas.length - 1] : ''
-        });
-        cambiosLocales++; cambiosRemotos++;
-      }
-      /* Igual que escuchasFechas: la unión de etiquetas es información nueva
-         que puede faltarle a CUALQUIERA de los dos lados (incluido el que no
-         se eligió como "elegido"), así que cada lado cuenta su propio cambio
-         por separado -comparando el conjunto final contra el conjunto de
-         CADA lado, nunca solo longitudes, que dos listas de igual tamaño
-         pero distinto contenido pueden despistar-. */
-      var etq = {};
-      (l.etiquetas || []).concat(r.etiquetas || []).forEach(function(t){ etq[t] = 1; });
-      var unionEtq = Object.keys(etq).sort();
-      var etqLocalOrden = (l.etiquetas || []).slice().sort();
-      var etqRemotoOrden = (r.etiquetas || []).slice().sort();
-      var difiereLocal = JSON.stringify(etqLocalOrden) !== JSON.stringify(unionEtq);
-      var difiereRemoto = JSON.stringify(etqRemotoOrden) !== JSON.stringify(unionEtq);
-      if(difiereLocal || difiereRemoto){
-        elegido = Object.assign({}, elegido, {etiquetas: unionEtq});
-        if(difiereLocal) cambiosLocales++;
-        if(difiereRemoto) cambiosRemotos++;
-      }
+
+    if(!l || !r){
+      if(!l) cambiosLocales++;
+      if(!r) cambiosRemotos++;
+      out.push(base);
+      return;
     }
-    if(!l || (r && elegido === r)) cambiosLocales++;
-    if(!r || (l && elegido === l)) cambiosRemotos++;
+
+    /* Fusión granular compatible hacia atrás. Si una ficha todavía no tiene
+       modsCampos, marcaCampo() cae a d.mod y el comportamiento es exactamente
+       el last-write-wins histórico. Cuando ambos dispositivos ya han editado
+       con esta versión, cada campo puede viajar por separado. */
+    var elegido = Object.assign({}, base);
+    var mods = {};
+    var clavesMods = {};
+    Object.keys(l.modsCampos || {}).concat(Object.keys(r.modsCampos || {})).forEach(function(k){ clavesMods[k] = 1; });
+    Object.keys(clavesMods).forEach(function(k){
+      mods[k] = marcaMasReciente(marcaCampo(l, k), marcaCampo(r, k));
+    });
+
+    var especiales = {id:1, mod:1, modsCampos:1, etiquetas:1, editado:1,
+      escuchasFechas:1, escuchas:1, ultimaEscucha:1};
+    var claves = {};
+    Object.keys(l).concat(Object.keys(r)).forEach(function(k){ if(!especiales[k]) claves[k] = 1; });
+    Object.keys(claves).forEach(function(k){
+      if(valoresIguales(l[k], r[k])){ elegido[k] = l[k]; return; }
+      var cmp = compararMarca(marcaCampo(l, k), marcaCampo(r, k));
+      if(cmp > 0) elegido[k] = l[k];
+      else if(cmp < 0) elegido[k] = r[k];
+      else elegido[k] = base[k]; /* empate real: conserva el desempate histórico por mod */
+      mods[k] = marcaMasReciente(marcaCampo(l, k), marcaCampo(r, k));
+    });
+
+    /* Etiquetas son acumulativas: nunca tiene sentido perder una porque otro
+       dispositivo añadió otra distinta. */
+    var etq = {};
+    (l.etiquetas || []).concat(r.etiquetas || []).forEach(function(t){ if(t) etq[t] = 1; });
+    elegido.etiquetas = Object.keys(etq).sort();
+    mods.etiquetas = marcaMasReciente(marcaCampo(l, 'etiquetas'), marcaCampo(r, 'etiquetas'));
+
+    /* Las protecciones manuales también son acumulativas: editar "país" en un
+       dispositivo y "catálogo" en otro debe conservar ambas protecciones. */
+    elegido.editado = Object.assign({}, r.editado || {}, l.editado || {});
+    Object.keys(r.editado || {}).forEach(function(k){
+      if((r.editado || {})[k]) elegido.editado[k] = r.editado[k];
+    });
+    mods.editado = marcaMasReciente(marcaCampo(l, 'editado'), marcaCampo(r, 'editado'));
+
+    /* Escuchas: unión de días + máximo histórico. Antes el máximo solo se
+       recalculaba cuando aparecía una fecha nueva; con las mismas fechas una
+       cifra histórica mayor podía perderse al ganar la ficha más reciente. */
+    var union = {};
+    (l.escuchasFechas || []).concat(r.escuchasFechas || []).forEach(function(f){ if(f) union[f] = 1; });
+    var todas = Object.keys(union).sort();
+    elegido.escuchasFechas = todas;
+    elegido.escuchas = Math.max(todas.length, Number(l.escuchas) || 0, Number(r.escuchas) || 0);
+    var ultimas = [l.ultimaEscucha || '', r.ultimaEscucha || '', todas.length ? todas[todas.length - 1] : '']
+      .filter(Boolean).sort();
+    elegido.ultimaEscucha = ultimas.length ? ultimas[ultimas.length - 1] : '';
+    ['escuchasFechas','escuchas','ultimaEscucha'].forEach(function(k){
+      mods[k] = marcaMasReciente(marcaCampo(l, k), marcaCampo(r, k));
+    });
+
+    elegido.modsCampos = mods;
+    elegido.mod = fechaMasReciente(l.mod, r.mod) ? l.mod : r.mod;
+
+    /* Contar contra cada lado por CONTENIDO, no por identidad de objeto. Así
+       una combinación de campos de ambos dispositivos se propaga exactamente
+       a los lados que todavía no tienen el resultado final. */
+    if(firma(elegido) !== firma(l)) cambiosLocales++;
+    if(firma(elegido) !== firma(r)) cambiosRemotos++;
     out.push(elegido);
   });
   var listaBorrados = Object.keys(borrados).map(function(id){ return {id:id, fecha:borrados[id]}; })
