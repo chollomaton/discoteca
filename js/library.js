@@ -388,7 +388,7 @@ function setView(v){
   });
   ['col','wish','stats','db'].forEach(function(x){ document.getElementById('v-' + x).className = 'view' + (x === v ? ' on' : ''); });
   document.getElementById('azbar').style.display = (v === 'col') ? '' : 'none';
-  window.scrollTo({top:0, behavior:'smooth'});
+  window.scrollTo({top:0, behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
 }
 function colorDe(d){
   if(d.color){ var seg = colorSeguro(d.color); if(seg) return 'rgb(' + seg + ')'; }
@@ -517,8 +517,8 @@ function tileHtml(d, dups){
     + '<span class="badge ' + (vin ? 'vin' : 'cd') + '" data-tip="' + (vin ? 'Vinilo' : 'CD') + '">' + (vin ? I.vinBadge : I.cdBadge) + '</span>'
     + (dups && dups[d.id] ? '<span class="pill dup">REPETIDO</span>' : (d.confianza === 'baja' ? '<span class="pill low">REVISAR</span>' : ''))
     + (d.prestadoA ? '<span class="pill lend">PRESTADO</span>' : '')
-    + (readOnly ? '' : '<button type="button" class="oir' + (hoy ? ' hoy' : '') + '" data-oir="' + d.id + '" data-tip="'
-        + (hoy ? 'Ya lo marcaste hoy' : 'Marcar que lo has escuchado') + '">' + (hoy ? I.check : I.playF) + '</button>')
+    + (readOnly ? '' : '<button type="button" class="oir' + (hoy ? ' hoy' : '') + '" aria-pressed="' + hoy + '" data-oir="' + d.id + '" data-tip="'
+        + (hoy ? 'Quitar escucha de hoy' : 'Marcar que lo has escuchado') + '">' + (hoy ? I.check : I.playF) + '</button>')
     + (readOnly ? '' : '<button type="button" class="magic" data-ai="' + d.id + '" data-tip="Buscar los datos que falten">' + I.spark + '</button>')
     + '</div><div class="meta"><div class="t">' + (esc(d.titulo) || 'Sin título') + '</div>'
     + '<div class="a">' + (esc(d.artista) || 'Artista desconocido') + '</div>'
@@ -1011,7 +1011,8 @@ function enlazarTiles(root, dups){
       b.className = 'oir' + (puesto ? ' hoy' : '');
       microFeedback(b);
       b.innerHTML = puesto ? I.check : I.playF;
-      b.dataset.tip = puesto ? 'Ya lo marcaste hoy' : 'Marcar que lo has escuchado';
+      b.dataset.tip = puesto ? 'Quitar escucha de hoy' : 'Marcar que lo has escuchado';
+      b.setAttribute('aria-pressed', String(puesto));
       b.setAttribute('aria-label', b.dataset.tip);
       var d = DB.discos.filter(function(x){ return x.id === b.dataset.oir; })[0];
       var y = b.closest('.tile') && b.closest('.tile').querySelector('.meta .y .txt');
@@ -1739,7 +1740,7 @@ function openDetail(id, desde, volverSesion){
     + '<button type="button" class="lnk ext" id="btnWiki">' + I.libro + 'Datos Artista / Álbum</button>'
     + '<span class="sep"></span>'
     + '<button type="button" class="lnk" id="btnShare">' + I.compartir + 'Compartir</button>'
-    + (readOnly ? '' : '<button type="button" class="lnk' + (escuchadoHoy(d) ? ' hecho' : '') + '" id="escuchado">'
+    + (readOnly ? '' : '<button type="button" class="lnk' + (escuchadoHoy(d) ? ' hecho' : '') + '" id="escuchado" aria-pressed="' + escuchadoHoy(d) + '" aria-label="' + (escuchadoHoy(d) ? 'Quitar escucha de hoy' : 'Marcar escuchado hoy') + '">'
         + (escuchadoHoy(d) ? I.check + 'Escuchado hoy' : I.playF + 'Escuchado hoy') + '</button>')
     + '</div></div></div>');
 
@@ -1871,6 +1872,8 @@ function openDetail(id, desde, volverSesion){
     var puesto = marcarEscucha(d.id);
     var b = $('#escuchado');
     b.className = 'lnk' + (puesto ? ' hecho' : '');
+    b.setAttribute('aria-pressed', String(puesto));
+    b.setAttribute('aria-label', puesto ? 'Quitar escucha de hoy' : 'Marcar escuchado hoy');
     microFeedback(b);
     b.innerHTML = puesto ? I.check + 'Escuchado hoy' : I.playF + 'Escuchado hoy';
     var sp = s.querySelectorAll('.spec');
