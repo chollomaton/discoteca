@@ -165,6 +165,107 @@ function baseDisc(){
   assert(JSON.stringify(l)===lb && JSON.stringify(r)===rb,'fusionar es pura respecto a las fichas de entrada');
 }
 
+
+/* 13-17. Cola global y comportamiento de push/pull con red simulada.
+   Se evalúa el bloque REAL de producción, sustituyendo solo red/UI/almacén. */
+const syncBlock = sliceBetween('var colaSincro = Promise.resolve();','function sincronizarAhora');
+const sleep = (ms)=>new Promise((r)=>setTimeout(r,ms));
+function netContext(fetchImpl){
+  const c=vm.createContext({
+    console, JSON, Date, Math, Number, String, Object, Array, Promise, TypeError,
+    setTimeout, clearTimeout,
+    CFG:{owner:'u',repo:'r',branch:'main',path:'datos.json',token:'t'},
+    DB:{discos:[{id:'d1',titulo:'A'}],borrados:[],actualizado:''},
+    SHA:'s0', lastSync:'', readOnly:false, revisionDatos:1, syncState:'ok',
+    fetch:fetchImpl,
+    configurado:()=>true,
+    ghUrl:()=> 'https://api.github.test/datos.json',
+    ghHeaders:()=>({}),
+    marcar:(estado)=>{ c.syncState=estado; },
+    b64enc:(x)=>Buffer.from(x,'utf8').toString('base64'),
+    b64dec:(x)=>Buffer.from(x,'base64').toString('utf8'),
+    discosLigeros:()=>c.DB.discos,
+    nowISO:()=> '2026-09-25T12:00:00.000Z',
+    guardarLocal:()=>Promise.resolve(true),
+    renderAll:()=>{}, toast:()=>{}, indexarFirmas:()=>{}, programarPush:()=>{},
+    normDisc:(d)=>d,
+    fusionar:(locales,borrLoc,remotos,borrRem)=>({discos:locales,borrados:borrLoc||[],aLocal:0,aRemoto:0})
+  });
+  vm.runInContext(syncBlock,c);
+  return c;
+}
+function resOkJson(j,status=200){ return {status,ok:status>=200&&status<300,json:async()=>j}; }
+
+/* pull + push pedidos a la vez nunca tienen dos fetch simultáneos. */
+{
+  let activos=0,max=0,metodos=[];
+  const remote=Buffer.from(JSON.stringify({discos:[{id:'d1',titulo:'A'}],borrados:[]})).toString('base64');
+  const c=netContext(async (url,opt={})=>{
+    activos++; max=Math.max(max,activos); metodos.push(opt.method||'GET');
+    await sleep(20); activos--;
+    return (opt.method==='PUT')
+      ? resOkJson({content:{sha:'s2'}})
+      : resOkJson({sha:'s1',content:remote});
+  });
+  await Promise.all([c.pull(true),c.push()]);
+  assert(max===1,'pull y push comparten exclusión mutua global');
+  eq(metodos,['GET','PUT'],'pull solicitado primero termina antes de empezar el push');
+}
+
+/* Tres push sin cambios intermedios = un PUT. */
+{
+  let puts=0;
+  const c=netContext(async (url,opt={})=>{
+    if(opt.method==='PUT'){ puts++; await sleep(15); return resOkJson({content:{sha:'s'+puts}}); }
+    throw new Error('GET inesperado');
+  });
+  await Promise.all([c.push(),c.push(),c.push()]);
+  assert(puts===1,'tres push simultáneos sin cambios generan un solo PUT');
+}
+
+/* Cambio mientras el PUT ya está en vuelo = segundo PUT posterior. */
+{
+  let puts=0, resolverPrimero;
+  const c=netContext((url,opt={})=>{
+    if(opt.method!=='PUT') throw new Error('GET inesperado');
+    puts++;
+    if(puts===1) return new Promise((resolve)=>{ resolverPrimero=()=>resolve(resOkJson({content:{sha:'s1'}})); });
+    return Promise.resolve(resOkJson({content:{sha:'s2'}}));
+  });
+  const p=c.push();
+  while(!resolverPrimero) await sleep(1);
+  c.revisionDatos=2;
+  resolverPrimero();
+  await p;
+  assert(puts===2,'un cambio producido durante un PUT provoca exactamente un segundo PUT');
+}
+
+/* 409 + pull fallido: no se reintenta el PUT a ciegas. */
+{
+  let puts=0,gets=0;
+  const c=netContext(async (url,opt={})=>{
+    if(opt.method==='PUT'){ puts++; return resOkJson({},409); }
+    gets++; throw new TypeError('sin red');
+  });
+  const r=await c.push();
+  assert(r===false && puts===1 && gets===1,'409 seguido de pull fallido no hace otro PUT');
+}
+
+/* 409 + pull correcto: actualiza SHA y reintenta de forma acotada. */
+{
+  let puts=0,gets=0;
+  const remote=Buffer.from(JSON.stringify({discos:[{id:'d1',titulo:'A'}],borrados:[]})).toString('base64');
+  const c=netContext(async (url,opt={})=>{
+    if(opt.method==='PUT'){
+      puts++;
+      return puts===1 ? resOkJson({},409) : resOkJson({content:{sha:'s2'}});
+    }
+    gets++; return resOkJson({sha:'s1',content:remote});
+  });
+  const r=await c.push();
+  assert(r===true && puts===2 && gets===1,'409 con pull correcto hace un único reintento exitoso');
+}
+
 if(process.exitCode){
   console.error('\nPruebas de sincronización FALLIDAS.');
   process.exit(process.exitCode);
