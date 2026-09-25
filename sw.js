@@ -1,7 +1,7 @@
 /* Discoteca — service worker
    Guarda la aplicación en caché para que abra al instante y sin conexión.
    Los datos NUNCA se cachean: siempre se piden a GitHub. */
-var CACHE = 'discoteca-v56';
+var CACHE = 'discoteca-v57';
 /* zxing-0.21.3.js (336 KB) NO va aquí a propósito: solo lo carga quien usa el
    escáner de códigos de barras, y forzar su descarga en la instalación penaliza
    a todo el mundo. Se cachea solo (como cualquier otro archivo) la primera vez
@@ -10,7 +10,7 @@ var CACHE = 'discoteca-v56';
    Pages sirve ese archivo para la raíz), así que precachear las dos duplicaría
    el HTML entero (~650 KB) en la instalación. El respaldo sin conexión de más
    abajo ya sirve './index.html' para cualquier navegación, incluida la raíz. */
-var SHELL = ['./index.html', './styles.css', './js/core.js', './js/library.js', './js/features.js', './js/insights.js', './js/stats.js', './js/settings.js', './js/bootstrap.js', './manifest.webmanifest', './icon-192-v2.png', './icon-512-v2.png', './icon-512-maskable.png', './apple-touch-icon-v2.png'];
+var SHELL = ['./index.html', './styles.css', './js/core.js', './js/library.js', './js/transfer.js', './js/features.js', './js/metadata.js', './js/insights.js', './js/stats.js', './js/settings.js', './js/bootstrap.js', './manifest.webmanifest', './icon-192-v2.png', './icon-512-v2.png', './icon-512-maskable.png', './apple-touch-icon-v2.png'];
 /* Rutas absolutas del SHELL, para reconocerlas en el "fetch" de abajo sin
    depender de cómo esté escrita la URL de la petición (con o sin "./"). */
 var SHELL_PATHS = SHELL.map(function(s){ return new URL(s, self.registration.scope).pathname; });
