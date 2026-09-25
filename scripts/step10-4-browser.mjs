@@ -60,7 +60,7 @@ try{
   await page.evaluate(async()=>{await navigator.serviceWorker.register('./sw.js');await navigator.serviceWorker.ready;});
   await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
   assert(await page.evaluate(async()=>{
-   const cache=await caches.open('discoteca-v59'),keys=await cache.keys();
+   const cache=await caches.open('discoteca-v60'),keys=await cache.keys();
    return keys.some(r=>r.url.endsWith('/index.html'))&&!keys.some(r=>r.url.includes('datos.json'));
   }),'PWA shell cached without collection data');
   await context.setOffline(true);await page.reload();await page.waitForSelector('.tile');
