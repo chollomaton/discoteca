@@ -5,11 +5,12 @@ var IDB_NAME = 'discoteca', IDB_STORE = 'kv', K_DATOS = 'datos', K_CFG = 'config
 var LS_KEY = 'discoteca.local.v4';
 var LS_CFG = 'discoteca.cfg.v1';
 var DB = { version: 4, actualizado: '', discos: [], borrados: [] };
-var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', discogs: '', anthropic: '', lastfm: '', ticketmaster: '', audd: '', subirADiscogs: false, auto: true };
+var CFG = { owner: '', repo: '', branch: 'main', path: 'datos.json', token: '', recordarClaves: false, discogs: '', anthropic: '', lastfm: '', ticketmaster: '', audd: '', subirADiscogs: false, auto: true };
+var configuracionEnCurso = false;
 var SHA = '';                 // sha del datos.json remoto que tenemos
 var syncState = 'local';      // local | ok | pend | busy | err | off
 var syncMsg = '', lastSync = '', readOnly = false;
-var VERSION = '2026.09.25-phase6';
+var VERSION = '2026.09.25-phase7';
 var firmas = {};              // id -> firma, para detectar qué cambió
 var firmasCampos = {};        // id -> firmas por campo, para sincronización granular
 var view = 'col';
@@ -475,17 +476,17 @@ function ocultarAyuda(){
 var K_FALLOS = 'discoteca.fallos';
 function apuntarFallo(tipo, msg, donde){
   try{
-    var l = JSON.parse(localStorage.getItem(K_FALLOS) || '[]');
-    var texto = String(msg || '').slice(0, 220);
+    var l = fallosGuardados();
+    var texto = ocultarSecretos(msg).slice(0, 220);
     /* no repetir el mismo fallo una y otra vez */
     var ult = l[l.length - 1];
     if(ult && ult.m === texto){ ult.n = (ult.n || 1) + 1; ult.f = nowISO(); }
-    else l.push({f: nowISO(), t: tipo, m: texto, d: String(donde || '').slice(0, 90), n: 1});
+    else l.push({f: nowISO(), t: ocultarSecretos(tipo), m: texto, d: ocultarSecretos(donde).slice(0, 90), n: 1});
     localStorage.setItem(K_FALLOS, JSON.stringify(l.slice(-40)));
   }catch(e){}
 }
 function fallosGuardados(){
-  try{ return JSON.parse(localStorage.getItem(K_FALLOS) || '[]'); }catch(e){ return []; }
+  try{ return JSON.parse(localStorage.getItem(K_FALLOS) || '[]').map(function(f){ return Object.assign({}, f, {m:ocultarSecretos(f.m), d:ocultarSecretos(f.d), t:ocultarSecretos(f.t)}); }); }catch(e){ return []; }
 }
 window.addEventListener('error', function(e){
   apuntarFallo('js', e.message, (e.filename || '').split('/').pop() + ':' + e.lineno);
@@ -572,6 +573,7 @@ function idbSet(k, val){
       tx.objectStore(IDB_STORE).put(val, k);
       tx.oncomplete = function(){ res(true); };
       tx.onerror = function(){ rej(tx.error); };
+      tx.onabort = function(){ rej(tx.error || new Error('Escritura cancelada')); };
     });
   });
 }
@@ -588,16 +590,54 @@ function idbGet(k){
 function guardarLocal(){
   var payload = { actualizado: DB.actualizado, discos: DB.discos, borrados: DB.borrados, sha: SHA, lastSync: lastSync };
   return idbSet(K_DATOS, payload).catch(function(){
-    try{ localStorage.setItem(LS_KEY, JSON.stringify(payload)); }catch(e){}
+    try{ localStorage.setItem(LS_KEY, JSON.stringify(payload)); }catch(e){ toast('No se pueden guardar los cambios en este dispositivo. Exporta una copia antes de cerrar.', true); throw e; }
   });
 }
+/* Las claves solo persisten en IndexedDB con consentimiento; nunca en el respaldo. */
+var CLAVES_CFG = ['token', 'discogs', 'anthropic', 'lastfm', 'ticketmaster', 'audd'];
+function configSinClaves(cfg){
+  var copia = Object.assign({}, cfg);
+  CLAVES_CFG.forEach(function(k){ copia[k] = ''; });
+  return copia;
+}
+function ocultarSecretos(texto){
+  var limpio = String(texto || '');
+  CLAVES_CFG.forEach(function(k){
+    var v = CFG[k];
+    if(v){ limpio = limpio.split(v).join('[oculto]').split(encodeURIComponent(v)).join('[oculto]'); }
+  });
+  return limpio.replace(/(?:github_pat_|gh[pousr]_)[a-zA-Z0-9_]+/g, '[oculto]')
+    .replace(/([?&](?:token|api_key|apikey|api_token|key)=)[^&#\s]*/gi, '$1[oculto]')
+    .replace(/(Bearer\s+)[^\s,;]+/gi, '$1[oculto]');
+}
 function guardarCfg(){
-  /* la propia configuración -tu token- se guardaba solo en IndexedDB, sin
-     ningún respaldo; si esa lectura fallaba alguna vez, la app se quedaba
-     en modo consulta sin ningún aviso. Ahora se guarda también en
-     localStorage, igual que ya se hacía con la colección. */
-  try{ localStorage.setItem(LS_CFG, JSON.stringify(CFG)); }catch(e){}
-  return idbSet(K_CFG, CFG).catch(function(){});
+  var publica = configSinClaves(CFG);
+  try{ localStorage.setItem(LS_CFG, JSON.stringify(publica)); }catch(e){}
+  return idbSet(K_CFG, CFG.recordarClaves ? Object.assign({}, CFG) : publica);
+}
+function validarConfig(cfg){
+  if(!/^[a-zA-Z0-9-]+$/.test(cfg.owner) || !/^[a-zA-Z0-9_.-]+$/.test(cfg.repo))
+    throw new Error('Revisa el usuario y el repositorio');
+  if(!cfg.branch || /[\s?*\[\]~^:\\]/.test(cfg.branch) || cfg.branch.indexOf('..') >= 0)
+    throw new Error('Revisa la rama');
+  if(!cfg.path || cfg.path.split('/').some(function(p){ return !p || p === '.' || p === '..'; }) || !/\.json$/i.test(cfg.path))
+    throw new Error('El archivo debe ser una ruta JSON sin segmentos vacíos ni puntos relativos');
+  if(!cfg.token || /\s/.test(cfg.token)) throw new Error('Revisa el token');
+}
+function destinoConfig(cfg){ return [cfg.owner, cfg.repo, cfg.branch, cfg.path].join('/'); }
+function crearPuntoRecuperacion(motivo){
+  var copia = {version:4, actualizado:DB.actualizado, discos:JSON.parse(JSON.stringify(DB.discos)),
+    borrados:JSON.parse(JSON.stringify(DB.borrados || [])), motivo:motivo, creado:nowISO()};
+  return idbSet('recuperacion', copia).catch(function(){
+    localStorage.setItem('discoteca.recuperacion', JSON.stringify(copia));
+  });
+}
+function leerPuntoRecuperacion(){
+  return idbGet('recuperacion').catch(function(){ return null; }).then(function(copia){
+    var alternativa = null;
+    try{ alternativa = JSON.parse(localStorage.getItem('discoteca.recuperacion') || 'null'); }catch(e){}
+    return alternativa && (!copia || alternativa.creado > copia.creado) ? alternativa : copia;
+  });
 }
 
 /* ============================================================
@@ -664,7 +704,7 @@ function persist(silencioso){
   if(readOnly) return;
   var n = sellarCambios();
   if(n){ DB.actualizado = nowISO(); revisionDatos++; }
-  guardarLocal();
+  guardarLocal().catch(function(){ marcar('err', 'Almacenamiento local lleno: exporta una copia'); });
   if(n && CFG.token){ syncState = 'pend'; programarPush(); }
   if(!silencioso) renderAll(); else pintarSync();
 }
@@ -860,7 +900,7 @@ var pullPromiseActual = null;
    promesa en vez de encolar una segunda petición idéntica */
 function pull(silencioso){
   if(pullPromiseActual) return pullPromiseActual;
-  if(!configurado()) return Promise.resolve(false);
+  if(configuracionEnCurso || !configurado()) return Promise.resolve(false);
   pullPromiseActual = encolarSync(function(){ return pullReal(silencioso); })
     .then(function(resultado){ pullPromiseActual = null; return resultado; });
   return pullPromiseActual;
@@ -883,10 +923,10 @@ function pullReal(silencioso){
     .then(function(j){
       ultimoPull = Date.now();
       if(!j){ SHA = ''; marcar('pend', 'Aún no subido'); return true; }
-      SHA = j.sha;
       var texto = j.content ? b64dec(j.content) : null;
       var seguir = function(txt){
-        var remoto = JSON.parse(txt);
+        var remoto = validarCopia(JSON.parse(txt));
+        SHA = j.sha;
         var res = fusionar(DB.discos, DB.borrados, remoto.discos || [], remoto.borrados || []);
         DB.discos = res.discos.map(normDisc);
         DB.borrados = res.borrados;
@@ -912,7 +952,9 @@ function pullReal(silencioso){
         return true;
       };
       if(texto !== null) return seguir(texto);
-      return fetch(j.download_url, {cache:'no-store'}).then(function(r2){ return r2.text(); }).then(seguir);
+      return fetch(ghUrl() + '?ref=' + encodeURIComponent(CFG.branch), {
+        headers:Object.assign({}, ghHeaders(), {Accept:'application/vnd.github.raw+json'}), cache:'no-store'
+      }).then(function(r2){ if(!r2.ok) throw new Error('http' + r2.status); return r2.text(); }).then(seguir);
     })
     .catch(function(e){
       /* un fallo de red de verdad (sin conexión) llega aquí como TypeError,
@@ -997,7 +1039,7 @@ function pushInterno(intento){
 var pushPromiseActual = null, ultimaRevisionSubida = -1;
 function push(){
   if(pushPromiseActual) return pushPromiseActual;
-  if(!configurado() || readOnly) return Promise.resolve(false);
+  if(configuracionEnCurso || !configurado() || readOnly) return Promise.resolve(false);
   /* Caso A del punto 7: tres push() sin ningún cambio de por medio no deben
      generar tres PUT -ni siquiera dos-, solo uno. Si ya se subió esta misma
      revisión de los datos, no hay nada nuevo que enviar. */
@@ -1049,11 +1091,16 @@ function boot(){
       if(!loc){
         try{ var raw = localStorage.getItem(LS_KEY); if(raw) loc = JSON.parse(raw); }catch(e){}
       }
-      if(cfg) CFG = Object.assign(CFG, cfg);
+      if(cfg){
+        CFG = Object.assign(CFG, cfg);
+        /* Migración compatible: conservar el acceso existente y quitar la copia duplicada. */
+        if(typeof cfg.recordarClaves !== 'boolean') CFG.recordarClaves = true;
+        guardarCfg().catch(function(){ toast('No se pudieron guardar los ajustes; conserva tus claves en el gestor de contraseñas', true); });
+      }
       /* Sin token no se puede escribir en el repositorio: la app se abre en modo consulta */
       readOnly = !configurado();
       document.body.classList.toggle('ro', readOnly);
-      if(loc && Array.isArray(loc.discos) && loc.discos.length){
+      if(loc && Array.isArray(loc.discos)){
         DB.discos = loc.discos.map(normDisc);
         DB.borrados = loc.borrados || [];
         DB.actualizado = loc.actualizado || '';
@@ -1066,9 +1113,7 @@ function boot(){
         if(configurado()) pull(true);
         return;
       }
-      return fetch('datos.json?t=' + Date.now(), {cache:'no-store'})
-        .then(function(r){ return r.ok ? r.json() : {discos:[]}; })
-        .catch(function(){ return {discos:[]}; })
+      return Promise.resolve({discos:[], borrados:[]})
         .then(function(doc){
           DB.discos = (doc.discos || []).map(normDisc);
           DB.borrados = doc.borrados || [];
@@ -1167,36 +1212,36 @@ function pantallaSync(){
   var body =
     '<div class="warnb info">' + I.cloud + '<span>Tu colección se guarda en un archivo <b>' + esc(CFG.path)
     + '</b> dentro de tu repositorio de GitHub. Cada dispositivo la baja al abrir y sube lo que cambies. '
-    + 'El token se queda solo en este dispositivo: nunca se sube a ningún sitio.</span></div>'
+    + 'La app puede ser pública y la colección estar en otro repositorio privado. El token se envía únicamente a GitHub para autenticarte.</span></div>'
     + '<div class="group">'
       + '<div class="grow"><label>Usuario</label><input id="sOwner" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.owner) + '" placeholder="tu-usuario"></div>'
       + '<div class="grow"><label>Repositorio</label><input id="sRepo" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.repo) + '" placeholder="discoteca"></div>'
       + '<div class="grow"><label>Rama</label><input id="sBranch" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.branch) + '" placeholder="main"></div>'
       + '<div class="grow"><label>Archivo</label><input id="sPath" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.path) + '" placeholder="datos.json"></div>'
-      + '<div class="grow"><label>Token</label><input id="sToken" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.token) + '" placeholder="github_pat_…"></div>'
+      + '<div class="grow"><label>Token</label><input id="sToken" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="" autocomplete="off" placeholder="github_pat_…"></div>'
     + '</div>'
     + '<div class="warnb info">' + I.scan + '<span>Opcional: un <b>token de Discogs</b> mejora mucho el escáner de códigos de barras '
     + 'y el relleno de fichas, porque su base de datos de discos físicos es la más completa. '
     + 'Se crea en Discogs → Settings → Developers → Generate token.</span></div>'
     + '<div class="group"><div class="grow"><label>Token Discogs</label>'
-    + '<input id="sDisc" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.discogs || '') + '" placeholder="opcional"></div>'
+    + '<input id="sDisc" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="" autocomplete="off" placeholder="opcional"></div>'
     + '<button class="btn sm" type="button" id="pDisc">Probar</button></div><div id="rDisc" class="note" style="display:none;margin:-6px 0 14px"></div>'
     + '<div style="font-size:12.5px;color:var(--txt2);line-height:1.5;margin:-4px 0 14px 3px">'
     + 'El token se crea en GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens, '
     + 'con permiso <b>Contents: Read and write</b> sobre ese único repositorio.</div>'
     + '<div class="warnb">' + I.warn + '<span>Más opcional aún: una <b>clave de API de Anthropic</b> permite identificar '
     + 'un disco por la foto de su portada cuando el código de barras no se puede leer. Tiene un coste pequeño por foto '
-    + '(unos céntimos) que se cobra en tu cuenta de Anthropic, y queda guardada en este dispositivo igual que los demás '
-    + 'tokens: visible para quien tenga acceso físico a él. Sin ella, esa opción simplemente no aparece.</span></div>'
+    + '(unos céntimos) que se cobra en tu cuenta de Anthropic, y sigue la opción de recordar claves de este dispositivo, '
+    + 'como los demás tokens. Sin ella, esa opción simplemente no aparece.</span></div>'
     + '<div class="group"><div class="grow"><label>Clave de Anthropic</label>'
-    + '<input id="sAntropic" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.anthropic || '') + '" placeholder="sk-ant-…"></div>'
+    + '<input id="sAntropic" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="" autocomplete="off" placeholder="sk-ant-…"></div>'
     + '<button class="btn sm" type="button" id="pAntropic" data-tip="La prueba también tiene un coste mínimo">Probar</button></div>'
     + '<div id="rAntropic" class="note" style="display:none;margin:-6px 0 14px"></div>'
     + '<div class="warnb info">' + I.info + '<span>Opcional y gratis: una <b>clave de Last.fm</b> da una biografía del '
     + 'artista cuando Wikipedia en español no tiene artículo sobre él. Se crea en last.fm/api/account/create, '
     + 'sin coste.</span></div>'
     + '<div class="group"><div class="grow"><label>Clave de Last.fm</label>'
-    + '<input id="sLastfm" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.lastfm || '') + '" placeholder="opcional"></div>'
+    + '<input id="sLastfm" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="" autocomplete="off" placeholder="opcional"></div>'
     + '<button class="btn sm" type="button" id="pLastfm">Probar</button></div><div id="rLastfm" class="note" style="display:none;margin:-6px 0 14px"></div>'
     + (hayDiscogs() ? '<div class="fila" style="margin-top:4px"><div><div class="ft">Subir a Discogs al añadir aquí</div>'
         + '<div class="fs">Cuando des de alta un disco que ya tenga edición de Discogs enlazada, se añade también '
@@ -1206,14 +1251,16 @@ function pantallaSync(){
     + 'cerca de ti de artistas que ya tienes. Se crea en developer.ticketmaster.com, sin coste, con un límite '
     + 'generoso de consultas al día.</span></div>'
     + '<div class="group"><div class="grow"><label>Clave de Ticketmaster</label>'
-    + '<input id="sTM" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.ticketmaster || '') + '" placeholder="opcional"></div>'
+    + '<input id="sTM" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="" autocomplete="off" placeholder="opcional"></div>'
     + '<button class="btn sm" type="button" id="pTM">Probar</button></div><div id="rTM" class="note" style="display:none;margin:-6px 0 14px"></div>'
     + '<div class="warnb">' + I.warn + '<span>Más opcional aún: una <b>clave de AudD</b> permite reconocer una canción '
     + 'grabando unos segundos con el micrófono, como Shazam. Su plan gratuito es muy limitado; para usarlo con '
     + 'cierta frecuencia hace falta un plan de pago en audd.io.</span></div>'
     + '<div class="group"><div class="grow"><label>Clave de AudD</label>'
-    + '<input id="sAudd" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="' + esc(CFG.audd || '') + '" placeholder="opcional"></div>'
+    + '<input id="sAudd" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="" autocomplete="off" placeholder="opcional"></div>'
     + '<button class="btn sm" type="button" id="pAudd">Probar</button></div><div id="rAudd" class="note" style="display:none;margin:-6px 0 14px"></div>'
+    + '<label><input id="sRecordar" type="checkbox"' + (CFG.recordarClaves ? ' checked' : '') + '> Recordar claves en este dispositivo</label>'
+    + '<div class="note">Si no lo marcas, las claves duran hasta cerrar o recargar la app. Si lo marcas, se guardan sin cifrar en este navegador. Usa un token limitado al repositorio privado de datos.</div>'
     + '<div id="snote"></div>';
   var pie = (configurado()
       ? '<button type="button" class="btn destr" id="sOff">Desconectar</button>'
@@ -1221,6 +1268,7 @@ function pantallaSync(){
     + '<div class="rowb"><button type="button" class="btn" id="sProbar">Probar</button><button type="button" class="btn pri" id="sOk">Guardar y sincronizar</button></div>';
   var s = sheet('Sincronización', body, pie);
   var $ = function(q){ return s.querySelector(q); };
+  [['sToken','token'],['sDisc','discogs'],['sAntropic','anthropic'],['sLastfm','lastfm'],['sTM','ticketmaster'],['sAudd','audd']].forEach(function(p){ $('#' + p[0]).value = CFG[p[1]] || ''; });
   var leer = function(){
     return {
       owner: $('#sOwner').value.trim(), repo: $('#sRepo').value.trim(),
@@ -1228,7 +1276,7 @@ function pantallaSync(){
       token: $('#sToken').value.trim(), discogs: $('#sDisc').value.trim(),
       anthropic: $('#sAntropic').value.trim(), lastfm: $('#sLastfm').value.trim(),
       ticketmaster: $('#sTM').value.trim(), audd: $('#sAudd').value.trim(),
-      subirADiscogs: $('#sSubir') ? $('#sSubir').checked : false, auto: true
+      recordarClaves: $('#sRecordar').checked, subirADiscogs: $('#sSubir') ? $('#sSubir').checked : false, auto: true
     };
   };
   /* Diagnóstico por etapas: primero repositorio, luego rama y solo al final
@@ -1236,6 +1284,7 @@ function pantallaSync(){
      existe", porque también puede significar repo/rama mal escritos o token
      sin acceso. */
   var probar = function(cfg){
+    try{ validarConfig(cfg); }catch(e){ return Promise.reject(e); }
     var base = GH + encodeURIComponent(cfg.owner) + '/' + encodeURIComponent(cfg.repo);
     var headers = {'Authorization':'Bearer ' + cfg.token, 'Accept':'application/vnd.github+json'};
     var errorComun = function(r, que){
@@ -1255,6 +1304,7 @@ function pantallaSync(){
       }
       if(!r.ok) return errorComun(r, 'el repositorio');
       return r.json().then(function(repo){
+        cfg.repoPrivado = repo.private === true;
         if(repo.archived) throw new Error('El repositorio está archivado y no admite cambios');
         if(repo.permissions && repo.permissions.push === false) throw new Error('Tu cuenta no tiene permiso de escritura en este repositorio');
         var rama = base + '/branches/' + encodeURIComponent(cfg.branch);
@@ -1279,24 +1329,38 @@ function pantallaSync(){
     $('#snote').innerHTML = '<div class="note busy">Comprobando…</div>';
     probar(cfg).then(function(r){
       $('#snote').innerHTML = '<div class="note ok">Conexión correcta · '
-        + (r.existe ? 'el archivo ya existe en el repositorio' : 'se creará al guardar') + '</div>';
+        + (cfg.repoPrivado ? 'repositorio privado · ' : 'ATENCIÓN: repositorio público · ') + (r.existe ? 'el archivo ya existe' : 'se creará al guardar') + '</div>';
     }).catch(function(e){ $('#snote').innerHTML = '<div class="note err">' + esc(e.message) + '</div>'; });
   };
   $('#sOk').onclick = function(){
     var cfg = leer();
     if(!cfg.owner || !cfg.repo || !cfg.token){ $('#snote').innerHTML = '<div class="note err">Faltan datos.</div>'; return; }
     $('#snote').innerHTML = '<div class="note busy">Conectando…</div>';
+    if(syncState === 'busy' || pullPromiseActual || pushPromiseActual){ toast('Espera a que termine la sincronización', true); return; }
+    var cambiando = destinoConfig(CFG) !== destinoConfig(cfg);
+    if(cambiando && !confirm('Vas a conectar otra ubicación. Se fusionará con la colección de este dispositivo. Antes se guardará una copia de recuperación. ¿Continuar?')) return;
+    $('#sOk').disabled = true;
+    configuracionEnCurso = true;
     probar(cfg).then(function(){
-      CFG = Object.assign(CFG, cfg);
-      SHA = '';
-      guardarCfg();
+      if(!cfg.repoPrivado && !confirm('Este repositorio es público: cualquiera puede leer tu colección. ¿Continuar?')) throw new Error('Conexión cancelada');
+      if(syncState === 'busy' || pullPromiseActual || pushPromiseActual) throw new Error('Espera a que termine la sincronización');
+      clearTimeout(saveTimer); saveTimer = null;
+      return crearPuntoRecuperacion('Antes de cambiar la conexión');
+    }).then(function(){
+      if(pullPromiseActual || pushPromiseActual) throw new Error('Espera a que termine la sincronización');
+      var anterior = CFG;
+      CFG = Object.assign({}, CFG, cfg);
+      return guardarCfg().catch(function(e){ CFG = anterior; throw new Error('No se han podido guardar los ajustes'); });
+    }).then(function(){
+      configuracionEnCurso = false;
+      SHA = ''; ultimaRevisionSubida = -1; revisionDatos++;
       readOnly = false;
       document.body.classList.remove('ro');
       s.remove();
       toast('Sincronización activada · ya puedes editar');
       renderAll();
-      pull().then(function(){ if(syncState !== 'ok') return push(); });
-    }).catch(function(e){ $('#snote').innerHTML = '<div class="note err">' + esc(e.message) + '</div>'; });
+      pull().then(function(ok){ if(ok && syncState !== 'ok') return push(); });
+    }).catch(function(e){ configuracionEnCurso = false; if(configurado() && revisionDatos !== ultimaRevisionSubida) programarPush(); $('#sOk').disabled = false; $('#snote').innerHTML = '<div class="note err">' + esc(ocultarSecretos(e.message)) + '</div>'; });
   };
   $('#pDisc').onclick = function(e){ probarClave(probarDiscogs, $('#sDisc').value.trim(), e.currentTarget, $('#rDisc')); };
   $('#pAntropic').onclick = function(e){ probarClave(probarAnthropic, $('#sAntropic').value.trim(), e.currentTarget, $('#rAntropic')); };
@@ -1304,10 +1368,15 @@ function pantallaSync(){
   $('#pTM').onclick = function(e){ probarClave(probarTicketmaster, $('#sTM').value.trim(), e.currentTarget, $('#rTM')); };
   $('#pAudd').onclick = function(e){ probarClave(probarAudd, $('#sAudd').value.trim(), e.currentTarget, $('#rAudd')); };
   if($('#sOff')) $('#sOff').onclick = function(){
+    if(configuracionEnCurso){ toast('Espera a que termine el cambio de ajustes', true); return; }
     if(!confirm('¿Desconectar este dispositivo? La colección se quedará solo aquí.')) return;
-    CFG = {owner:'', repo:'', branch:'main', path:'datos.json', token:'', discogs:CFG.discogs || '', anthropic:CFG.anthropic || '', lastfm:CFG.lastfm || '', ticketmaster:CFG.ticketmaster || '', audd:CFG.audd || '', subirADiscogs:false, auto:true};
+    if(pullPromiseActual || pushPromiseActual){ toast('Espera a que termine la sincronización', true); return; }
+    clearTimeout(saveTimer); saveTimer = null;
+    try{ localStorage.setItem(K_FALLOS, JSON.stringify(fallosGuardados())); }catch(e){}
+    CFG = configSinClaves(CFG);
+    CFG.recordarClaves = false;
     SHA = '';
-    guardarCfg();
+    guardarCfg().catch(function(){ toast('No se pudieron borrar las claves guardadas. Revócalas en su proveedor.', true); });
     readOnly = true;
     document.body.classList.add('ro');
     marcar('local');
@@ -2001,7 +2070,7 @@ function tuAnoEnUnVistazo(){
     var grad = sl.c.split(',');
     wrap.innerHTML = '<div class="anoslide" style="background:linear-gradient(150deg,' + grad[0] + ',' + grad[1] + ')">'
       + '<button type="button" class="anox" id="anoX" aria-label="Cerrar">' + I.x + '</button>'
-      + (sl.img ? '<img class="anoimg" src="' + esc(sl.img) + '" alt="" onerror="this.remove()">' : '')
+      + (sl.img ? '<img class="anoimg" src="' + esc(sl.img) + '" alt="" data-img-error="remove">' : '')
       + '<div class="anok">' + esc(sl.t) + (sl.s ? ' <span>' + esc(sl.s) + '</span>' : '') + '</div>'
       + '<div class="anov' + (sl.texto ? ' txt' : '') + '">' + (sl.texto ? esc(String(sl.v)) : sl.v) + '</div>'
       + (sl.k ? '<div class="anom">' + esc(sl.k) + '</div>' : '')

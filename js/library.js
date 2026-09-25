@@ -143,7 +143,7 @@ function revisarDudosos(dudosos, yaAnadidos){
   function ficha(d, titulo, clase){
     return '<div class="vsc ' + (clase || '') + '"><div class="h">' + titulo + '</div>'
       + '<div style="text-align:center;margin-bottom:10px"><div style="width:76px;height:76px;margin:0 auto;border-radius:10px;overflow:hidden;background:var(--fill);display:flex;align-items:center;justify-content:center">'
-      + (d.portada ? '<img src="' + esc(d.portada) + '" style="width:100%;height:100%;object-fit:cover" onerror="this.remove()">' : I.disc) + '</div></div>'
+      + (d.portada ? '<img src="' + esc(d.portada) + '" style="width:100%;height:100%;object-fit:cover" data-img-error="remove">' : I.disc) + '</div></div>'
       + '<div style="font-size:14px;font-weight:600;text-align:center;line-height:1.3;margin-bottom:2px">' + esc(d.titulo) + '</div>'
       + '<div style="font-size:12.5px;color:var(--txt2);text-align:center;margin-bottom:10px">' + esc(d.artista) + '</div>'
       + '<div>' + '</div></div>';
@@ -240,33 +240,96 @@ function exportarCsv(){
   download('discoteca-' + new Date().toISOString().slice(0, 10) + '.csv', '\uFEFF' + lines.join('\n'), 'text/csv;charset=utf-8');
   toast('CSV exportado · ' + DB.discos.length + ' discos');
 }
-function exportBackup(){
-  var doc = { version:4, actualizado: nowISO(), discos: discosLigeros(), borrados: DB.borrados || [] };
-  try{ localStorage.setItem('discoteca.ultimaCopia', nowISO()); }catch(e){}
-  var texto = JSON.stringify(doc, null, 1);
-  var nombre = 'discoteca-' + new Date().toISOString().slice(0, 10) + '.json';
-  if(navigator.canShare && navigator.canShare({files:[new File([texto], nombre, {type:'application/json'})]})){
-    navigator.share({files:[new File([texto], nombre, {type:'application/json'})], title:'Copia de la discoteca'})
-      .catch(function(){ download(nombre, texto, 'application/json'); });
-    return;
+/* Solo documentos de colección; nunca configuración ni credenciales. */
+function validarCopia(o){
+  var doc = Array.isArray(o) ? {discos:o, borrados:[]} : o;
+  if(!doc || typeof doc !== 'object' || !Array.isArray(doc.discos) ||
+     (doc.version != null && (!Number.isInteger(doc.version) || doc.version < 1 || doc.version > 4)) ||
+     (doc.borrados != null && !Array.isArray(doc.borrados))) throw new Error('Formato de copia no compatible');
+  var ids = new Set();
+  var idValido = function(id){ return typeof id === 'string' && id && !['__proto__','constructor','prototype'].includes(id); };
+  doc.discos.forEach(function(d){
+    if(!d || !idValido(d.id) || ids.has(d.id) || typeof d.titulo !== 'string' || typeof d.artista !== 'string')
+      throw new Error('La copia contiene fichas inválidas o repetidas');
+    ids.add(d.id);
+    if(Array.isArray(d.tracklist) && d.tracklist.some(function(t){ return !t || (typeof t !== 'string' && typeof t !== 'object'); }))
+      throw new Error('Pistas inválidas');
+    ['tracklist','etiquetas','escuchasFechas'].forEach(function(k){
+      if(d[k] != null && !Array.isArray(d[k])) throw new Error('Campo de colección inválido');
+    });
+  });
+  (doc.borrados || []).forEach(function(d){
+    if(!d || !idValido(d.id) || !Number.isFinite(Date.parse(d.fecha))) throw new Error('Registro de borrados inválido');
+  });
+  return {version:4, actualizado:doc.actualizado || '', discos:doc.discos, borrados:doc.borrados || []};
+}
+function descargarCopia(doc, prefijo){
+  var texto = JSON.stringify(validarCopia(doc), null, 1);
+  var nombre = (prefijo || 'discoteca') + '-' + new Date().toISOString().replace(/[:.]/g, '-') + '.json';
+  var completada = function(){
+    try{ localStorage.setItem('discoteca.ultimaCopia', nowISO()); }catch(e){}
+    toast('Copia exportada · comprueba que la has guardado');
+  };
+  var archivo = new File([texto], nombre, {type:'application/json'});
+  if(navigator.canShare && navigator.canShare({files:[archivo]})){
+    return navigator.share({files:[archivo], title:'Copia de la discoteca'}).then(completada).catch(function(e){
+      if(e && e.name === 'AbortError') return;
+      download(nombre, texto, 'application/json'); completada();
+    });
   }
-  download(nombre, texto, 'application/json');
-  toast('Copia descargada');
+  download(nombre, texto, 'application/json'); completada();
+  return Promise.resolve();
+}
+function exportBackup(){
+  return descargarCopia({version:4, actualizado:DB.actualizado, discos:DB.discos, borrados:DB.borrados || []});
+}
+function exportarRecuperacion(){
+  return leerPuntoRecuperacion().then(function(copia){
+    if(!copia){ toast('Todavía no hay una copia de recuperación'); return; }
+    return descargarCopia(copia, 'discoteca-recuperacion');
+  }).catch(function(){ toast('No se pudo leer la copia de recuperación', true); });
+}
+function fusionarCopiaRecuperacion(doc, recuperarBorrados){
+  var existentes = new Set(DB.discos.map(function(d){ return d.id; }));
+  var recuperar = new Set();
+  var fichas = doc.discos.map(function(d){
+    var ficha = normDisc(d);
+    if(recuperarBorrados && !existentes.has(ficha.id)){
+      recuperar.add(ficha.id);
+      ficha.mod = nowISO(); ficha.modsBase = ficha.mod; ficha.modsCampos = {};
+    }
+    return ficha;
+  });
+  return fusionar(DB.discos, (DB.borrados || []).filter(function(b){ return !recuperar.has(b.id); }),
+    fichas, doc.borrados.filter(function(b){ return !recuperar.has(b.id); }));
 }
 function importBackup(file){
+  if(configuracionEnCurso || pullPromiseActual || pushPromiseActual){ toast('Espera a que termine la sincronización', true); return; }
   var r = new FileReader();
+  r.onerror = function(){ toast('No se pudo leer el archivo', true); };
   r.onload = function(){
-    try{
-      var o = JSON.parse(String(r.result));
-      var arr = Array.isArray(o) ? o : o.discos;
-      if(!Array.isArray(arr)) throw 0;
-      var res = fusionar(DB.discos, DB.borrados, arr.map(normDisc), o.borrados || []);
-      var antes = DB.discos.length;
-      DB.discos = res.discos.map(normDisc);
-      DB.borrados = res.borrados;
-      persist();
-      toast('Copia fusionada · ' + DB.discos.length + ' discos (' + (DB.discos.length - antes >= 0 ? '+' : '') + (DB.discos.length - antes) + ')');
-    }catch(e){ toast('El archivo no es una copia válida', true); }
+    var doc;
+    try{ doc = validarCopia(JSON.parse(String(r.result))); }
+    catch(e){ toast('El archivo no es una copia válida: ' + e.message, true); return; }
+    if(!confirm('Fusionar ' + doc.discos.length + ' fichas y ' + doc.borrados.length + ' borrados. Los borrados de la copia pueden eliminar fichas. Se guardará una copia previa de recuperación. ¿Continuar?')) return;
+    if(configuracionEnCurso || pullPromiseActual || pushPromiseActual){ toast('Espera a que termine la sincronización', true); return; }
+    var recuperarBorrados = confirm('¿Recuperar también las fichas de la copia que ya no están en tu colección? Aceptar las recupera; Cancelar respeta los borrados actuales.');
+    configuracionEnCurso = true;
+    clearTimeout(saveTimer); saveTimer = null;
+    crearPuntoRecuperacion('Antes de restaurar una copia').then(function(){
+      var res = fusionarCopiaRecuperacion(doc, recuperarBorrados);
+      DB.discos = res.discos.map(normDisc); DB.borrados = res.borrados;
+      DB.actualizado = nowISO(); revisionDatos++;
+      indexarFirmas();
+      return guardarLocal();
+    }).then(function(){
+      configuracionEnCurso = false;
+      if(configurado()){ marcar('pend'); programarPush(); }
+      renderAll(); toast('Copia fusionada · ' + DB.discos.length + ' discos');
+    }).catch(function(){
+      configuracionEnCurso = false;
+      toast('No se pudo guardar la recuperación. Conserva el archivo y exporta la colección; no cierres la app.', true);
+    });
   };
   r.readAsText(file);
 }
@@ -686,7 +749,7 @@ function coverHtml(d, cls){
      el hueco cuadrado desde el primer instante, incluso antes de que la
      imagen empiece a decodificarse */
   return '<img src="' + esc(d.portada) + '" width="300" height="300" alt="" class="' + (cls || '')
-    + '" onerror="window.reintentarImg(this,\'' + cual + '\')">';
+    + '" data-img-retry="' + cual + '">';
 }
 
 function paintBanner(){
@@ -954,7 +1017,7 @@ function montarPeek(root){
     el.onmouseenter = function(){
       var d = DB.discos.filter(function(x){ return x.id === el.dataset.peek; })[0];
       if(!d) return;
-      peek.innerHTML = (d.portada ? '<img class="pimg" src="' + esc(d.portada) + '" alt="" onerror="this.style.opacity=.15">'
+      peek.innerHTML = (d.portada ? '<img class="pimg" src="' + esc(d.portada) + '" alt="" data-img-error="dim">'
           : '<div class="pimg"></div>')
         + '<div class="pinf"><div class="pt">' + esc(d.titulo) + '</div>'
         + '<div class="pa">' + esc(d.artista) + '</div>'
@@ -1142,7 +1205,7 @@ function paintCol(){
       var items = mapa[k];
       var av = items.filter(function(d){ return d.portada; })[0];
       return '<section class="gsec" id="g' + i + '"><div class="ghead">'
-        + (grupo === 'artista' && av ? '<img class="gav" src="' + esc(av.portada) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' : '')
+        + (grupo === 'artista' && av ? '<img class="gav" src="' + esc(av.portada) + '" alt="" loading="lazy" data-img-error="hide">' : '')
         + '<h3>' + esc(k) + '</h3><span class="n">' + items.length + '</span>'
         + (grupo === 'artista' && !readOnly ? '<button type="button" class="btn xs gbtn" data-gaps="' + esc(k) + '">' + I.gap + 'Huecos</button>' : '')
         + '<button type="button" class="btn xs gbtn" data-only="' + esc(k) + '">Ver solo</button>'
@@ -1503,7 +1566,7 @@ function abrirPaleta(){
     sel = 0;
     res.innerHTML = items.map(function(it, i){
       var img = it.img
-        ? '<img src="' + esc(it.img) + '" alt="" onerror="this.style.visibility=\'hidden\'">'
+        ? '<img src="' + esc(it.img) + '" alt="" data-img-error="hide">'
         : '<div class="phb">' + (it.i || I.music) + '</div>';
       return '<div class="palrow' + (i === 0 ? ' sel' : '') + '" data-i="' + i + '">' + img
         + '<div class="txt"><div class="t">' + esc(it.t) + '</div><div class="s">' + esc(it.s || '') + '</div></div>'
@@ -1775,7 +1838,7 @@ function montarGiro(s, d){
     var real = !!d.fotoDisco;
     /* si no hay foto real, se dibuja el soporte con la propia portada */
     var contenido = real
-      ? '<img src="' + esc(d.fotoDisco) + '" alt="" onerror="this.parentNode.classList.add(\'falla\')">'
+      ? '<img src="' + esc(d.fotoDisco) + '" alt="" data-img-error="fail">'
       : soporteGenerado(d);
     cov.classList.add('girable');
     cov.insertAdjacentHTML('beforeend', '<div class="caraB' + (real ? '' : ' gen') + '">' + contenido + '</div>');
@@ -2381,7 +2444,7 @@ function elegirEdicion(d, padre){
     }
     s.querySelector('#cnote').style.display = 'none';
     s.querySelector('#clist').innerHTML = '<div class="cands">' + list.map(function(c, i){
-      return '<div class="cand" data-i="' + i + '"><img class="cimg" src="' + esc(c.portada) + '" alt="" loading="lazy" onerror="this.style.opacity=.15">'
+      return '<div class="cand" data-i="' + i + '"><img class="cimg" src="' + esc(c.portada) + '" alt="" loading="lazy" data-img-error="dim">'
         + '<div class="cinf"><div class="t">' + esc(c.titulo) + '</div><div class="s">' + esc([c['año'], c.detalle].filter(Boolean).join(' · ')) + '</div></div></div>';
     }).join('') + '</div>';
     s.querySelectorAll('.cand').forEach(function(el){
@@ -2841,7 +2904,7 @@ function openForm(item, listaDestino, preset){
 
   var body =
     '<div id="dupw"></div>'
-    + '<div class="covrow"><div class="covbox" id="cbox">' + (portada ? '<img src="' + esc(portada) + '" onerror="this.remove()">' : (formato === 'Vinilo' ? I.disc : I.cd)) + '</div>'
+    + '<div class="covrow"><div class="covbox" id="cbox">' + (portada ? '<img src="' + esc(portada) + '" data-img-error="remove">' : (formato === 'Vinilo' ? I.disc : I.cd)) + '</div>'
     + '<div style="flex:1"><div class="aicard">' + I.spark + '<div class="txt">Escribe <b>título y artista</b> y pulsa <b>Completar</b>: carátula, tracklist con duraciones, año, sello, catálogo, país, formato y género.</div></div>'
     + '<div class="rowb" style="margin-top:8px"><button type="button" class="btn sm" id="upImg">' + I.img + 'Subir imagen</button>'
     + '<button type="button" class="btn sm" id="edicBtn">' + I.layers + 'Ediciones</button>'
@@ -2900,7 +2963,7 @@ function openForm(item, listaDestino, preset){
   $('[data-close2]').onclick = function(){ s.remove(); };
 
   function paintCover(){
-    $('#cbox').innerHTML = portada ? '<img src="' + esc(portada) + '" onerror="this.remove()">' : (formato === 'Vinilo' ? I.disc : I.cd);
+    $('#cbox').innerHTML = portada ? '<img src="' + esc(portada) + '" data-img-error="remove">' : (formato === 'Vinilo' ? I.disc : I.cd);
   }
   function paintTL(){
     $('#tlN').textContent = tracks.length ? ' · ' + tracks.length : '';
@@ -3101,7 +3164,7 @@ function elegirEdicionTemp(tmp, cb){
     if(!list.length){ s.querySelector('#cnote').className = 'note err'; s.querySelector('#cnote').textContent = 'Sin resultados.'; return; }
     s.querySelector('#cnote').style.display = 'none';
     s.querySelector('#clist').innerHTML = '<div class="cands">' + list.map(function(c, i){
-      return '<div class="cand" data-i="' + i + '"><img class="cimg" src="' + esc(c.portada) + '" alt="" loading="lazy" onerror="this.style.opacity=.15">'
+      return '<div class="cand" data-i="' + i + '"><img class="cimg" src="' + esc(c.portada) + '" alt="" loading="lazy" data-img-error="dim">'
         + '<div class="cinf"><div class="t">' + esc(c.titulo) + '</div><div class="s">' + esc([c['año'], c.detalle].filter(Boolean).join(' · ')) + '</div></div></div>';
     }).join('') + '</div>';
     s.querySelectorAll('.cand').forEach(function(el){
@@ -3141,7 +3204,7 @@ function elegirFotoSoporte(d, padre){
     s.querySelector('#fnote').style.display = 'none';
     s.querySelector('#flist').innerHTML = '<div class="cands imgs">' + ims.map(function(im, i){
       return '<div class="cand"><img class="cimg" src="' + esc(im.mini || im.uri)
-        + '" alt="" loading="lazy" onerror="this.style.opacity=.2">'
+        + '" alt="" loading="lazy" data-img-error="dim">'
         + '<div class="cinf"><div class="s">' + (i === 0 ? 'Portada en Discogs' : 'Imagen ' + (i + 1)) + '</div>'
         + '<div class="dosbtn"><button type="button" class="btn xs" data-car="' + i + '">Carátula</button>'
         + '<button type="button" class="btn xs" data-dis="' + i + '">Cara B</button></div></div></div>';

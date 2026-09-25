@@ -1,7 +1,7 @@
 /* Discoteca — service worker
    Guarda la aplicación en caché para que abra al instante y sin conexión.
    Los datos NUNCA se cachean: siempre se piden a GitHub. */
-var CACHE = 'discoteca-v52';
+var CACHE = 'discoteca-v53';
 /* zxing-0.21.3.js (336 KB) NO va aquí a propósito: solo lo carga quien usa el
    escáner de códigos de barras, y forzar su descarga en la instalación penaliza
    a todo el mundo. Se cachea solo (como cualquier otro archivo) la primera vez
@@ -24,7 +24,7 @@ self.addEventListener('install', function(e){
 });
 self.addEventListener('activate', function(e){
   e.waitUntil(caches.keys().then(function(ks){
-    return Promise.all(ks.map(function(k){ return k === CACHE ? null : caches.delete(k); }));
+    return Promise.all(ks.map(function(k){ return k === CACHE || k.indexOf('discoteca-v') !== 0 ? null : caches.delete(k); }));
   }).then(function(){ return self.clients.claim(); }));
 });
 self.addEventListener('message', function(e){
@@ -47,6 +47,7 @@ self.addEventListener('fetch', function(e){
   var url = new URL(e.request.url);
   if(e.request.method !== 'GET') return;
   if(url.origin !== location.origin || /datos\.json/.test(url.pathname)) return;
+  if(e.request.headers.has('Authorization')) return;
   if(e.request.mode === 'navigate'){
     /* Cualquier navegación -incluida la raíz ('/discoteca/')- se sirve
        SIEMPRE desde la misma entrada cacheada de './index.html', nunca con
@@ -72,6 +73,7 @@ self.addEventListener('fetch', function(e){
     );
     return;
   }
+  if(SHELL_PATHS.indexOf(url.pathname) < 0 && url.pathname !== new URL('./zxing-0.21.3.js', self.registration.scope).pathname) return;
   var esArchivoShell = SHELL_PATHS.indexOf(url.pathname) >= 0;
   e.respondWith(
     /* Igual que en navegación, la lectura parte de la caché de la versión

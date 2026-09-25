@@ -35,7 +35,7 @@ const stats=read('js/stats.js');
 const settings=read('js/settings.js');
 const bootstrap=read('js/bootstrap.js');
 
-assert(/var VERSION = '2026\.09\.25-phase6'/.test(core),'VERSION vive en core.js');
+assert(/var VERSION = '2026\.09\.25-phase7'/.test(core),'VERSION vive en core.js');
 assert(/function fusionar\(/.test(core),'sincronización base vive en core.js');
 assert(/function paintCol\(/.test(library),'colección vive en library.js');
 assert(/function openDetail\(/.test(library),'ficha vive en library.js');

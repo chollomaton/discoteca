@@ -861,7 +861,7 @@ function calendarioEscuchas(nivel, ref){
         celdas2 += '<div class="cd' + (ds3.length ? ' con' : '') + '" data-dia="' + f3 + '">'
           + '<span class="dn">' + d3 + '</span>'
           + (ds3.length ? '<div class="minis">' + ds3.slice(0, 3).map(function(d4){
-              return d4.portada ? '<img src="' + esc(d4.portada) + '" alt="" onerror="this.remove()">' : '<i></i>';
+              return d4.portada ? '<img src="' + esc(d4.portada) + '" alt="" data-img-error="remove">' : '<i></i>';
             }).join('') + (ds3.length > 3 ? '<span class="mas">+' + (ds3.length - 3) + '</span>' : '') + '</div>' : '')
           + '</div>';
       }
@@ -884,7 +884,7 @@ function calendarioEscuchas(nivel, ref){
         var ds4 = lista.filter(function(x){ return x.f === f4; });
         return '<div class="csem" data-dia="' + f4 + '"><div class="ch">' + DIAS_SEM[i4] + ' ' + (+f4.slice(8)) + '</div>'
           + (ds4.length ? ds4.map(function(x){
-              return '<div class="ci">' + (x.d.portada ? '<img src="' + esc(x.d.portada) + '" alt="" onerror="this.remove()">' : '')
+              return '<div class="ci">' + (x.d.portada ? '<img src="' + esc(x.d.portada) + '" alt="" data-img-error="remove">' : '')
                 + '<span>' + esc(x.d.titulo) + '</span></div>';
             }).join('') : '<div class="cv">—</div>') + '</div>';
       }).join('') + '</div>';
@@ -1275,7 +1275,7 @@ function verArtista(nombre){
   var body =
     '<div class="arthd">'
       + '<div class="artav">' + (enCol[0] && enCol[0].portada
-          ? '<img src="' + esc(enCol[0].portada) + '" alt="" onerror="this.remove()">' : I.user) + '</div>'
+          ? '<img src="' + esc(enCol[0].portada) + '" alt="" data-img-error="remove">' : I.user) + '</div>'
       + '<div class="artinfo"><div class="artn">' + esc(nombre) + '</div>'
       + '<div class="artd">' + [enCol.length + (enCol.length === 1 ? ' disco' : ' discos'), rango,
           escuchas ? escuchas + (escuchas === 1 ? ' escucha' : ' escuchas') : ''].filter(Boolean).join(' · ') + '</div>'
@@ -1522,7 +1522,7 @@ function pintaEfemeride(caja){
   var e = lista[Math.floor(Math.random() * lista.length)];
   var d = e.d;
   caja.innerHTML = '<div class="efem" data-disco="' + d.id + '">'
-    + '<div class="efp">' + (d.portada ? '<img src="' + esc(d.portada) + '" alt="" onerror="this.remove()">' : I.disc) + '</div>'
+    + '<div class="efp">' + (d.portada ? '<img src="' + esc(d.portada) + '" alt="" data-img-error="remove">' : I.disc) + '</div>'
     + '<div class="eft"><div class="k">' + (e.tipo === 'dia' ? 'Un tal día como hoy' : 'Aniversario') + '</div>'
     + '<div class="v"><b>' + esc(d.titulo) + '</b>, de ' + esc(d.artista) + ', ' + e.txt + '.</div>'
     + (lista.length > 1 ? '<div class="s">Y ' + (lista.length - 1) + ' más en tu colección</div>' : '') + '</div>'
@@ -2908,7 +2908,7 @@ function pantallaDiscogs(){
       + '<div class="cands">' + r.nuevos.slice(0, 40).map(function(x, i){
           var b = x.basic_information || {};
           return '<div class="cand" data-i="' + i + '">'
-            + '<img class="cimg" src="' + esc(b.cover_image || b.thumb || '') + '" alt="" loading="lazy" onerror="this.style.opacity=.15">'
+            + '<img class="cimg" src="' + esc(b.cover_image || b.thumb || '') + '" alt="" loading="lazy" data-img-error="dim">'
             + '<div class="cinf"><div class="t">' + esc(b.title || '') + '</div>'
             + '<div class="s">' + esc((b.artists || []).map(function(a){ return a.name; }).join(', ')) + '</div></div></div>';
         }).join('') + '</div>'
