@@ -70,6 +70,10 @@ jobs:
         run: node scripts/phase9-tests.mjs
       - name: Fase 9 · auditoría final de sesiones retomables
         run: node scripts/phase9-final-session-tests.mjs
+      - name: Fase 10 · limpieza técnica final
+        run: node scripts/phase10-final-cleanup-tests.mjs
+      - name: Fase 11 · manifiesto de regresión integral
+        run: node scripts/phase11-final-regression-tests.mjs
       - name: Probar ajuste temporal 10.1
         run: node scripts/step10-1-tests.mjs
       - name: Probar saneamiento arquitectónico 10.2
