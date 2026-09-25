@@ -1613,7 +1613,7 @@ function discoAlAzar(){
 /* ============================================================
    10. FICHAS Y FORMULARIOS
    ============================================================ */
-function sheet(title, bodyHtml, footHtml, ancho){
+function sheet(title, bodyHtml, footHtml, ancho, alCerrar){
   var s = document.createElement('div');
   s.className = 'scrim';
   s.innerHTML = '<div class="sheet' + (ancho ? ' wide' : '') + '" role="dialog" aria-modal="true" aria-label="' + esc(title) + '" tabindex="-1"><div class="grabber"></div>'
@@ -1626,9 +1626,13 @@ function sheet(title, bodyHtml, footHtml, ancho){
     + (footHtml ? '<div class="sheet-ft">' + footHtml + '</div>' : '') + '</div>';
   document.body.appendChild(s);
   var focoPrevio = document.activeElement;
+  var cerrada = false;
   var cerrar = function(){
+    if(cerrada) return;
+    cerrada = true;
     s.remove(); document.removeEventListener('keydown', onKey); pararAudio();
     if(focoPrevio && document.contains(focoPrevio) && typeof focoPrevio.focus === 'function') focoPrevio.focus();
+    if(typeof alCerrar === 'function') alCerrar();
   };
   s.querySelectorAll('[data-close]').forEach(function(b){ b.onclick = cerrar; });
   /* el título de la cabecera aparece al desplazar, como en iOS */
@@ -1948,7 +1952,7 @@ function pintaSimilares(caja, d, s){
     el.onclick = function(){ s.remove(); openDetail(el.dataset.id); };
   });
 }
-function openDetail(id, desde){
+function openDetail(id, desde, volverSesion){
   var d = DB.discos.filter(function(x){ return x.id === id; })[0];
   if(!d) return;
   var tracks = normTracks(d.tracklist), editing = false;
@@ -2002,7 +2006,14 @@ function openDetail(id, desde){
       + '<button type="button" class="btn sm" id="detective" data-tip="Comprobar si es exactamente esta edición">' + I.search + '<span class="txt">Detective</span></button></div>'
       + '<div class="rowb"><button type="button" class="btn sm" id="mas">···</button><button type="button" class="btn pri sm" id="edit">' + I.pencil + 'Editar</button></div>';
 
-  var s = sheet(d.titulo || 'Sin título', body, pie);
+  var s = sheet(d.titulo || 'Sin título', body, pie, false, volverSesion);
+  if(typeof volverSesion === 'function'){
+    var retorno = document.createElement('button');
+    retorno.type = 'button'; retorno.className = 'btn sm session-return';
+    retorno.textContent = 'Volver a mi sesión';
+    retorno.onclick = function(){ s.querySelector('[data-close]').click(); };
+    s.querySelector('.sheet-bd').prepend(retorno);
+  }
   s.classList.add('album-sheet');
   var $ = function(q){ return s.querySelector(q); };
 

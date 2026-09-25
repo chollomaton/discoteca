@@ -7,7 +7,7 @@ const fail=(m)=>{console.error('✗ '+m);process.exitCode=1;};
 const ok=(m)=>console.log('✓ '+m);
 const assert=(c,m)=>c?ok(m):fail(m);
 
-assert(/var CACHE = 'discoteca-v54'/.test(sw),'service worker usa discoteca-v54');
+assert(/var CACHE = 'discoteca-v55'/.test(sw),'service worker usa discoteca-v55');
 assert(/caches\.open\(CACHE\)\.then\(function\(c\)\{\s*return c\.match\('\.\/index\.html'\)/s.test(sw),
   'navegación busca index.html solo en la caché activa');
 assert(!/caches\.match\('\.\/index\.html'\)/.test(sw),
