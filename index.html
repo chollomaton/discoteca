@@ -5345,7 +5345,7 @@ function pintarAppleHome(){
     return String(a.ultimaEscucha).localeCompare(String(b.ultimaEscucha));
   }).slice(0,8);
   if(!viejos.length) viejos = nunca.slice(0,8);
-  var bg = elegido.portada ? 'style="background-image:url(\\'' + esc(elegido.portada) + '\\')"' : '';
+  var bg = elegido.portada ? 'style="background-image:url(&quot;' + esc(elegido.portada) + '&quot;)"' : '';
   var escuchas = totalEscuchas(elegido);
   var sub = escuchas
     ? 'Lleva ' + escuchas + (escuchas === 1 ? ' escucha registrada.' : ' escuchas registradas.')
