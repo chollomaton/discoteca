@@ -77,6 +77,7 @@ const c2=vm.createContext({
   DB:{discos:[]}
 });
 c2.coleccion=()=>c2.DB.discos.filter(d=>d.lista!=='deseos');
+c2.revisados=()=>({});
 vm.runInContext(slice("function faltaEsencial","function pantallaRevision"),c2);
 vm.runInContext(slice("function faltanCalculadosTexto","function radarColeccion"),c2);
 
