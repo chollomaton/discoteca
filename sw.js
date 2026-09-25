@@ -1,7 +1,7 @@
 /* Discoteca — service worker
    Guarda la aplicación en caché para que abra al instante y sin conexión.
    Los datos NUNCA se cachean: siempre se piden a GitHub. */
-var CACHE = 'discoteca-v48';
+var CACHE = 'discoteca-v49';
 /* zxing-0.21.3.js (336 KB) NO va aquí a propósito: solo lo carga quien usa el
    escáner de códigos de barras, y forzar su descarga en la instalación penaliza
    a todo el mundo. Se cachea solo (como cualquier otro archivo) la primera vez
@@ -57,7 +57,15 @@ self.addEventListener('fetch', function(e){
        que el resto de este archivo evita para el SHELL-. Por eso tampoco se
        revalida en caliente aquí: mismo trato que el resto del SHELL. */
     e.respondWith(
-      caches.match('./index.html').then(function(cacheado){
+      /* IMPORTANTE: buscar SOLO dentro de la caché de ESTA versión.
+         caches.match() sin abrir CACHE busca en todas las cachés y, justo
+         después de skipWaiting(), puede devolver todavía el index.html de la
+         versión anterior mientras activate() termina de borrar la caché vieja.
+         Ese pequeño intervalo era suficiente para que "Actualizar" recargase
+         pero siguiera mostrando la versión antigua hasta varias recargas. */
+      caches.open(CACHE).then(function(c){
+        return c.match('./index.html');
+      }).then(function(cacheado){
         if(cacheado) return cacheado;
         return fetch(e.request).catch(function(){ return Promise.reject('offline'); });
       })
@@ -66,7 +74,9 @@ self.addEventListener('fetch', function(e){
   }
   var esArchivoShell = SHELL_PATHS.indexOf(url.pathname) >= 0;
   e.respondWith(
-    caches.match(e.request).then(function(cacheado){
+    /* Igual que en navegación, la lectura parte de la caché de la versión
+       activa, no de cualquier caché residual de una versión anterior. */
+    caches.open(CACHE).then(function(c){ return c.match(e.request); }).then(function(cacheado){
       if(esArchivoShell && cacheado) return cacheado;
       var actualizar = fetch(e.request).then(function(r){
         /* Solo se guarda una respuesta buena: cachear un 404/500 (o un error de
