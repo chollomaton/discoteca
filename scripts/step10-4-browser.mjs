@@ -38,9 +38,7 @@ try{
    assert.equal(await button.getAttribute('aria-pressed'),before,selector+' reversible');
   }
   await toggle('.tile [data-oir]');
-  await page.evaluate(()=>pintarSugerencias());
-  await toggle('.sugplay');
-  await page.evaluate(()=>explorarColeccion());
+  await page.locator('[data-collection-action="explorar"]').click();
   await toggle('[data-explore-listen]');
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Explorar overflow');
   await page.keyboard.press('Escape');

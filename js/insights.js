@@ -423,7 +423,7 @@ function pintarSugerencias(){
           + '<div class="suga2">' + esc(x.d.artista) + '</div>'
           + '<div class="sugm">' + esc(x.motivo) + '</div></div>'
           + '<button type="button" class="sugplay' + (hoy ? ' on' : '') + '" data-oir="' + x.d.id
-          + '" aria-pressed="' + hoy + '" data-tip="' + (hoy ? 'Quitar escucha de hoy' : 'Lo estoy escuchando') + '">'
+          + '" data-tip="' + (hoy ? 'Ya lo has puesto hoy' : 'Lo estoy escuchando') + '">'
           + (hoy ? I.check : I.playF) + '</button></div>';
       }).join('') + '</div>';
   caja.querySelectorAll('.sug').forEach(function(el){
@@ -438,9 +438,7 @@ function pintarSugerencias(){
       var puesto = marcarEscucha(b.dataset.oir);
       b.className = 'sugplay' + (puesto ? ' on' : '');
       b.innerHTML = puesto ? I.check : I.playF;
-      b.dataset.tip = puesto ? 'Quitar escucha de hoy' : 'Lo estoy escuchando';
-      b.setAttribute('aria-pressed', String(puesto));
-      microFeedback(b);
+      b.dataset.tip = puesto ? 'Ya lo has puesto hoy' : 'Lo estoy escuchando';
       refrescarContadores();
     };
   });
