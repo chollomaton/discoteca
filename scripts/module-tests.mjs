@@ -7,7 +7,7 @@ const assert=(c,m)=>c?ok(m):fail(m);
 const read=(f)=>fs.readFileSync(f,'utf8');
 
 const expected=[
-  'js/core.js','js/library.js','js/features.js','js/insights.js',
+  'js/core.js','js/library.js','js/transfer.js','js/features.js','js/metadata.js','js/insights.js',
   'js/stats.js','js/settings.js','js/bootstrap.js'
 ];
 assert(JSON.stringify(APP_JS_FILES)===JSON.stringify(expected),'orden modular canónico no ha cambiado');

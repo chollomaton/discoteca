@@ -77,14 +77,11 @@ select:focus-visible,textarea:focus-visible,.lightbox:focus-visible{
 .logo:active .disc{transform:scale(.9)}
 .logo h1{font-size:19px;font-weight:600;margin:0;letter-spacing:-.02em;transition:font-size .25s var(--ease)}
 .logo .cnt{font-size:12.5px;color:var(--txt2);margin-top:-1px}
-.tabs{display:flex;background:var(--fill);border-radius:9px;padding:2px;gap:2px}
-.tabs button{border:none;background:transparent;font-size:13.5px;font-weight:500;color:var(--txt);padding:6px 13px;border-radius:7px;
+.tabs{display:flex;border-radius:9px;background:transparent;padding:0;gap:4px}
+.tabs button{border:none;background:transparent;font-size:13.5px;font-weight:600;color:var(--txt2);padding:8px 13px;border-radius:999px;
   cursor:pointer;transition:background .18s var(--ease),box-shadow .18s;display:flex;align-items:center;gap:6px}
-.tabs button.on{background:var(--elev);box-shadow:var(--sh1)}
 .tabs .ic{width:14px;height:14px}
 
-.tabs{background:transparent;padding:0;gap:4px}
-.tabs button{color:var(--txt2);border-radius:999px;padding:8px 13px;font-weight:600}
 .tabs button:hover{background:var(--fill);color:var(--txt)}
 .tabs button.on{background:var(--fill);box-shadow:none;color:var(--blue)}
 
