@@ -2410,12 +2410,33 @@ function candidatosSesion(filtro){
    práctica con álbumes de 20 a 70 minutos. */
 function construirSesion(minutos, filtro){
   var candidatos = rngShuffle(candidatosSesion(filtro), Date.now() % 99991);
-  var objetivo = minutos * 60, elegidos = [], total = 0;
+  var objetivo = minutos * 60, elegidos = [], total = 0, usados = {}, artistas = {};
   var margen = Math.max(300, objetivo * 0.12); /* hasta un 12% de margen o 5 min */
-  candidatos.forEach(function(d){
-    var dur = duracionSegundos(d);
-    if(total + dur <= objetivo + margen) { elegidos.push(d); total += dur; }
-  });
+
+  /* Primera pasada: variedad de artistas. En cada paso se escoge, entre lo que
+     todavía cabe, el álbum que mejor aprovecha el tiempo restante. */
+  var escoger = function(permitirArtistaRepetido){
+    var limite = objetivo + margen, mejor = null, mejorDist = Infinity;
+    candidatos.forEach(function(d){
+      if(usados[d.id]) return;
+      var ak = plain(d.artista || '');
+      if(!permitirArtistaRepetido && ak && artistas[ak]) return;
+      var dur = duracionSegundos(d);
+      if(!dur || total + dur > limite) return;
+      var dist = Math.abs(objetivo - (total + dur));
+      if(dist < mejorDist){ mejor = d; mejorDist = dist; }
+    });
+    if(!mejor) return false;
+    elegidos.push(mejor); usados[mejor.id] = true;
+    var k = plain(mejor.artista || ''); if(k) artistas[k] = true;
+    total += duracionSegundos(mejor);
+    return true;
+  };
+
+  while(escoger(false)){}
+  /* Si aún queda un hueco útil, se permite repetir artista antes que dejar
+     tiempo desaprovechado. */
+  while(total < objetivo - 300 && escoger(true)){}
   return {discos: elegidos, segundos: total, objetivo: objetivo};
 }
 function recomendadoColeccion(seed){
