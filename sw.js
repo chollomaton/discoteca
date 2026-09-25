@@ -1,7 +1,7 @@
 /* Discoteca — service worker
    Guarda la aplicación en caché para que abra al instante y sin conexión.
    Los datos NUNCA se cachean: siempre se piden a GitHub. */
-var CACHE = 'discoteca-v59';
+var CACHE = 'discoteca-v60';
 /* zxing-0.21.3.js (336 KB) NO va aquí a propósito: solo lo carga quien usa el
    escáner de códigos de barras, y forzar su descarga en la instalación penaliza
    a todo el mundo. Se cachea solo (como cualquier otro archivo) la primera vez
@@ -49,21 +49,7 @@ self.addEventListener('fetch', function(e){
   if(url.origin !== location.origin || /datos\.json/.test(url.pathname)) return;
   if(e.request.headers.has('Authorization')) return;
   if(e.request.mode === 'navigate'){
-    /* Cualquier navegación -incluida la raíz ('/discoteca/')- se sirve
-       SIEMPRE desde la misma entrada cacheada de './index.html', nunca con
-       una copia aparte bajo la URL de la raíz. Si no fuera así, un service
-       worker todavía ACTIVO (el viejo, mientras uno nuevo espera a que el
-       usuario pulse "Actualizar") podría ir descargando y cacheando en
-       silencio el index.html nuevo bajo la clave de la raíz -exactamente lo
-       que el resto de este archivo evita para el SHELL-. Por eso tampoco se
-       revalida en caliente aquí: mismo trato que el resto del SHELL. */
     e.respondWith(
-      /* IMPORTANTE: buscar SOLO dentro de la caché de ESTA versión.
-         caches.match() sin abrir CACHE busca en todas las cachés y, justo
-         después de skipWaiting(), puede devolver todavía el index.html de la
-         versión anterior mientras activate() termina de borrar la caché vieja.
-         Ese pequeño intervalo era suficiente para que "Actualizar" recargase
-         pero siguiera mostrando la versión antigua hasta varias recargas. */
       caches.open(CACHE).then(function(c){
         return c.match('./index.html');
       }).then(function(cacheado){
@@ -76,14 +62,9 @@ self.addEventListener('fetch', function(e){
   if(SHELL_PATHS.indexOf(url.pathname) < 0 && url.pathname !== new URL('./zxing-0.21.3.js', self.registration.scope).pathname) return;
   var esArchivoShell = SHELL_PATHS.indexOf(url.pathname) >= 0;
   e.respondWith(
-    /* Igual que en navegación, la lectura parte de la caché de la versión
-       activa, no de cualquier caché residual de una versión anterior. */
     caches.open(CACHE).then(function(c){ return c.match(e.request); }).then(function(cacheado){
       if(esArchivoShell && cacheado) return cacheado;
       var actualizar = fetch(e.request).then(function(r){
-        /* Solo se guarda una respuesta buena: cachear un 404/500 (o un error de
-           CORS marcado "opaque") dejaría ese fallo servido para siempre, incluso
-           cuando la red ya tiene el archivo correcto. */
         if(r && r.ok){
           var copia = r.clone();
           caches.open(CACHE).then(function(c){ c.put(e.request, copia); });
