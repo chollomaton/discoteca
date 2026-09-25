@@ -1974,9 +1974,10 @@ function normDisc(d){
     ultimaEscucha: d.ultimaEscucha || '',
     prestadoA: d.prestadoA || '',
     prestadoDesde: d.prestadoDesde || '',
-    /* Marcas de modificación por campo. Las versiones antiguas no las tienen:
-       en ese caso la fusión sigue usando d.mod como antes. Se van sembrando
-       únicamente cuando una ficha se modifica, sin migrar masivamente la base. */
+    /* Sincronización granular: modsBase es la marca común de los campos que
+       nunca se han tocado desde que se activó este sistema; modsCampos solo
+       guarda excepciones. Así evitamos repetir una fecha por cada campo. */
+    modsBase: d.modsBase || '',
     modsCampos: (d.modsCampos && typeof d.modsCampos === 'object') ? d.modsCampos : {},
     fechaAlta: d.fechaAlta || nowISO(),
     mod: d.mod || d.fechaAlta || nowISO()
@@ -1986,7 +1987,7 @@ function firma(d){
   var c = {};
   /* mod y modsCampos son metadata de sincronización: no deben provocar por sí
      solos otra ronda de cambios al recalcular la firma de contenido. */
-  Object.keys(d).forEach(function(k){ if(k !== 'mod' && k !== 'modsCampos') c[k] = d[k]; });
+  Object.keys(d).forEach(function(k){ if(k !== 'mod' && k !== 'modsBase' && k !== 'modsCampos') c[k] = d[k]; });
   return JSON.stringify(c);
 }
 function firmaValorCampo(v){
@@ -1996,13 +1997,13 @@ function firmaValorCampo(v){
 function firmasDeCampos(d){
   var out = {};
   Object.keys(d || {}).forEach(function(k){
-    if(k === 'id' || k === 'mod' || k === 'modsCampos') return;
+    if(k === 'id' || k === 'mod' || k === 'modsBase' || k === 'modsCampos') return;
     out[k] = firmaValorCampo(d[k]);
   });
   return out;
 }
 function marcaCampo(d, campo){
-  return (d && d.modsCampos && d.modsCampos[campo]) || (d && d.mod) || '';
+  return (d && d.modsCampos && d.modsCampos[campo]) || (d && d.modsBase) || (d && d.mod) || '';
 }
 function compararMarca(a, b){
   var ta = Date.parse(a || ''), tb = Date.parse(b || '');
@@ -2015,6 +2016,11 @@ function compararMarca(a, b){
   return a > b ? 1 : (b > a ? -1 : 0);
 }
 function marcaMasReciente(a, b){ return compararMarca(a, b) >= 0 ? (a || b) : (b || a); }
+function marcaMasAntigua(a, b){
+  if(!a) return b || '';
+  if(!b) return a || '';
+  return compararMarca(a, b) <= 0 ? a : b;
+}
 function valoresIguales(a, b){ return firmaValorCampo(a) === firmaValorCampo(b); }
 function hoyISO(){
   var d = new Date();
@@ -2062,7 +2068,8 @@ function marcarEscucha(id, silencioso){
 var CAMPOS_LIGEROS = ['estadoFunda', 'fechaCompra', 'precioCompra', 'valorMercado',
   'etiquetas', 'ubicacion', 'valoracion', 'escuchas', 'escuchasFechas', 'ultimaEscucha',
   'prestadoA', 'prestadoDesde', 'enlazado', 'editado', 'sinFoto', 'ejemplares',
-  'revisado', 'confianza', 'color', 'appleUrl', 'fotoDiscoMbid', 'faltan'];
+  'revisado', 'confianza', 'color', 'appleUrl', 'fotoDiscoMbid', 'faltan',
+  'modsBase', 'modsCampos'];
 function esDefectoReconstruible(campo, valor){
   if(campo === 'ejemplares') return !valor || valor === 1;
   if(Array.isArray(valor)) return valor.length === 0;
@@ -2338,9 +2345,7 @@ function sellarCambios(){
            editar campos distintos sin pisarse al volver a encontrarse. */
         d.modsCampos = (d.modsCampos && typeof d.modsCampos === 'object')
           ? Object.assign({}, d.modsCampos) : {};
-        Object.keys(actuales).forEach(function(k){
-          if(!d.modsCampos[k]) d.modsCampos[k] = modAnterior;
-        });
+        if(!d.modsBase) d.modsBase = modAnterior;
         Object.keys(actuales).forEach(function(k){
           if(anteriores[k] !== actuales[k]) d.modsCampos[k] = ahora;
         });
@@ -2490,7 +2495,7 @@ function fusionar(locales, borrLoc, remotos, borrRem){
       mods[k] = marcaMasReciente(marcaCampo(l, k), marcaCampo(r, k));
     });
 
-    var especiales = {id:1, mod:1, modsCampos:1, etiquetas:1, editado:1,
+    var especiales = {id:1, mod:1, modsBase:1, modsCampos:1, etiquetas:1, editado:1,
       escuchasFechas:1, escuchas:1, ultimaEscucha:1};
     var claves = {};
     Object.keys(l).concat(Object.keys(r)).forEach(function(k){ if(!especiales[k]) claves[k] = 1; });
@@ -2533,6 +2538,12 @@ function fusionar(locales, borrLoc, remotos, borrRem){
       mods[k] = marcaMasReciente(marcaCampo(l, k), marcaCampo(r, k));
     });
 
+    /* Una sola marca base para los campos sin excepción. Si ambos lados ya
+       traen base granular, conservar la más antigua es deliberadamente
+       conservador: los campos realmente cambiados llevan su excepción en
+       modsCampos y los que no la llevan no deben aparentar ser más nuevos. */
+    var baseL = l.modsBase || '', baseR = r.modsBase || '';
+    elegido.modsBase = marcaMasAntigua(baseL, baseR);
     elegido.modsCampos = mods;
     elegido.mod = fechaMasReciente(l.mod, r.mod) ? l.mod : r.mod;
 
