@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { APP_JS_FILES, readAppSource } from './app-source.mjs';
 
 const root = process.cwd();
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
@@ -9,13 +10,15 @@ const ok = (m) => console.log('✓ ' + m);
 const assert = (c,m) => c ? ok(m) : fail(m);
 
 const required = [
-  'index.html','manifest.webmanifest','sw.js','datos.json','zxing-0.21.3.js',
-  'apple-touch-icon-v2.png','icon-192-v2.png','icon-512-v2.png','icon-512-maskable.png'
+  'index.html','styles.css','manifest.webmanifest','sw.js','datos.json','zxing-0.21.3.js',
+  'apple-touch-icon-v2.png','icon-192-v2.png','icon-512-v2.png','icon-512-maskable.png',
+  ...APP_JS_FILES
 ];
-required.forEach((f) => assert(fs.existsSync(path.join(root,f)), 'existe ' + f));
+required.forEach((file) => assert(fs.existsSync(path.join(root,file)), 'existe ' + file));
 assert(!fs.existsSync(path.join(root,'apple-touch-icon.png')), 'no queda apple-touch-icon.png obsoleto');
 
 const index = read('index.html');
+const app = readAppSource();
 const sw = read('sw.js');
 const leeme = read('LEEME.md');
 let manifest, datos;
@@ -24,16 +27,30 @@ catch(e){ fail('manifest.webmanifest inválido: ' + e.message); }
 try { datos = JSON.parse(read('datos.json')); ok('datos.json es JSON válido'); }
 catch(e){ fail('datos.json inválido: ' + e.message); }
 
-try {
-  const scripts = [...index.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map((m)=>m[1]).filter((s)=>s.trim());
-  assert(scripts.length > 0, 'index.html contiene JavaScript inline');
-  scripts.forEach((src,i)=>new vm.Script(src,{filename:'index-inline-' + (i+1) + '.js'}));
-  ok('JavaScript de index.html compila');
-} catch(e){ fail('JavaScript de index.html no compila: ' + e.message); }
+/* Estructura modular: index queda como shell y el código vive en ficheros separados. */
+assert(/<link\s+rel=["']stylesheet["']\s+href=["']styles\.css["']/.test(index), 'index.html carga styles.css');
+assert(!/<style>[\s\S]*?<\/style>/i.test(index), 'index.html ya no contiene el CSS principal inline');
+const inlineScripts=[...index.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)]
+  .map((m)=>m[1]).filter((s)=>s.trim());
+assert(inlineScripts.length===0, 'index.html no contiene JavaScript principal inline');
+let last=-1;
+APP_JS_FILES.forEach((file)=>{
+  const token='<script src="' + file + '"></script>';
+  const at=index.indexOf(token);
+  assert(at>=0, 'index.html carga ' + file);
+  assert(at>last, file + ' conserva el orden de carga');
+  last=at;
+});
+assert(index.length < 50000, 'index.html queda reducido a un shell manejable');
+
+APP_JS_FILES.forEach((file)=>{
+  try { new vm.Script(read(file),{filename:file}); ok(file + ' compila'); }
+  catch(e){ fail(file + ' no compila: ' + e.message); }
+});
 try { new vm.Script(sw,{filename:'sw.js'}); ok('sw.js compila'); }
 catch(e){ fail('sw.js no compila: ' + e.message); }
 
-const version = (index.match(/var\s+VERSION\s*=\s*'([^']+)'/) || [])[1];
+const version = (app.match(/var\s+VERSION\s*=\s*'([^']+)'/) || [])[1];
 assert(!!version, 'VERSION está definida');
 if(version) assert(leeme.includes('**Versión de esta entrega:** ' + version), 'LEEME.md usa la misma VERSION');
 const cache = (sw.match(/var\s+CACHE\s*=\s*'([^']+)'/) || [])[1];
@@ -59,6 +76,8 @@ if(shell){
   assert(!/datos\.json/i.test(shell[1]), 'datos.json no está en precache');
   assert(!/zxing/i.test(shell[1]), 'ZXing no está en precache');
   assert(!/["']\.\/["']/.test(shell[1]), 'no se duplica ./ junto a ./index.html');
+  ['styles.css',...APP_JS_FILES].forEach((file)=>
+    assert(shell[1].includes('./'+file), 'SHELL incluye ' + file));
 }
 assert(/e\.request\.mode\s*===\s*['"]navigate['"]/.test(sw), 'fallback offline solo para navegación');
 assert(/if\s*\(r\s*&&\s*r\.ok\)/.test(sw), 'runtime cache solo guarda respuestas correctas');
@@ -78,11 +97,11 @@ if(datos){
   }
 }
 
-const dbStart=index.indexOf('function paintDb(){');
-const dbEnd=index.indexOf('/* ============================================================\n   14. EVENTOS',dbStart);
+const dbStart=app.indexOf('function paintDb(){');
+const dbEnd=app.indexOf('/* ============================================================\n   14. EVENTOS',dbStart);
 assert(dbStart>=0 && dbEnd>dbStart, 'se localiza paintDb()');
 if(dbStart>=0 && dbEnd>dbStart){
-  const db=index.slice(dbStart,dbEnd);
+  const db=app.slice(dbStart,dbEnd);
   const actionIds=new Set();
   for(const m of db.matchAll(/accion\([\s\S]*?\)/g)){
     const strings=[...m[0].matchAll(/'([^'\\]*(?:\\.[^'\\]*)*)'/g)].map((x)=>x[1]);
@@ -94,14 +113,14 @@ if(dbStart>=0 && dbEnd>dbStart){
   assert(handlers.has('sesion'),'Qué escucho ahora sigue enlazado');
 }
 
-const ss=index.indexOf('function serializarDiscLigero');
-const se=index.indexOf('function discosLigeros',ss);
+const ss=app.indexOf('function serializarDiscLigero');
+const se=app.indexOf('function discosLigeros',ss);
 if(ss>=0 && se>ss){
-  const part=index.slice(ss,se);
+  const part=app.slice(ss,se);
   assert(!/if\s*\(\s*!t\.preview\s*\)\s*return\s+t/.test(part),'serialización no conserva preview vacío');
   assert(/j\s*!==\s*['"]preview['"]/.test(part),'serialización excluye preview');
 }
-assert(!/function\s+refrescarFaltan\s*\([^)]*\)\s*\{[\s\S]{0,200}?if\s*\(\s*!d\s*\|\|\s*!d\.faltan\s*\)/.test(index),'refrescarFaltan distingue completa de no revisada');
+assert(!/function\s+refrescarFaltan\s*\([^)]*\)\s*\{[\s\S]{0,200}?if\s*\(\s*!d\s*\|\|\s*!d\.faltan\s*\)/.test(app),'refrescarFaltan distingue completa de no revisada');
 
 if(process.exitCode){
   console.error('\nValidación FALLIDA.');
