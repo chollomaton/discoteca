@@ -4,7 +4,7 @@ Catálogo de vinilos y CDs que funciona igual en el Mac y en el iPhone, con los 
 guardados en tu propio repositorio de GitHub. Sin servidor propio: la aplicación es
 un único archivo, y tu colección se sincroniza como un `datos.json` en GitHub.
 
-**Versión de esta entrega:** 2026.09.25-phase3 — se comprueba en Ajustes, al final de todo.
+**Versión de esta entrega:** 2026.09.25-phase4 — se comprueba en Ajustes, al final de todo.
 
 ## Archivos de la aplicación
 
@@ -33,6 +33,10 @@ Los iconos antiguos ya no forman parte del repositorio. Los únicos iconos de la
 ### Validación automática
 
 El repositorio incluye `.github/workflows/validate.yml`, `scripts/validate.mjs`, `scripts/sync-tests.mjs` y `scripts/quality-tests.mjs`. GitHub ejecuta estas comprobaciones en cada pull request y en cada cambio que llega a `main`: sintaxis del JavaScript, manifest y service worker, assets PWA, coherencia de versión, integridad básica de `datos.json`, reglas de caché y regresiones críticas ya sufridas por la app. La batería de sincronización simula además dos dispositivos: ediciones concurrentes en campos distintos, etiquetas, protecciones manuales, escuchas, borrados y compatibilidad con versiones antiguas. La batería de calidad prueba los niveles del Detective y la detección de estados de revisión desactualizados del Radar. Si alguna falla, el cambio no debe publicarse hasta corregirla.
+
+### Apple Music 2.0
+
+La colección incluye ahora una portada visual inspirada en Apple Music: recomendación diaria calculada solo con tu propia colección, accesos a «Qué escucho ahora» y Radar, carruseles de recién añadidos y discos para volver a escuchar. La ficha de un álbum usa en escritorio una composición más amplia con portada a la izquierda y metadatos/acciones a la derecha; en iPhone conserva la navegación de pantalla completa y el diseño vertical.
 
 ---
 
