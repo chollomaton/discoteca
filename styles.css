@@ -1671,3 +1671,8 @@ label.trk{cursor:pointer}
 
 /* Regiones de avisos accesibles sin alterar la composición visual. */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Fase 13: controles legibles y utilizables con teclado y tacto. */
+.detalle-nav{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.detalle-nav button,.calidad-aviso{min-height:44px}
+.calidad-aviso{display:block;text-align:left;white-space:normal;overflow-wrap:anywhere;margin:8px 0;width:100%}

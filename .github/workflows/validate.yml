@@ -94,6 +94,12 @@ jobs:
         run: node scripts/step10-4-browser.mjs
       - name: Probar escala con 250, 1000 y 5000 discos
         run: node scripts/scale-browser.mjs
+      - name: Fase 13 · contratos y datos intactos
+        run: node scripts/phase13-contract-tests.mjs
+      - name: Fase 13 · integridad del shell
+        run: node scripts/phase13-shell-hashes.mjs --check
+      - name: Fase 13 · producto en escritorio, móvil y escala
+        run: node scripts/phase13-browser.mjs
       - name: Guardar capturas de comparación
         if: always()
         uses: actions/upload-artifact@v4

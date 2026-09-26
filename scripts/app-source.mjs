@@ -7,6 +7,7 @@ export const APP_JS_FILES = [
   'js/insights.js',
   'js/stats.js',
   'js/settings.js',
+  'js/quality.js',
   'js/bootstrap.js'
 ];
 

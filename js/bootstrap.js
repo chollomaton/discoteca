@@ -14,6 +14,7 @@ document.addEventListener('error', function(e){
    ============================================================ */
 function montarEventos(){
   var byId = function(id){ return document.getElementById(id); };
+  restaurarBiblioteca();
   aplicarTema();
   if(window.matchMedia){
     var mq = window.matchMedia('(prefers-color-scheme: dark)');
@@ -26,7 +27,7 @@ function montarEventos(){
   byId('qClear').onclick = function(){
     byId('q').value = '';
     byId('searchw').classList.remove('lleno');
-    paintCol();
+    buscarBiblioteca();
   };
   byId('btnPal').onclick = abrirPaleta;
   byId('btnDice').onclick = discoAlAzar;
@@ -37,24 +38,24 @@ function montarEventos(){
   byId('syncBadge').onclick = function(){ configurado() ? sincronizarAhora() : pantallaSync(); };
   byId('q').oninput = function(){
     byId('searchw').classList.toggle('lleno', !!byId('q').value);
-    paintCol();
+    buscarBiblioteca();
   };
   byId('sortBy').onchange = function(e){
     sortBy = e.target.value;
     if(sortBy === 'random') randomSeed = Date.now() % 99991;
-    paintCol();
+    solicitarBiblioteca();
   };
-  byId('selGroup').onchange = function(e){ grupo = e.target.value; paintCol(); };
-  byId('fGenre').onchange = function(e){ fGen = e.target.value; paintCol(); };
+  byId('selGroup').onchange = function(e){ grupo = e.target.value; solicitarBiblioteca(); };
+  byId('fGenre').onchange = function(e){ fGen = e.target.value; solicitarBiblioteca(); };
   byId('segType').onclick = function(e){
     var b = e.target.closest('button'); if(!b) return;
     document.querySelectorAll('#segType button').forEach(function(x){ x.className = ''; });
-    b.className = 'on'; fType = b.dataset.f; paintCol();
+    b.className = 'on'; fType = b.dataset.f; solicitarBiblioteca();
   };
   byId('segMode').onclick = function(e){
     var b = e.target.closest('button'); if(!b) return;
     document.querySelectorAll('#segMode button').forEach(function(x){ x.className = ''; });
-    b.className = 'on'; modo = b.dataset.m; paintCol();
+    b.className = 'on'; modo = b.dataset.m; solicitarBiblioteca();
   };
   var tabClick = function(e){
     var b = e.target.closest('button[data-v]');

@@ -312,11 +312,12 @@ function importBackup(file){
     var doc;
     try{ doc = validarCopia(JSON.parse(String(r.result))); }
     catch(e){ toast('El archivo no es una copia válida: ' + e.message, true); return; }
-    if(!confirm('Fusionar ' + doc.discos.length + ' fichas y ' + doc.borrados.length + ' borrados. Los borrados de la copia pueden eliminar fichas. Se guardará una copia previa de recuperación. ¿Continuar?')) return;
+    if(!confirm('Copia validada · esquema v' + doc.version + '. Fusionar ' + doc.discos.length + ' fichas y ' + doc.borrados.length + ' borrados. Los borrados de la copia pueden eliminar fichas. Se guardará una copia previa de recuperación. ¿Continuar?')) return;
     if(configuracionEnCurso || pullPromiseActual || pushPromiseActual){ toast('Espera a que termine la sincronización', true); return; }
     var recuperarBorrados = confirm('¿Recuperar también las fichas de la copia que ya no están en tu colección? Aceptar las recupera; Cancelar respeta los borrados actuales.');
     configuracionEnCurso = true;
     clearTimeout(saveTimer); saveTimer = null;
+    var estadoPrevio = JSON.parse(JSON.stringify(DB));
     crearPuntoRecuperacion('Antes de restaurar una copia').then(function(){
       var res = fusionarCopiaRecuperacion(doc, recuperarBorrados);
       DB.discos = res.discos.map(normDisc); DB.borrados = res.borrados;
@@ -329,6 +330,7 @@ function importBackup(file){
       renderAll(); toast('Copia fusionada · ' + DB.discos.length + ' discos');
     }).catch(function(){
       configuracionEnCurso = false;
+      DB = estadoPrevio; revisionDatos++; indexarFirmas(); renderAll();
       toast('No se pudo guardar la recuperación. Conserva el archivo y exporta la colección; no cierres la app.', true);
     });
   };
@@ -482,3 +484,30 @@ function fusionarDuplicados(base){
   };
 }
 
+
+/* Recuperación explícita: conserva tombstones y propaga las retiradas al sincronizar. */
+function restaurarCheckpoint(){
+  if(configuracionEnCurso || pullPromiseActual || pushPromiseActual){ toast('Espera a que termine la sincronización', true); return Promise.resolve(); }
+  var previo;
+  return leerPuntoRecuperacion().then(function(copia){
+    if(!copia){ toast('Todavía no hay checkpoint'); return; }
+    var doc = validarCopia(copia);
+    if(!confirm('Recuperar el checkpoint con ' + doc.discos.length + ' discos y ' + doc.borrados.length + ' borrados. Se guardará el estado actual. ¿Continuar?')) return;
+    if(configuracionEnCurso || pullPromiseActual || pushPromiseActual) throw new Error('Sincronización en curso');
+    configuracionEnCurso = true; clearTimeout(saveTimer); saveTimer = null;
+    previo = JSON.parse(JSON.stringify(DB));
+    return crearPuntoRecuperacion('Antes de recuperar el checkpoint').then(function(){
+      var fecha = nowISO(), ids = new Set(doc.discos.map(function(d){ return d.id; }));
+      var borrados = new Map((doc.borrados || []).map(function(b){ return [b.id, b]; }));
+      previo.discos.forEach(function(d){ if(!ids.has(d.id)) borrados.set(d.id, {id:d.id, fecha:fecha}); });
+      DB.discos = doc.discos.map(function(d){ var ficha = normDisc(d); ficha.mod = fecha; ficha.modsBase = fecha; ficha.modsCampos = {}; return ficha; });
+      DB.borrados = Array.from(borrados.values()); DB.actualizado = fecha; revisionDatos++; indexarFirmas();
+      return guardarLocal();
+    }).then(function(){
+      configuracionEnCurso = false; if(configurado()){ marcar('pend'); programarPush(); }
+      renderAll(); toast('Checkpoint recuperado; el estado anterior también está disponible');
+    }).catch(function(e){
+      DB = previo; revisionDatos++; indexarFirmas(); configuracionEnCurso = false; renderAll(); throw e;
+    });
+  }).catch(function(){ toast('No se pudo recuperar el checkpoint', true); });
+}
