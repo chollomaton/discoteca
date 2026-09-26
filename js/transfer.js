@@ -499,6 +499,11 @@ function restaurarCheckpoint(){
     return crearPuntoRecuperacion('Antes de recuperar el checkpoint').then(function(){
       var fecha = nowISO(), ids = new Set(doc.discos.map(function(d){ return d.id; }));
       var borrados = new Map((doc.borrados || []).map(function(b){ return [b.id, b]; }));
+      (previo.borrados || []).forEach(function(b){
+        if(ids.has(b.id)) return;
+        var anterior = borrados.get(b.id);
+        if(!anterior || String(b.fecha) > String(anterior.fecha)) borrados.set(b.id, b);
+      });
       previo.discos.forEach(function(d){ if(!ids.has(d.id)) borrados.set(d.id, {id:d.id, fecha:fecha}); });
       DB.discos = doc.discos.map(function(d){ var ficha = normDisc(d); ficha.mod = fecha; ficha.modsBase = fecha; ficha.modsCampos = {}; return ficha; });
       DB.borrados = Array.from(borrados.values()); DB.actualizado = fecha; revisionDatos++; indexarFirmas();
