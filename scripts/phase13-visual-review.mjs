@@ -30,6 +30,8 @@ try{for(const width of [1440,390]){
  if(scene==='importacion')await page.evaluate(()=>pantallaImportacion({nuevos:[],identicos:[],dudosos:[]},0));
  if(scene==='tecnica')await page.evaluate(()=>{const s=sheet('Ficha técnica','<div id="pruebaTecnica"></div>');pintaTecnica(s.querySelector('#pruebaTecnica'),DB.discos.find(d=>d.tecnica)||DB.discos[0]);});
  if(scene==='revision')await page.evaluate(()=>pantallaRevision());
+ // Las portadas fallidas reintentan a los 900 ms: comparar solo el estado estable.
+ await page.waitForFunction(()=>[...document.querySelectorAll('img[data-img-retry]')].every(img=>img.complete && !img.dataset.reintento));
  await page.waitForTimeout(250);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${scene} ${width}: overflow`);
  const png=await page.screenshot({animations:'disabled',path:path.join(outputs,`${version}-${scene}-${width}.png`)});

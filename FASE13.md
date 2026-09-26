@@ -81,6 +81,7 @@ Antes de integrar en `main` deben pasar:
 11. comprobación de que `datos.json` no cambió respecto al inicio de la fase.
 
 Solo después se actualizan versión/caché, se repite la CI completa y se integra una única versión.
+
 ## Evidencias y decisiones de ejecución
 
 - Datos iniciales de la rama: SHA-256 `46da5cd12915b45b11d368087c6290b9797a49f411302f6704bf00e3a2afc49b` (commit `3e338ac3d908dd09686cad38a2ec9e5cca83e318`).
@@ -90,3 +91,5 @@ Solo después se actualizan versión/caché, se repite la CI completa y se integ
 - `node scripts/phase13-shell-hashes.mjs` genera hashes del shell; `--check` los verifica. Debe ejecutarse tras cualquier cambio en un asset del shell. La instalación verifica todos los bytes antes de escribir y nunca activa automáticamente la actualización.
 - Nuevos contratos: `phase13-contract-tests.mjs` (lógica, copias, integridad PWA y datos); `phase13-browser.mjs` (1440/390 × 250/1000/5000); `phase13-visual-review.mjs` (capturas de las escenas históricas).
 - Rollback: conservar el primer padre del merge final; revertir únicamente el merge de producto con `git revert -m 1 <merge>`. No restaurar una copia antigua de `datos.json`. Para clientes PWA, cualquier despliegue de reversión necesita un identificador de caché nuevo y coherente con sus assets.
+
+- Las comparaciones visuales esperan a que termine el reintento de portadas (900 ms), antes de capturar. Esto evita comparar un icono de imagen rota con su sustituto; no se altera ninguna tolerancia.
