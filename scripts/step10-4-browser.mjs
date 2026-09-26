@@ -60,11 +60,11 @@ try{
   await page.evaluate(async()=>{await navigator.serviceWorker.register('./sw.js');await navigator.serviceWorker.ready;});
   await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
   assert(await page.evaluate(async()=>{
-   const cache=await caches.open('discoteca-v60'),keys=await cache.keys();
+   const cache=await caches.open('discoteca-v61'),keys=await cache.keys();
    return keys.some(r=>r.url.endsWith('/index.html'))&&!keys.some(r=>r.url.includes('datos.json'));
   }),'PWA shell cached without collection data');
   await context.setOffline(true);await page.reload();await page.waitForSelector('.tile');
-  assert.equal(await page.evaluate(()=>VERSION),'2026.09.25-phase10.4');
+  assert.equal(await page.evaluate(()=>VERSION),'2026.09.26-phase13');
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'offline overflow');
   assert.deepEqual(errors,[],'console and runtime errors');
   console.log(`✓ UX/PWA ${width}x844: reversible actions, focus, reduced motion, offline and console`);

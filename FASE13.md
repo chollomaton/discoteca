@@ -94,3 +94,7 @@ Solo después se actualizan versión/caché, se repite la CI completa y se integ
 
 - Las comparaciones visuales esperan a que termine el reintento de portadas (900 ms), antes de capturar. Esto evita comparar un icono de imagen rota con su sustituto; no se altera ninguna tolerancia.
 - Chromium de comparación usa rasterizado software sin optimizaciones Skia dependientes del runtime; ambas referencias comparten exactamente esa configuración. No se suaviza ni se filtra el resultado de las capturas.
+
+## Cierre de implementación
+
+La CI completa previa al incremento pasó en `339807162b92a0357b21d0e352fec9a0ec9eb402`: https://github.com/chollomaton/discoteca/actions/runs/36227444737. Solo entonces se incrementan VERSION a `2026.09.26-phase13` y CACHE de `discoteca-v60` a `discoteca-v61`, una sola vez. Las pruebas de versión siguen comprobando valores exactos. La integración requiere repetir la CI completa con estos valores.

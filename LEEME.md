@@ -4,7 +4,7 @@ Catálogo de vinilos y CDs que funciona igual en el Mac y en el iPhone, con los 
 guardados en tu propio repositorio de GitHub. Sin servidor propio: la aplicación es
 una PWA estática modular, y tu colección se sincroniza como un `datos.json` en GitHub.
 
-**Versión de esta entrega:** 2026.09.25-phase10.4 — se comprueba en Ajustes, al final de todo.
+**Versión de esta entrega:** 2026.09.26-phase13 — se comprueba en Ajustes, al final de todo.
 
 ## Archivos de la aplicación
 
@@ -300,7 +300,7 @@ vez de duplicarla.
 - Ante pérdida del dispositivo, revoca sus credenciales, conecta otro dispositivo al repositorio privado
   y restaura la última copia si faltan cambios. El historial de GitHub es una segunda vía de recuperación.
 - Antes de actualizar: confirma «Al día» y conserva una copia reciente. Después: verifica en Ajustes
-  `2026.09.25-phase10.4`. La caché de esta versión es `discoteca-v59`; nunca incluye JSON de colección.
+  `2026.09.26-phase13`. La caché de esta versión es `discoteca-v61`; nunca incluye JSON de colección.
 
 Las pruebas de Fase 7 cubren almacenamiento de claves, censura de diagnósticos, rutas inválidas,
 validación de copias, falta de espacio, recuperación de borrados, API privada para archivos grandes,
