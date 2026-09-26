@@ -93,3 +93,4 @@ Solo después se actualizan versión/caché, se repite la CI completa y se integ
 - Rollback: conservar el primer padre del merge final; revertir únicamente el merge de producto con `git revert -m 1 <merge>`. No restaurar una copia antigua de `datos.json`. Para clientes PWA, cualquier despliegue de reversión necesita un identificador de caché nuevo y coherente con sus assets.
 
 - Las comparaciones visuales esperan a que termine el reintento de portadas (900 ms), antes de capturar. Esto evita comparar un icono de imagen rota con su sustituto; no se altera ninguna tolerancia.
+- Chromium de comparación usa rasterizado software sin optimizaciones Skia dependientes del runtime; ambas referencias comparten exactamente esa configuración. No se suaviza ni se filtra el resultado de las capturas.

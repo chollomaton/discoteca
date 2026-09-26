@@ -12,7 +12,7 @@ for(const [name,ref] of [['baseline','28017f62c3645b412bd2fcb3103d41329bfcedc7']
 }
 const server=createServer((req,res)=>{try{let f=path.join(root,new URL(req.url,'http://local').pathname);if(fs.statSync(f).isDirectory())f=path.join(f,'index.html');res.setHeader('Content-Type',f.endsWith('.js')?'text/javascript':f.endsWith('.css')?'text/css':f.endsWith('.json')?'application/json':f.endsWith('.png')?'image/png':'text/html');res.end(fs.readFileSync(f));}catch{res.statusCode=404;res.end();}});
 await new Promise(r=>server.listen(8766,'127.0.0.1',r));
-const browser=await chromium.launch({headless:true});
+const browser=await chromium.launch({headless:true,args:['--disable-gpu','--disable-skia-runtime-opts']});
 const doc=JSON.parse(fs.readFileSync('datos.json','utf8'));
 try{for(const width of [1440,390]){
  const shots={};
