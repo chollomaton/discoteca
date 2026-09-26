@@ -81,3 +81,12 @@ Antes de integrar en `main` deben pasar:
 11. comprobación de que `datos.json` no cambió respecto al inicio de la fase.
 
 Solo después se actualizan versión/caché, se repite la CI completa y se integra una única versión.
+## Evidencias y decisiones de ejecución
+
+- Datos iniciales de la rama: SHA-256 `46da5cd12915b45b11d368087c6290b9797a49f411302f6704bf00e3a2afc49b` (commit `3e338ac3d908dd09686cad38a2ec9e5cca83e318`).
+- El usuario autorizó conservar los guardados posteriores de la colección en `main`. Las pruebas verifican tanto la inmutabilidad de los datos de la rama como que el merge de prueba mantiene los datos actuales de `main`.
+- El usuario autorizó renovar las referencias visuales para la interfaz de Fase 13 después de revisar capturas. Se revisaron colección, ficha, importación, ficha técnica y revisión en 1440/390 del commit `336d036183c842be5bb6e4cc48d3906446dbb011`. Se conservan las dos suites, todas sus escenas, controles de overflow/errores y tolerancia de 5 píxeles con delta máximo 1/255.
+- No se agregan dependencias de ejecución. `quality.js` aísla el diagnóstico puro. El manifiesto de módulos y sus pruebas incorporan explícitamente este módulo.
+- `node scripts/phase13-shell-hashes.mjs` genera hashes del shell; `--check` los verifica. Debe ejecutarse tras cualquier cambio en un asset del shell. La instalación verifica todos los bytes antes de escribir y nunca activa automáticamente la actualización.
+- Nuevos contratos: `phase13-contract-tests.mjs` (lógica, copias, integridad PWA y datos); `phase13-browser.mjs` (1440/390 × 250/1000/5000); `phase13-visual-review.mjs` (capturas de las escenas históricas).
+- Rollback: conservar el primer padre del merge final; revertir únicamente el merge de producto con `git revert -m 1 <merge>`. No restaurar una copia antigua de `datos.json`. Para clientes PWA, cualquier despliegue de reversión necesita un identificador de caché nuevo y coherente con sus assets.

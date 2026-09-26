@@ -1,11 +1,12 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {execFileSync} from 'node:child_process';
 import assert from 'node:assert/strict';
 import {webcrypto, createHash} from 'node:crypto';
 function fn(file,name){const src=fs.readFileSync(file,'utf8'),at=src.indexOf('function '+name+'(');assert(at>=0);return src.slice(at,src.indexOf('\n}',at)+2);}
 const mem=new Map();let day='2026-09-26';
 const ctx=vm.createContext({console,Date,Set,Map,Math,JSON,Number,Promise,clearTimeout,plain:s=>s.toLowerCase(),hoyISO:()=>day,nowISO:()=>day+'T12:00:00.000Z',fdate:s=>s,localStorage:{getItem:k=>mem.get(k),setItem:(k,v)=>mem.set(k,v)}});
-for(const [file,names] of [['core',['totalEscuchas','rngShuffle']],['quality',['diagnosticoColeccion']],['stats',['resumenUso']],['insights',['sugerenciasDelDia']],['transfer',['validarCopia','restaurarCheckpoint']]])for(const n of names)vm.runInContext(fn('js/'+file+'.js',n),ctx);
+for(const [file,names] of [['core',['totalEscuchas','rngShuffle','similitud']],['quality',['diagnosticoColeccion']],['stats',['resumenUso']],['insights',['sugerenciasDelDia']],['transfer',['nucleoTitulo','validarCopia','restaurarCheckpoint']]])for(const n of names)vm.runInContext(fn('js/'+file+'.js',n),ctx);
 const records=Array.from({length:24},(_,i)=>({id:'d'+i,artista:'Artist '+i,titulo:'Album '+i,formato:'CD',genero:'Genre '+i,año:'1980',portada:'',tracklist:[],valoracion:5,escuchas:0,escuchasFechas:[],fechaAlta:'2026-09-01'}));
 ctx.coleccion=()=>records;
 const initial=JSON.stringify(records);
@@ -19,6 +20,7 @@ const broken=[...records,{...records[0],id:'broken',año:'oops',mbid:'bad',enlaz
 const snapshot=JSON.stringify(broken),diagnostic=ctx.diagnosticoColeccion(broken);
 for(const type of ['Duplicado exacto','Posible duplicado','Portada ausente','Tracklist vacío','Año inválido','Identificador externo incoherente','Edición enlazada ausente','Pistas sin título'])assert(diagnostic.some(x=>x.tipo===type),type);
 assert.equal(JSON.stringify(broken),snapshot);
+assert(ctx.diagnosticoColeccion([{...records[0],titulo:'Dark Side of the Moon'},{...records[0],id:'similar',titulo:'Dark Side of Moon'}]).some(x=>x.tipo==='Posible duplicado'),'similar titles detected at import threshold');
 const large=Array.from({length:5000},(_,i)=>({...records[i%24],id:'scale'+i}));const started=Date.now();assert(ctx.diagnosticoColeccion(large).length);assert(Date.now()-started<3000,'indexed diagnostic at 5000');
 const metrics=ctx.resumenUso([{...records[0],escuchas:3,escuchasFechas:['2026-09-01','2026-08-01'],valoracion:4},records[1]],'2026-09-26');
 assert.deepEqual(JSON.parse(JSON.stringify(metrics)),{total:2,escuchados:1,pendientes:1,mes:1,anio:2,media:4.5,recientes:2});
@@ -38,5 +40,17 @@ vm.runInContext(sw,swctx);let pending;corrupt=true;events.install({waitUntil:p=>
 corrupt=false;events.install({waitUntil:p=>pending=p});await pending;assert.equal(puts,swctx.SHELL.length);assert.equal(skips,0);
 for(const p of ['https://example.test/datos.json','https://example.test/backups/a.json','https://api.github.com/a']){let intercepted=false;events.fetch({request:new Request(p),respondWith:()=>intercepted=true});assert(!intercepted,p);}
 let intercepted=false;events.fetch({request:new Request('https://example.test/styles.css',{headers:{Authorization:'Bearer fake'}}),respondWith:()=>intercepted=true});assert(!intercepted);
-assert.equal(createHash('sha256').update(fs.readFileSync('datos.json')).digest('hex'),'46da5cd12915b45b11d368087c6290b9797a49f411302f6704bf00e3a2afc49b','collection byte-for-byte unchanged');
+const event=process.env.GITHUB_EVENT_PATH ? JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH,'utf8')) : {};
+const dataAt=ref=>execFileSync('git',['show',ref+':datos.json'],{maxBuffer:10*1024*1024});
+const expected='46da5cd12915b45b11d368087c6290b9797a49f411302f6704bf00e3a2afc49b';
+const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
+assert.equal(hash(dataAt('3e338ac3d908dd09686cad38a2ec9e5cca83e318')),expected,'initial collection recorded');
+if(event.pull_request && event.pull_request.head.ref==='fase-13-producto'){
+ assert.equal(hash(dataAt(event.pull_request.head.sha)),expected,'phase 13 branch leaves original bytes intact');
+ assert.equal(hash(fs.readFileSync('datos.json')),hash(dataAt('HEAD^1')),'PR merge keeps current main collection');
+}else if(!process.env.GITHUB_ACTIONS){
+ assert.equal(hash(fs.readFileSync('datos.json')),expected,'local phase 13 collection unchanged');
+}
+// Main may receive legitimate collection saves independently of product development.
+
 console.log('✓ Fase 13: discovery, diagnostics, statistics, backup rollback, atomic PWA and immutable collection');
