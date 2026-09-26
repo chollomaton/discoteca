@@ -274,6 +274,16 @@ async function buscarNacionalidades(){
   paintStats();
 }
 
+function resumenUso(ds, hoy){
+  var mes = hoy.slice(0,7), anio = hoy.slice(0,4), escuchados = 0, escuchasMes = 0, escuchasAnio = 0, suma = 0, valorados = 0, recientes = 0;
+  ds.forEach(function(d){
+    if(totalEscuchas(d)) escuchados++;
+    (d.escuchasFechas || []).forEach(function(f){ if(String(f).slice(0,7) === mes) escuchasMes++; if(String(f).slice(0,4) === anio) escuchasAnio++; });
+    if(d.valoracion > 0){ suma += d.valoracion; valorados++; }
+    if(String(d.fechaAlta || '').slice(0,7) === mes) recientes++;
+  });
+  return {total:ds.length, escuchados:escuchados, pendientes:ds.length - escuchados, mes:escuchasMes, anio:escuchasAnio, media:valorados ? suma / valorados : null, recientes:recientes};
+}
 function paintStats(){
   var box = document.getElementById('statsBody');
   if(!box) return;
@@ -347,7 +357,11 @@ function paintStats(){
       + (sub ? '<div class="ss">' + sub + '</div>' : '') + '</div></div>';
   };
   box.innerHTML =
-    '<div id="efemeride"></div>'
+    (function(){ var r = resumenUso(ds, hoyISO()); return '<section class="card" aria-label="Uso de tu colección"><h3>Tu colección este mes</h3><p>'
+      + r.total + ' discos · ' + r.escuchados + ' escuchados · ' + r.pendientes + ' pendientes</p><p>'
+      + r.mes + ' escuchas este mes · ' + r.anio + ' este año · ' + r.recientes + ' incorporaciones este mes</p><p>Valoración media: '
+      + (r.media === null ? 'Sin valoraciones' : r.media.toFixed(1) + ' de 5') + '</p></section>'; })()
+    + '<div id="efemeride"></div>'
     + '<div id="curiosidad"></div>'
     + '<div id="quiz"></div>'
     + secc(I.vinResumen, 'Resumen')

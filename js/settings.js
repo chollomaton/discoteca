@@ -75,8 +75,11 @@ function paintDb(){
         ? '<div class="warnb">' + I.warn + '<span>Hace más de un mes que no descargas una copia. '
           + 'Tus datos están en GitHub con su historial, pero una copia local no está de más.</span></div>' : '')
     + '<div class="dbact">'
+      + accion(I.search, 'Diagnóstico de colección', 'Revisa duplicados y datos incompletos sin modificar fichas.', 'calidad', '', 'Revisar')
       + accion(I.down, 'Descargar copia', 'Un JSON con toda la colección. En el iPhone se abre la hoja de compartir.', 'bak', '', 'Descargar')
       + accion(I.down, 'Copia anterior a la última operación', 'Descarga el estado previo a una restauración, cambio de conexión o vaciado.', 'recuperacion', '', 'Descargar anterior')
+      + accion(I.save, 'Deshacer la última restauración', 'Recupera el checkpoint previo. También guarda el estado actual.', 'deshacerCopia', '', 'Recuperar')
+      + '<p id="checkpointFecha"></p>'
       + accion(I.up, 'Restaurar copia', 'Valida y fusiona un JSON. Los borrados también se restauran; guarda una copia previa automáticamente.', 'impbak', '', 'Seleccionar JSON')
     + '</div>'
 
@@ -165,7 +168,11 @@ function paintDb(){
           + I.copy + 'Copiar</button><button type="button" class="btn sm" id="limpiarFallos">Limpiar</button></div>'
           + '</div></details>';
       })()
-    + '<div class="pie-version">Discoteca · versión ' + VERSION + (instalada ? ' · instalada' : '') + '</div>';
+    + '<div class="pie-version">Discoteca · versión ' + VERSION + (instalada ? ' · instalada' : '') + '<p id="estadoPwa">' + (navigator.onLine ? 'Con conexión' : 'Sin conexión') + '</p></div>';
+  if(navigator.serviceWorker) navigator.serviceWorker.getRegistration().then(function(reg){
+    var p = document.getElementById('estadoPwa');
+    if(p) p.textContent = (navigator.onLine ? 'Con conexión' : 'Sin conexión') + (reg && reg.waiting ? ' · Actualización pendiente' : ' · Sin actualización pendiente');
+  }).catch(function(){});
 
   var on = function(a, fn){
     box.querySelectorAll('[data-a=' + a + ']').forEach(function(el){ el.onclick = fn; });
@@ -178,6 +185,12 @@ function paintDb(){
   });
   on('bak', exportBackup);
   on('recuperacion', exportarRecuperacion);
+  on('calidad', abrirDiagnostico);
+  on('deshacerCopia', restaurarCheckpoint);
+  leerPuntoRecuperacion().then(function(copia){
+    var p = document.getElementById('checkpointFecha');
+    if(p) p.textContent = copia ? 'Checkpoint: ' + fdate(copia.creado) : 'Todavía no hay checkpoint';
+  }).catch(function(){});
   on('impbak', function(){ document.getElementById('fileBak').click(); });
   on('csv', function(){ document.getElementById('fileCsv').click(); });
   on('expcsv', exportarCsv);

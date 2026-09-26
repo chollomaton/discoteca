@@ -3,7 +3,7 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import {APP_JS_FILES} from './app-source.mjs';
 const read=f=>fs.readFileSync(f,'utf8');
-const expected=['core','library','transfer','features','metadata','insights','stats','settings','bootstrap'].map(n=>`js/${n}.js`);
+const expected=['core','library','transfer','features','metadata','insights','stats','settings','quality','bootstrap'].map(n=>`js/${n}.js`);
 assert.deepEqual(APP_JS_FILES,expected);
 assert.deepEqual([...read('index.html').matchAll(/<script src="(js\/[^" ]+)"/g)].map(m=>m[1]),expected);
 const shell=read('sw.js').match(/var SHELL = (\[[^;]+\])/)[1];

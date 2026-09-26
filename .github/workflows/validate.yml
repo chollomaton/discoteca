@@ -84,16 +84,31 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Verificar límites de comparación visual
         run: node scripts/visual-compare-tests.mjs
+      - name: Fase 13 · capturas para revisión visual
+        run: node scripts/phase13-visual-review.mjs
       - name: Comparar 10.1 y 10.2 en escritorio y móvil
         run: node scripts/step10-2-browser.mjs
       - name: Probar accesibilidad en escritorio y móvil
+        if: ${{ !cancelled() }}
         run: node scripts/accessibility-tests.mjs
       - name: Comparar 10.2 y 10.3 en escritorio y móvil
+        if: ${{ !cancelled() }}
         run: node scripts/step10-3-browser.mjs
       - name: Probar UX conservadora y PWA sin conexión
+        if: ${{ !cancelled() }}
         run: node scripts/step10-4-browser.mjs
       - name: Probar escala con 250, 1000 y 5000 discos
+        if: ${{ !cancelled() }}
         run: node scripts/scale-browser.mjs
+      - name: Fase 13 · contratos y datos intactos
+        if: ${{ !cancelled() }}
+        run: node scripts/phase13-contract-tests.mjs
+      - name: Fase 13 · integridad del shell
+        if: ${{ !cancelled() }}
+        run: node scripts/phase13-shell-hashes.mjs --check
+      - name: Fase 13 · producto en escritorio, móvil y escala
+        if: ${{ !cancelled() }}
+        run: node scripts/phase13-browser.mjs
       - name: Guardar capturas de comparación
         if: always()
         uses: actions/upload-artifact@v4

@@ -8,7 +8,7 @@ const read=(f)=>fs.readFileSync(f,'utf8');
 
 const expected=[
   'js/core.js','js/library.js','js/transfer.js','js/features.js','js/metadata.js','js/insights.js',
-  'js/stats.js','js/settings.js','js/bootstrap.js'
+  'js/stats.js','js/settings.js','js/quality.js','js/bootstrap.js'
 ];
 assert(JSON.stringify(APP_JS_FILES)===JSON.stringify(expected),'orden modular canónico no ha cambiado');
 

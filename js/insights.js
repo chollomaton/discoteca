@@ -173,7 +173,16 @@ function sugerenciasDelDia(candidatos, seed){
   var semilla = 0;
   for(var i = 0; i < hoy.length; i++) semilla = (semilla * 31 + hoy.charCodeAt(i)) % 99991;
   if(seed !== undefined) semilla = seed;
+  var historial = [];
+  try{ var h = JSON.parse(localStorage.getItem('discoteca.recomendaciones.v1') || '[]'); if(Array.isArray(h)) historial = h.filter(function(x){ return x && typeof x.dia === 'string' && typeof x.id === 'string' && x.dia < hoy; }).slice(-56); }catch(e){}
+  var recientes = new Set(historial.map(function(x){ return x.id; }));
   var out = [], usados = {};
+  function elegir(lista, sal){
+    return rngShuffle(lista.filter(function(d){ return !usados[d.id]; }), semilla + sal).sort(function(a,b){
+      function coste(d){ return (recientes.has(d.id) ? 1 : 0) + out.reduce(function(n,x){ return n + (x.d.artista === d.artista ? 4 : 0) + (d.genero && x.d.genero === d.genero ? 2 : 0); }, 0); }
+      return coste(a) - coste(b);
+    })[0];
+  }
   var mete = function(d, motivo){
     if(!d || usados[d.id] || out.length >= 4) return;
     usados[d.id] = 1;
@@ -184,8 +193,8 @@ function sugerenciasDelDia(candidatos, seed){
   };
   var nunca = ds.filter(function(d){ return totalEscuchas(d) === 0; });
   if(nunca.length){
-    var n0 = rngShuffle(nunca, semilla)[0];
-    mete(n0, n0['año']
+    var n0 = elegir(nunca, 0);
+    if(n0) mete(n0, n0['año']
       ? 'de ' + n0['año'] + ', nunca lo has puesto'
       : 'nunca lo has puesto');
   }
@@ -194,8 +203,8 @@ function sugerenciasDelDia(candidatos, seed){
       && (Date.now() - new Date(d.ultimaEscucha + 'T12:00:00').getTime()) > 120 * 86400000;
   });
   if(joyas.length){
-    var j = rngShuffle(joyas, semilla + 7)[0];
-    mete(j, j.valoracion + ' estrellas, no lo pones desde hace ' + meses(j.ultimaEscucha)
+    var j = elegir(joyas, 7);
+    if(j) mete(j, j.valoracion + ' estrellas, no lo pones desde hace ' + meses(j.ultimaEscucha)
       + (meses(j.ultimaEscucha) === 1 ? ' mes' : ' meses'));
   }
   var ultimo = ds.filter(function(d){ return d.ultimaEscucha; })
@@ -206,16 +215,16 @@ function sugerenciasDelDia(candidatos, seed){
         && (d.sello && d.sello === ultimo.sello || d.genero === ultimo.genero);
     });
     if(parecidos.length){
-      var pp = rngShuffle(parecidos, semilla + 13)[0];
-      mete(pp, pp.sello && pp.sello === ultimo.sello
+      var pp = elegir(parecidos, 13);
+      if(pp) mete(pp, pp.sello && pp.sello === ultimo.sello
         ? 'de ' + pp.sello + ', como ' + ultimo.titulo
         : (pp.genero || 'parecido') + ', como lo último que pusiste');
     }
   }
   var viejos = ds.filter(function(d){ return parseInt(d['año']) && parseInt(d['año']) < 1990; });
   if(viejos.length){
-    var v0 = rngShuffle(viejos, semilla + 29)[0];
-    mete(v0, 'de ' + v0['año'] + ', ' + (new Date().getFullYear() - parseInt(v0['año'])) + ' años ya'
+    var v0 = elegir(viejos, 29);
+    if(v0) mete(v0, 'de ' + v0['año'] + ', ' + (new Date().getFullYear() - parseInt(v0['año'])) + ' años ya'
       + (v0.ultimaEscucha ? ' · último ' + fdate(v0.ultimaEscucha).split(',')[0] : ''));
   }
   /* Si la tirada aleatoria coincide con un disco ya elegido, mete() no hace
@@ -223,8 +232,11 @@ function sugerenciasDelDia(candidatos, seed){
      número de intentos para que termine siempre, pase lo que pase. */
   var intentos = 0;
   while(out.length < 4 && ds.length && intentos < 60){
-    mete(rngShuffle(ds, semilla + out.length * 17 + intentos)[0], 'al azar, por probar');
+    mete(elegir(ds, out.length * 17 + intentos), 'al azar, por probar');
     intentos++;
+  }
+  if(!candidatos && seed === undefined){
+    try{ localStorage.setItem('discoteca.recomendaciones.v1', JSON.stringify(historial.concat(out.map(function(x){ return {id:x.d.id, dia:hoy}; })).slice(-56))); }catch(e){}
   }
   return out;
 }
