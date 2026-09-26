@@ -850,6 +850,7 @@ function paintCol(){
   var list = ordenVisualBiblioteca();
   var firmaPagina = JSON.stringify(filtrosActuales());
   if(firmaPagina !== firmaPaginaBiblioteca){ paginaBiblioteca = 0; firmaPaginaBiblioteca = firmaPagina; }
+  var listaCompletaBiblioteca = list;
   var totalResultados = list.length;
   paginaBiblioteca = Math.min(paginaBiblioteca, Math.max(0, Math.ceil(totalResultados / 120) - 1));
   if(totalResultados > 160) list = list.slice(paginaBiblioteca * 120, paginaBiblioteca * 120 + 120);
@@ -910,7 +911,7 @@ function paintCol(){
       pararCargaIncremental();
       board.innerHTML = bloque(list, dups);
     }
-    pintarAZ(sortBy === 'artist' || sortBy === 'title' ? list.map(function(d){ return (sortBy === 'artist' ? d.artista : d.titulo); }) : []);
+    pintarAZ(sortBy === 'artist' || sortBy === 'title' ? listaCompletaBiblioteca.map(function(d){ return (sortBy === 'artist' ? d.artista : d.titulo); }) : []);
   }else{
     pararCargaIncremental();
     var orden = [], mapa = {};
@@ -1144,9 +1145,12 @@ function pintarAZ(claves, esGrupo){
     b.onclick = function(){
       var t = dest[b.dataset.l];
       if(t === undefined) return;
+      if(!esGrupo && claves.length > 160){
+        paginaBiblioteca = Math.floor(t / 120); paintCol(); t = t % 120;
+      }
       if(!esGrupo && _paginacion.cargarHasta) _paginacion.cargarHasta(t);
       var el = esGrupo ? document.getElementById(t) : document.querySelectorAll('.tile,.lrow')[t];
-      if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+      if(el) el.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
     };
   });
 }
@@ -1701,7 +1705,7 @@ function pintaSimilares(caja, d, s){
 function openDetail(id, desde, volverSesion, contexto){
   var d = DB.discos.filter(function(x){ return x.id === id; })[0];
   if(!d) return;
-  contexto = contexto || {ids:ordenVisualBiblioteca().map(function(x){ return x.id; }), scroll:window.scrollY, foco:document.activeElement};
+  contexto = contexto || {ids:ordenVisualBiblioteca().map(function(x){ return x.id; }), scroll:window.scrollY, foco:document.activeElement, origenId:document.activeElement && document.activeElement.closest('[data-id]') ? document.activeElement.closest('[data-id]').dataset.id : null};
   var cambiandoFicha = false;
   var tracks = normTracks(d.tracklist), editing = false;
   var dups = dupSet();
@@ -1758,7 +1762,8 @@ function openDetail(id, desde, volverSesion, contexto){
     if(cambiandoFicha) return;
     if(typeof volverSesion === 'function') volverSesion();
     else requestAnimationFrame(function(){
-      if(contexto.foco && contexto.foco.isConnected) contexto.foco.focus({preventScroll:true});
+      var foco = contexto.foco && contexto.foco.isConnected ? contexto.foco : Array.from(document.querySelectorAll('#board [data-id]')).find(function(el){ return el.dataset.id === contexto.origenId; });
+      if(foco) foco.focus({preventScroll:true});
       window.scrollTo(0, contexto.scroll);
     });
   });
@@ -1845,9 +1850,6 @@ function openDetail(id, desde, volverSesion, contexto){
   montarGiro(s, d);
   if($('#btnWiki')) $('#btnWiki').onclick = function(){ verWikipedia(d, false); };
   if($('#btnShare')) $('#btnShare').onclick = function(){ compartirDisco(d); };
-  s.querySelectorAll('[data-otra]').forEach(function(b){
-    b.onclick = function(){ var id2 = b.dataset.otra; s.remove(); openDetail(id2); };
-  });
   s.querySelectorAll('[data-otra]').forEach(function(b){
     b.onclick = function(){
       var o = DB.discos.filter(function(x){ return x.id === b.dataset.otra; })[0];

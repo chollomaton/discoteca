@@ -84,6 +84,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Verificar límites de comparación visual
         run: node scripts/visual-compare-tests.mjs
+      - name: Fase 13 · capturas para revisión visual
+        run: node scripts/phase13-visual-review.mjs
       - name: Comparar 10.1 y 10.2 en escritorio y móvil
         run: node scripts/step10-2-browser.mjs
       - name: Probar accesibilidad en escritorio y móvil

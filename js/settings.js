@@ -79,7 +79,7 @@ function paintDb(){
       + accion(I.down, 'Descargar copia', 'Un JSON con toda la colección. En el iPhone se abre la hoja de compartir.', 'bak', '', 'Descargar')
       + accion(I.down, 'Copia anterior a la última operación', 'Descarga el estado previo a una restauración, cambio de conexión o vaciado.', 'recuperacion', '', 'Descargar anterior')
       + accion(I.save, 'Deshacer la última restauración', 'Recupera el checkpoint previo. También guarda el estado actual.', 'deshacerCopia', '', 'Recuperar')
-      + '<p id="checkpointFecha" role="status"></p>'
+      + '<p id="checkpointFecha"></p>'
       + accion(I.up, 'Restaurar copia', 'Valida y fusiona un JSON. Los borrados también se restauran; guarda una copia previa automáticamente.', 'impbak', '', 'Seleccionar JSON')
     + '</div>'
 
@@ -168,7 +168,7 @@ function paintDb(){
           + I.copy + 'Copiar</button><button type="button" class="btn sm" id="limpiarFallos">Limpiar</button></div>'
           + '</div></details>';
       })()
-    + '<div class="pie-version">Discoteca · versión ' + VERSION + (instalada ? ' · instalada' : '') + '<p id="estadoPwa" role="status">' + (navigator.onLine ? 'Con conexión' : 'Sin conexión') + '</p></div>';
+    + '<div class="pie-version">Discoteca · versión ' + VERSION + (instalada ? ' · instalada' : '') + '<p id="estadoPwa">' + (navigator.onLine ? 'Con conexión' : 'Sin conexión') + '</p></div>';
   if(navigator.serviceWorker) navigator.serviceWorker.getRegistration().then(function(reg){
     var p = document.getElementById('estadoPwa');
     if(p) p.textContent = (navigator.onLine ? 'Con conexión' : 'Sin conexión') + (reg && reg.waiting ? ' · Actualización pendiente' : ' · Sin actualización pendiente');
