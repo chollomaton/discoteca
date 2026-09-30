@@ -1,4 +1,4 @@
-// Referencia Fase 13 autorizada tras revisar las 5 escenas en 1440/390. Tolerancias intactas.
+// Referencia F14 W4 revisada: estados de edición y autenticación, 5 escenas en 1440/390. Tolerancias intactas.
 import {compareScreenshots} from './visual-compare.mjs';
 import {chromium} from 'playwright';
 import {createServer} from 'node:http';
@@ -6,7 +6,7 @@ import fs from 'node:fs';import path from 'node:path';import assert from 'node:a
 const root=path.resolve('.visual-check'),outputs=path.resolve('visual-results');
 fs.mkdirSync(root,{recursive:true});fs.mkdirSync(outputs,{recursive:true});
 const {execFileSync}=await import('node:child_process');
-for(const [name,ref] of [['baseline','336d036183c842be5bb6e4cc48d3906446dbb011'],['discoteca','HEAD']]){
+for(const [name,ref] of [['baseline','39eb79b609a27a1b85d9440b1ad27a76f9e3c8bb'],['discoteca','HEAD']]){
  const dest=path.join(root,name);fs.mkdirSync(dest,{recursive:true});
  const archive=execFileSync('git',['archive',ref],{maxBuffer:20*1024*1024});
  execFileSync('tar',['-x','-C',dest],{input:archive});
