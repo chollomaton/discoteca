@@ -721,7 +721,7 @@ function guardarCfg(borrar){
     var local = null;
     try{ local = JSON.parse(localStorage.getItem(LS_CFG)); }catch(e){}
     var persistida = borrar ? configSinClaves(actual) : combinarCfg(combinarCfg(local && local.clavesBorradas ? configSinClaves(anterior) : anterior, local), actual);
-    persistida.clavesBorradas = borrar === true;
+    persistida.clavesBorradas = borrar === true || !!(local && local.clavesBorradas && !CLAVES_CFG.some(function(k){ return actual[k]; }));
     persistida.recordarClaves = true;
     CFG = Object.assign({}, persistida);
     var localOk = false;
