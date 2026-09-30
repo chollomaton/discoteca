@@ -30,6 +30,8 @@ jobs:
           node-version: '22'
       - name: Ejecutar validaciones
         run: node scripts/validate.mjs
+      - name: Persistencia de credenciales y actualización
+        run: node scripts/credential-reload-tests.mjs
       - name: F14 · protección ante fallos de carga
         run: node scripts/f14-safe-tests.mjs
       - name: F14 · motor de edición

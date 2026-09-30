@@ -674,7 +674,7 @@ function guardarLocal(){
     try{ localStorage.setItem('discoteca.lastKnownGood', JSON.stringify(payload)); localStorage.setItem(LS_KEY, JSON.stringify(payload)); aceptarColeccion(payload, origenColeccion); }catch(e){ toast('No se pueden guardar los cambios en este dispositivo. Exporta una copia antes de cerrar.', true); throw e; }
   });
 }
-/* Las claves solo persisten en IndexedDB con consentimiento; nunca en el respaldo. */
+/* Claves locales redundantes solo con consentimiento; nunca en la colección. */
 var CLAVES_CFG = ['token', 'discogs', 'anthropic', 'lastfm', 'ticketmaster', 'audd'];
 function configSinClaves(cfg){
   var copia = Object.assign({}, cfg);
@@ -691,10 +691,35 @@ function ocultarSecretos(texto){
     .replace(/([?&](?:token|api_key|apikey|api_token|key)=)[^&#\s]*/gi, '$1[oculto]')
     .replace(/(Bearer\s+)[^\s,;]+/gi, '$1[oculto]');
 }
+var SS_CFG_UPDATE = 'discoteca.cfg.app-update';
+function combinarCfg(base, extra){
+  var copia = Object.assign({}, base, extra);
+  CLAVES_CFG.forEach(function(k){
+    if(!extra || !extra[k]) copia[k] = base && base[k] || '';
+  });
+  return copia;
+}
+function restaurarCfg(cfg){
+  var local = null, temporal = null;
+  try{ local = JSON.parse(localStorage.getItem(LS_CFG)); }catch(e){}
+  try{
+    var raw = sessionStorage.getItem(SS_CFG_UPDATE);
+    sessionStorage.removeItem(SS_CFG_UPDATE);
+    if(raw && new URL(location.href).searchParams.has('app-update')) temporal = JSON.parse(raw);
+  }catch(e){}
+  var copia = combinarCfg(cfg, local);
+  if(copia.recordarClaves === false) copia = configSinClaves(copia);
+  return combinarCfg(copia, temporal);
+}
+function prepararCfgActualizacion(){
+  try{ sessionStorage.setItem(SS_CFG_UPDATE, JSON.stringify(CFG)); }catch(e){}
+}
 function guardarCfg(){
   var publica = configSinClaves(CFG);
-  try{ localStorage.setItem(LS_CFG, JSON.stringify(publica)); }catch(e){}
-  return idbSet(K_CFG, CFG.recordarClaves ? Object.assign({}, CFG) : publica);
+  var persistida = CFG.recordarClaves ? Object.assign({}, CFG) : publica;
+  try{ sessionStorage.removeItem(SS_CFG_UPDATE); }catch(e){}
+  try{ localStorage.setItem(LS_CFG, JSON.stringify(persistida)); }catch(e){}
+  return idbSet(K_CFG, persistida);
 }
 function validarConfig(cfg){
   if(!/^[a-zA-Z0-9-]+$/.test(cfg.owner) || !/^[a-zA-Z0-9_.-]+$/.test(cfg.repo))
@@ -1170,16 +1195,13 @@ function sincronizarAhora(){
 function boot(){
   Promise.all([idbGet(K_CFG).catch(function(){ return null; }), idbGet(K_DATOS).catch(function(){ return null; })])
     .then(function(res){
-      var cfg = res[0], loc = res[1];
-      if(!cfg){
-        try{ var rawCfg = localStorage.getItem(LS_CFG); if(rawCfg) cfg = JSON.parse(rawCfg); }catch(e){}
-      }
+      var cfg = restaurarCfg(res[0]), loc = res[1];
       if(!loc){
         try{ var raw = localStorage.getItem(LS_KEY); if(raw) loc = JSON.parse(raw); }catch(e){}
       }
       if(cfg){
         CFG = Object.assign(CFG, cfg);
-        /* Migración compatible: conservar el acceso existente y quitar la copia duplicada. */
+        /* Migración compatible: conservar el consentimiento de configuraciones antiguas. */
         if(typeof cfg.recordarClaves !== 'boolean') CFG.recordarClaves = true;
         guardarCfg().catch(function(){ toast('No se pudieron guardar los ajustes; conserva tus claves en el gestor de contraseñas', true); });
       }
