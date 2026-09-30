@@ -38,6 +38,8 @@ function filaADisco(x){
   var formato = fmtRaw.toLowerCase().indexOf('cd') >= 0 ? 'CD' : 'Vinilo';
   return normDisc({
     id: uid(), artista: artista, titulo: titulo,
+    discogsReleaseId: /^[1-9]\d*$/.test(x.release_id || x['Release ID'] || '') ? String(x.release_id || x['Release ID']) : '',
+    discogsMasterId: /^[1-9]\d*$/.test(x.master_id || x['Master ID'] || '') ? String(x.master_id || x['Master ID']) : '',
     'año': (x['Released'] || x['Año'] || '').trim(),
     formato: formato, formatoDetalle: fmtRaw,
     genero: clasificar(x['Genre'] || x['Style'] || x['Género'] || '', false, artista),
@@ -72,6 +74,11 @@ function analizarImportacion(filas){
     var d = filaADisco(fila);
     if(!d) return;
     var exacto = porClave[key(d)];
+    if(d.discogsReleaseId){
+      var mismo = DB.discos.filter(function(c){ return String(c.discogsReleaseId || ((String(c.discogs || '').match(/release\/(\d+)/) || [])[1]) || '') === d.discogsReleaseId; })[0];
+      if(mismo){ dudosos.push({nuevo:d,actual:mismo,score:1,motivo:'Mismo Release: puede ser otro ejemplar'}); return; }
+      if(exacto){ dudosos.push({nuevo:d,actual:exacto,score:1,motivo:'Misma obra: comprobar otro Release'}); return; }
+    }
     if(exacto){ identicos.push({nuevo:d, actual:exacto}); return; }
 
     var cands = porArtista[plain(d.artista)] || [], mejor = null, mejorS = 0, motivo = '';
@@ -120,6 +127,9 @@ function pantallaImportacion(an, total){
   var s = sheet('Importar CSV de Discogs', body, pie);
   s.querySelector('[data-cerrar]').onclick = function(){ s.remove(); };
   s.querySelector('#impGo').onclick = function(){
+    if(!escrituraSegura(false) || configuracionEnCurso || pullPromiseActual || pushPromiseActual){ toast('Carga tu colección antes de importar', true); return; }
+    s.querySelector('#impGo').disabled = true;
+    crearPuntoRecuperacion('Antes de importar CSV').then(function(){
     an.nuevos.forEach(function(d){ DB.discos.push(d); });
     persist();
     s.remove();
@@ -128,6 +138,7 @@ function pantallaImportacion(an, total){
       toast(an.nuevos.length + ' discos añadidos' + (an.identicos.length ? ' · ' + an.identicos.length + ' repetidos descartados' : ''));
       if(an.nuevos.length) setTimeout(function(){ bulkRun(an.nuevos.filter(incompleto)); }, 600);
     }
+    }).catch(function(){ toast('No se pudo crear el checkpoint; importación cancelada', true); s.querySelector('#impGo').disabled = false; });
   };
 }
 function revisarDudosos(dudosos, yaAnadidos){
@@ -189,11 +200,13 @@ function revisarDudosos(dudosos, yaAnadidos){
       var fusionado = normDisc(Object.assign({}, a, {
         titulo: b.titulo, artista: b.artista, 'año': b['año'], formato: b.formato,
         formatoDetalle: b.formatoDetalle, genero: b.genero, sello: b.sello,
-        numeroCatalogo: b.numeroCatalogo, estado: b.estado || a.estado,
-        notas: b.notas || a.notas, lista: b.lista,
+        numeroCatalogo: b.numeroCatalogo, estado: a.estado || b.estado,
+        notas: a.notas || b.notas, lista: a.lista,
+        discogsReleaseId: a.discogsReleaseId || b.discogsReleaseId, discogsMasterId: a.discogsMasterId || b.discogsMasterId,
         portada: a.portada || b.portada,
         tracklist: a.tracklist.length ? a.tracklist : b.tracklist
       }));
+      Object.keys(a.editado || {}).forEach(function(k){ if(a.editado[k]) fusionado[k] = a[k]; });
       DB.discos = DB.discos.map(function(x){ return x.id === a.id ? fusionado : x; });
       nuevosCompletar.push(fusionado);
       res.sustituir++;

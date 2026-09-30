@@ -1676,3 +1676,5 @@ label.trk{cursor:pointer}
 .detalle-nav{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
 .detalle-nav button,.calidad-aviso{min-height:44px}
 .calidad-aviso{display:block;text-align:left;white-space:normal;overflow-wrap:anywhere;margin:8px 0;width:100%}
+
+.edition-status{font-size:11px;color:var(--txt2);line-height:1.5;margin-top:4px}.pill.dup{max-width:90%;white-space:normal}

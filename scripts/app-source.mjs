@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 
 export const APP_JS_FILES = [
-  'js/core.js',
+  'js/edition.js', 'js/core.js',
   'js/library.js','js/transfer.js',
   'js/features.js','js/metadata.js',
   'js/insights.js',

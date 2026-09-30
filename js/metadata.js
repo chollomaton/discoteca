@@ -191,17 +191,7 @@ var CREDITOS_DG = {
 };
 function cargarDiscogs(d){
   if(!hayDiscogs()) return Promise.reject(new Error('sin token'));
-  var m = String(d.discogs || '').match(/release\/(\d+)/);
-  var busca = m
-    ? dgGet('releases/' + m[1])
-    : dgGet('database/search?type=release&per_page=3&q='
-        + encodeURIComponent((d.artista || '') + ' ' + (d.titulo || ''))
-        + (d.numeroCatalogo ? '&catno=' + encodeURIComponent(d.numeroCatalogo) : ''))
-      .then(function(j){
-        var r = (j.results || [])[0];
-        if(!r) throw new Error('no encontrado');
-        return dgGet('releases/' + r.id);
-      });
+  var busca = resolverDiscogs(d);
   return busca.then(function(r){
     var comp = {}, cred = {};
     (r.companies || []).forEach(function(c){
@@ -240,7 +230,7 @@ function cargarDiscogs(d){
     };
     /* posiciones de corte (A1, B2…), muy útiles en vinilo */
     var pistas = (r.tracklist || []).filter(function(t){ return !t.type_ || t.type_ === 'track'; });
-    if(pistas.length && d.tracklist.length){
+    if(pistas.length && d.tracklist.length && !protegido(d, 'tracklist')){
       var cambio = false;
       d.tracklist.forEach(function(t, i){
         var p = pistas[i];
@@ -258,10 +248,12 @@ function cargarDiscogs(d){
        uno y no coincide, NO se sustituye en silencio -eso perdería el aviso
        de discrepancia sin que nadie lo revisara-: se deja tal cual y es
        consistenciaIdentificadores() quien avisa de la diferencia en la ficha. */
-    if(tec.pais && !d.pais){
+    if(tec.pais && !d.pais && !protegido(d, 'pais')){
       var codigo = codigoDePaisDiscogs(tec.pais);
       if(codigo) d.pais = codigo;
     }
+    d.discogsReleaseId = String(r.id); d.discogsMasterId = String(r.master_id || '');
+    d.editionStatus = 'verified'; d.metadataSource = 'discogs';
     d.tecnica = tec;
     persist(true);
     return tec;
@@ -530,7 +522,6 @@ async function revisarTodo(s, lista){
     d.revisado = nowISO();
     d.faltan = falta.length ? falta.join(', ') : '';
     marcarRevisado(d, falta);      /* en el dispositivo: la sincronía no puede pisarlo */
-    persist(true);
     guardarRevision({pos:i + 1, total:lista.length, res:res, fallos:fallos.slice(-80)});
   }
   var terminado = !cancelBulk;
@@ -603,28 +594,21 @@ function informeHtml(r){
   }).join('') + '</div>';
 }
 async function revisarDisco(d, res){
-  /* 1. identificador de MusicBrainz */
-  if(!d.mbid && (d.titulo || d.artista)){
-    var rel = await mbBuscarReleases(d.titulo, d.artista, d.formato, 8).catch(function(){ return []; });
-    if(rel.length){
-      d.mbid = rel[0].id;
-      res.ident++;
-    }
-  }
+  if(await enrich(d.id, false, true)) res.datos++;
   /* 2. detalle: tracklist con caras, sello, catálogo, país */
   if(d.mbid){
     var mb = await mbDetalle(d.mbid).catch(function(){ return null; });
     if(mb){
       if(!d.rgid && mb.rgId) d.rgid = mb.rgId;
       var tocado = false;
-      ['sello', 'numeroCatalogo', 'pais', 'formatoDetalle', 'codigoBarras'].forEach(function(f){
+      [].forEach(function(f){
         if(!d[f] && !protegido(d, f) && mb[f]){ d[f] = mb[f]; tocado = true; }
       });
       if(!d['año'] && !protegido(d, 'año') && (mb.anioOriginal || mb['año'])){
         d['año'] = mb.anioOriginal || mb['año']; tocado = true;
       }
       if(tocado) res.datos++;
-      if(!d.tracklist.length && mb.tracklist.length){
+      if(!d.tracklist.length && mb.tracklist.length && !Edition.release(d) && !protegido(d, 'tracklist')){
         d.tracklist = normTracks(mb.tracklist);
         res.tracks++;
       }else if(!protegido(d, 'tracklist') && mb.tracklist.length === d.tracklist.length

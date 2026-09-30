@@ -22,7 +22,7 @@ must(/!\/\\\.json\$\/i\.test\(cfg\.path\)/,'destino limitado a JSON');
 must(/function ghHeaders\(\)/,'cabeceras GitHub centralizadas');
 
 // Red degradada debe distinguir offline de error lógico.
-must(/e instanceof TypeError\)\{\s*marcar\('off'\)/,'fallo de red marca offline');
+must(/e instanceof TypeError && ultimaColeccionValida\) cargaColeccion = 'offline_cached'/,'fallo de red marca offline');
 must(/r\.status === 401 \|\| r\.status === 403/,'autorización tratada explícitamente');
 
 console.log('✓ secretos aislados de localStorage y exportaciones');

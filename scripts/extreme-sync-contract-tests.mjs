@@ -18,7 +18,7 @@ has(core,/if\(revisionDatos !== revisionEnviada\) return push\(\)/,'cambio duran
 has(core,/if\(!resultado\) return resultado/,'fallo no entra en bucle de reintentos');
 
 // Offline prolongado y reconexión no destruyen el estado pendiente.
-has(core,/if\(e instanceof TypeError\)\{ marcar\('off'\); return false; \}/,'fallo de red se clasifica offline');
+has(core,/if\(e instanceof TypeError && ultimaColeccionValida\) cargaColeccion = 'offline_cached'/,'fallo de red se clasifica offline');
 has(core,/ultimaRevisionSubida = revisionEnviada/,'solo éxito avanza revisión subida');
 has(core,/if\(n && CFG\.token\)\{ syncState = 'pend'; programarPush\(\); \}/,'edición local queda pendiente');
 

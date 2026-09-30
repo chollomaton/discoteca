@@ -7,7 +7,7 @@ const block=(a,b)=>{ const start=src.indexOf(a), end=src.indexOf(b,start); asser
 const clone=x=>JSON.parse(JSON.stringify(x));
 const storage=new Map(), records=new Map();
 let idbFails=false, localFails=false;
-const ctx=vm.createContext({console, Date, Set, Number, JSON, Object, String, Array, Promise, Math,
+const ctx=vm.createContext({document:{body:{classList:{add(){},remove(){}}}}, console, Date, Set, Number, JSON, Object, String, Array, Promise, Math,
   CFG:{owner:'u',repo:'private-data',branch:'main',path:'datos.json',token:'example-secret-value',discogs:'discogs-secret',recordarClaves:false},
   DB:{version:4,discos:[],borrados:[],actualizado:''}, LS_CFG:'config-local', K_CFG:'config', K_FALLOS:'fallos',
   nowISO:()=> '2026-09-25T20:00:00.000Z', uid:()=> 'new-id',
@@ -62,7 +62,8 @@ Object.assign(ctx,{configuracionEnCurso:false, configurado:()=>true, readOnly:fa
   SHA:'original', ultimoPull:0, lastSync:'', ghUrl:()=> 'https://api.github.com/repos/u/private-data/contents/datos.json',
   ghHeaders:()=>({Authorization:'Bearer test-fixture'}), b64dec:s=>Buffer.from(s,'base64').toString(),
   marcar:s=>{ctx.syncState=s;}, indexarFirmas:()=>{}, guardarLocal:()=>Promise.resolve(),
-  renderAll:()=>{},toast:()=>{},programarPush:()=>{}, normDisc:d=>d,setTimeout,clearTimeout});
+  renderAll:()=>{},toast:()=>{},programarPush:()=>{}, normDisc:d=>d,setTimeout,clearTimeout,AbortController,TypeError,SyntaxError});
+vm.runInContext(block('var cargaColeccion','function guardarLocal'),ctx);
 vm.runInContext(block('var colaSincro = Promise.resolve();','function sincronizarAhora'),ctx);
 ctx.DB=clone(doc); const requests=[];
 ctx.fetch=async(url,opts)=>{ requests.push({url,opts}); return requests.length===1

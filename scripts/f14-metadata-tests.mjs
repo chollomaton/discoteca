@@ -1,0 +1,10 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+const src=fs.readFileSync('js/core.js','utf8'),cut=(a,b)=>src.slice(src.indexOf(a),src.indexOf(b,src.indexOf(a)));
+let calls=0,saves=0;
+const d={id:'a',titulo:'1984',artista:'Van Halen',pais:'EU',formato:'Vinilo',numeroCatalogo:'CAT',discogs:'https://www.discogs.com/release/10',tracklist:[],editado:{pais:true},notas:'personal',valoracion:5};
+const raw={id:10,master_id:20,title:'1984',artists:[{name:'Van Halen'}],country:'Europe',labels:[{catno:'CAT',name:'Warner'}],formats:[{name:'Vinyl'}],tracklist:[]};
+const c=vm.createContext({console,DB:{discos:[d]},hayDiscogs:()=>true,dgGet:async path=>{calls++;assert.equal(path,'releases/10');return raw;},fetchInfo:async()=>({pais:'JP',numeroCatalogo:'OTHER',mbid:'wrong',tracklist:[{titulo:'wrong'}]}),persist:()=>saves++,plain:s=>s,limpiaNombre:s=>s,limpiaSello:s=>s,codigoDePaisDiscogs:s=>s==='Europe'?'EU':s,normTracks:x=>x,refrescarFaltan(){}});
+vm.runInContext(fs.readFileSync('js/edition.js','utf8'),c);vm.runInContext(cut('var CAMPOS_AUTO','/* ---------- edición concreta'),c);vm.runInContext(cut('function resolverDiscogs','function dgPorId'),c);vm.runInContext(cut('function dgNormaliza','/* ---------- código de barras'),c);
+assert.equal(await c.enrich('a'),true);const before=JSON.stringify(d);assert.equal(await c.enrich('a'),false);assert.equal(JSON.stringify(d),before);assert.equal(saves,1);assert.equal(d.pais,'EU');assert.equal(d.notas,'personal');assert.equal(d.mbid,undefined);assert.equal(d.editionStatus,'verified');assert.equal(d.tracklist.length,0);
+c.dgGet=async()=>({...raw,country:'Japan'});await assert.rejects(c.resolverDiscogs(d));assert.equal(d.pais,'EU');
+console.log('W2: exact release, manual fields, Discogs over MB, valid missing tracklist and complete twice OK');

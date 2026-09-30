@@ -30,6 +30,12 @@ jobs:
           node-version: '22'
       - name: Ejecutar validaciones
         run: node scripts/validate.mjs
+      - name: F14 · protección ante fallos de carga
+        run: node scripts/f14-safe-tests.mjs
+      - name: F14 · motor de edición
+        run: node scripts/f14-edition-tests.mjs
+      - name: F14 · metadata conservadora
+        run: node scripts/f14-metadata-tests.mjs
       - name: Probar sincronización multicliente
         run: node scripts/sync-tests.mjs
       - name: Probar importación y transferencia
