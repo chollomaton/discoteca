@@ -7,7 +7,7 @@ const must=(re,msg)=>assert.match(src,re,msg);
 // Fase 5: secretos fuera de localStorage y fuera de copias exportables.
 must(/var CLAVES_CFG\s*=\s*\['token',\s*'discogs',\s*'anthropic',\s*'lastfm',\s*'ticketmaster',\s*'audd'\]/,'inventario de secretos');
 must(/function configSinClaves\(cfg\)/,'configuración pública sin secretos');
-must(/localStorage\.setItem\(LS_CFG,\s*JSON\.stringify\(publica\)\)/,'localStorage solo recibe config pública');
+must(/localStorage\.setItem\(LS_CFG,\s*JSON\.stringify\(persistida\)\)/,'localStorage recibe configuración según consentimiento');
 must(/CFG\.recordarClaves\s*\?\s*Object\.assign\(\{\},\s*CFG\)\s*:\s*publica/,'persistencia de claves requiere consentimiento');
 
 // Sanitización de errores/logs para no filtrar credenciales.

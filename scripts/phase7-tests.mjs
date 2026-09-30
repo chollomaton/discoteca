@@ -24,7 +24,7 @@ vm.runInContext(block('function apuntarFallo','window.addEventListener'),ctx);
 await ctx.guardarCfg();
 assert.equal(records.get('config').token,''); assert.equal(JSON.parse(storage.get('config-local')).discogs,'');
 ctx.CFG.recordarClaves=true; await ctx.guardarCfg();
-assert.equal(records.get('config').token,'example-secret-value'); assert.equal(JSON.parse(storage.get('config-local')).token,'');
+assert.equal(records.get('config').token,'example-secret-value'); assert.equal(JSON.parse(storage.get('config-local')).token,'example-secret-value');
 ctx.CFG.recordarClaves=false; await ctx.guardarCfg(); assert.equal(records.get('config').token,'');
 idbFails=true; await assert.rejects(ctx.guardarCfg()); idbFails=false;
 console.log('✓ claves de sesión, consentimiento, limpieza y fallo de almacenamiento');

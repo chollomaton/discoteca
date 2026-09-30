@@ -203,6 +203,7 @@ function montarEventos(){
         setTimeout(function(){
           var base = new URL('./index.html', location.href);
           base.searchParams.set('app-update', Date.now());
+          prepararCfgActualizacion();
           location.replace(base.href);
         }, 120);
       };
