@@ -71,3 +71,11 @@ assert.equal(an.identicos.length,1,'duplicado interno se clasifica como idéntic
 
 console.log('✓ CSV robusto: BOM, CRLF, comas, comillas, saltos y Unicode');
 console.log('✓ Importación robusta: vacíos, formato, exactos, ediciones, catálogo y duplicados internos');
+
+// F14: Discogs identity does not collapse releases or extra copies.
+ctx.DB.discos=[ctx.normDisc({id:'owned',artista:'Van Halen',titulo:'1984',formato:'Vinilo',discogs:'https://www.discogs.com/release/10',notas:'personal'})];
+const exactRelease=ctx.analizarImportacion([{Artist:'Van Halen',Title:'1984',Format:'LP',release_id:'10',master_id:'20'}]);
+assert.equal(exactRelease.dudosos.length,1);assert.equal(exactRelease.identicos.length,0);assert.equal(exactRelease.dudosos[0].nuevo.discogsMasterId,'20');
+const otherRelease=ctx.analizarImportacion([{Artist:'Van Halen',Title:'1984',Format:'LP',release_id:'11'}]);
+assert.equal(otherRelease.dudosos.length,1);assert.equal(ctx.DB.discos[0].notas,'personal');
+console.log('✓ F14 CSV: Release, Master, extra copies and personal data');

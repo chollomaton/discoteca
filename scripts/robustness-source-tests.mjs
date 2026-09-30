@@ -27,7 +27,7 @@ has(meta,/var wikiCache\s*=\s*\{\}/,'Wikipedia tiene caché de sesión');
 has(meta,/rel="noopener"/,'enlaces externos aislados con noopener');
 has(meta,/Promise\.reject\(new Error\('sin mbid'\)\)/,'MusicBrainz falla explícitamente sin MBID');
 has(meta,/Promise\.reject\(new Error\('sin token'\)\)/,'Discogs falla explícitamente sin token');
-has(meta,/encodeURIComponent\(d\.numeroCatalogo\)/,'catálogo Discogs codificado');
+has(core,/encodeURIComponent\(d\.numeroCatalogo\)/,'catálogo Discogs codificado');
 has(meta,/\.catch\(function\(\)/,'metadata expone degradación controlada');
 
 // Transferencia: el bloque anterior debe seguir presente tras futuras refactorizaciones.

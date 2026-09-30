@@ -97,7 +97,7 @@ function duracionTotal(d){
   var h = Math.floor(seg / 3600), mi = Math.round(seg % 3600 / 60);
   return h ? h + ' h ' + mi + ' min' : mi + ' min';
 }
-function cargarExtra(d){
+function cargarExtra(d, sinGuardar){
   if(!d.mbid) return Promise.reject(new Error('sin mbid'));
   return mbGet('release/' + d.mbid + '?inc=artist-rels+label-rels+release-groups+genres+ratings+recordings')
     .then(function(r){
@@ -131,7 +131,7 @@ function cargarExtra(d){
       };
       d.extra = ex;
       if(!d.codigoBarras && ex.barcode) d.codigoBarras = ex.barcode;
-      persist(true);
+      if(!sinGuardar) persist(true);
       return ex;
     });
 }
@@ -189,19 +189,9 @@ var CREDITOS_DG = {
   'Written-By':'Composición', 'Music By':'Música', 'Lyrics By':'Letra', 'Arranged By':'Arreglos',
   'Design':'Diseño', 'Artwork':'Ilustración', 'Photography By':'Fotografía', 'Cover':'Portada'
 };
-function cargarDiscogs(d){
+function cargarDiscogs(d, sinGuardar){
   if(!hayDiscogs()) return Promise.reject(new Error('sin token'));
-  var m = String(d.discogs || '').match(/release\/(\d+)/);
-  var busca = m
-    ? dgGet('releases/' + m[1])
-    : dgGet('database/search?type=release&per_page=3&q='
-        + encodeURIComponent((d.artista || '') + ' ' + (d.titulo || ''))
-        + (d.numeroCatalogo ? '&catno=' + encodeURIComponent(d.numeroCatalogo) : ''))
-      .then(function(j){
-        var r = (j.results || [])[0];
-        if(!r) throw new Error('no encontrado');
-        return dgGet('releases/' + r.id);
-      });
+  var busca = resolverDiscogs(d);
   return busca.then(function(r){
     var comp = {}, cred = {};
     (r.companies || []).forEach(function(c){
@@ -240,7 +230,7 @@ function cargarDiscogs(d){
     };
     /* posiciones de corte (A1, B2…), muy útiles en vinilo */
     var pistas = (r.tracklist || []).filter(function(t){ return !t.type_ || t.type_ === 'track'; });
-    if(pistas.length && d.tracklist.length){
+    if(pistas.length && d.tracklist.length && !protegido(d, 'tracklist')){
       var cambio = false;
       d.tracklist.forEach(function(t, i){
         var p = pistas[i];
@@ -258,12 +248,14 @@ function cargarDiscogs(d){
        uno y no coincide, NO se sustituye en silencio -eso perdería el aviso
        de discrepancia sin que nadie lo revisara-: se deja tal cual y es
        consistenciaIdentificadores() quien avisa de la diferencia en la ficha. */
-    if(tec.pais && !d.pais){
+    if(tec.pais && !d.pais && !protegido(d, 'pais')){
       var codigo = codigoDePaisDiscogs(tec.pais);
       if(codigo) d.pais = codigo;
     }
+    d.discogsReleaseId = String(r.id); d.discogsMasterId = String(r.master_id || '');
+    d.editionStatus = 'verified'; d.metadataSource = 'discogs';
     d.tecnica = tec;
-    persist(true);
+    if(!sinGuardar) persist(true);
     return tec;
   });
 }
@@ -530,7 +522,6 @@ async function revisarTodo(s, lista){
     d.revisado = nowISO();
     d.faltan = falta.length ? falta.join(', ') : '';
     marcarRevisado(d, falta);      /* en el dispositivo: la sincronía no puede pisarlo */
-    persist(true);
     guardarRevision({pos:i + 1, total:lista.length, res:res, fallos:fallos.slice(-80)});
   }
   var terminado = !cancelBulk;
@@ -603,31 +594,21 @@ function informeHtml(r){
   }).join('') + '</div>';
 }
 async function revisarDisco(d, res){
-  /* 1. identificador de MusicBrainz */
-  if(!d.mbid && (d.titulo || d.artista)){
-    var rel = await mbBuscarReleases(d.titulo, d.artista, d.formato, 8).catch(function(){ return []; });
-    if(rel.length){
-      d.mbid = rel[0].id;
-      res.ident++;
-    }
-  }
+  if(await enrich(d.id, false, true)) res.datos++;
   /* 2. detalle: tracklist con caras, sello, catálogo, país */
   if(d.mbid){
     var mb = await mbDetalle(d.mbid).catch(function(){ return null; });
     if(mb){
       if(!d.rgid && mb.rgId) d.rgid = mb.rgId;
       var tocado = false;
-      ['sello', 'numeroCatalogo', 'pais', 'formatoDetalle', 'codigoBarras'].forEach(function(f){
-        if(!d[f] && !protegido(d, f) && mb[f]){ d[f] = mb[f]; tocado = true; }
-      });
       if(!d['año'] && !protegido(d, 'año') && (mb.anioOriginal || mb['año'])){
         d['año'] = mb.anioOriginal || mb['año']; tocado = true;
       }
       if(tocado) res.datos++;
-      if(!d.tracklist.length && mb.tracklist.length){
+      if(!d.tracklist.length && mb.tracklist.length && !Edition.release(d) && !protegido(d, 'tracklist')){
         d.tracklist = normTracks(mb.tracklist);
         res.tracks++;
-      }else if(!protegido(d, 'tracklist') && mb.tracklist.length === d.tracklist.length
+      }else if(!Edition.release(d) && !protegido(d, 'tracklist') && mb.tracklist.length === d.tracklist.length
           && !d.tracklist.some(function(t){ return t.disco > 1 || t.pos; })){
         /* mismo número de cortes: añadimos la unidad sin tocar los títulos */
         var hayVarias = mb.tracklist.some(function(t){ return (t.disco || 1) > 1; });
@@ -644,28 +625,28 @@ async function revisarDisco(d, res){
   if(!d.appleUrl || !d.portada){
     var hit = await itBuscar(d.titulo, d.artista).catch(function(){ return null; });
     if(hit){
-      if(!d.appleUrl && hit.c.collectionViewUrl){ d.appleUrl = hit.c.collectionViewUrl; res.apple++; }
-      if(!d.portada && hit.c.artworkUrl100) d.portada = artBig(hit.c.artworkUrl100, 600);
+      if(!d.appleUrl && !protegido(d, 'appleUrl') && hit.c.collectionViewUrl){ d.appleUrl = hit.c.collectionViewUrl; res.apple++; }
+      if(!d.portada && !protegido(d, 'portada') && hit.c.artworkUrl100) d.portada = artBig(hit.c.artworkUrl100, 600);
     }
   }
   /* 4. foto del disco físico */
-  if(!d.fotoDisco && !d.sinFoto && d.mbid){
+  if(!d.fotoDisco && !protegido(d, 'fotoDisco') && !d.sinFoto && d.mbid){
     var url = await fotoDelSoporte(d.mbid, d.rgid).catch(function(){ return ''; });
     if(url){ d.fotoDisco = url; d.fotoDiscoMbid = d.mbid; res.foto++; }
     else d.sinFoto = 1;
   }
   /* 5. créditos y ficha técnica */
   if(!d.extra && d.mbid){
-    await cargarExtra(d).then(function(){ res.creditos++; }).catch(function(){});
+    await cargarExtra(d, true).then(function(){ res.creditos++; }).catch(function(){});
   }
   if(hayDiscogs() && !d.tecnica){
-    await cargarDiscogs(d).then(function(){ res.tecnica++; }).catch(function(){});
+    await cargarDiscogs(d, true).then(function(){ res.tecnica++; }).catch(function(){});
   }
   /* 6. un doble que sigue sin separar: se insiste con las posiciones de Discogs */
   var esDoble = /2\s*[x×]/i.test(d.formatoDetalle || '');
   if(esDoble && d.tracklist.length && !d.tracklist.some(function(t){ return (t.disco || 1) > 1 || t.pos; })){
     if(hayDiscogs()){
-      await cargarDiscogs(d).catch(function(){});
+      await cargarDiscogs(d, true).catch(function(){});
       if(d.tracklist.some(function(t){ return t.pos; })) res.caras++;
     }
   }

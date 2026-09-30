@@ -1,0 +1,13 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+const c=vm.createContext({});vm.runInContext(fs.readFileSync('js/edition.js','utf8'),c);const E=c.Edition;
+const a={id:'a',artista:'Band',titulo:'Album',discogsReleaseId:'1',discogsMasterId:'5'},b={...a,id:'b',discogsReleaseId:'2'};
+assert.equal(E.shop(a,[a],true).state,'exact_release');assert.equal(E.shop(b,[a],true).state,'different_edition');assert.equal(E.shop(a,[{...a,lista:'deseos',wishScope:'release'}],true).state,'wishlist');assert.equal(E.shop(b,[{...a,lista:'deseos',wishScope:'release'}],true).state,'different');assert.equal(E.shop(b,[{...a,lista:'deseos',wishScope:'work'}],true).state,'wishlist');assert.equal(E.shop(a,[],false).state,'uncertain');
+const s=fs.readFileSync('js/features.js','utf8');const data=[{...a,codigoBarras:'12345678'}],initial=JSON.stringify(data),mem=new Map();
+Object.assign(c,{DB:{discos:data},cargaColeccion:'loaded',navigator:{onLine:false},hayDiscogs:()=>true,localStorage:{getItem:k=>mem.get(k),setItem:(k,v)=>mem.set(k,v)}});vm.runInContext(s.slice(s.indexOf('var cacheTienda'),s.indexOf('function modoTienda')),c);
+assert.equal((await c.resolverTienda('12345678')).result.state,'uncertain');assert.equal((await c.resolverTienda('https://www.discogs.com/release/1')).result.state,'exact_release');
+c.navigator.onLine=true;for(const code of [404,429,500]){c.dgGet=async()=>{throw Error('http'+code)};assert.equal((await c.resolverTienda('87654321')).result.state,'uncertain');}
+c.dgGet=async()=>({results:[{id:1,title:'Band - Album',barcode:['12345678']},{id:2,title:'Band - Album',barcode:['12345678']}]});let r=await c.resolverTienda('12345678');assert.equal(r.result.state,'uncertain');assert.equal(r.candidates.length,2);c.navigator.onLine=false;assert.equal((await c.resolverTienda('12345678')).source,'cache');assert.equal(JSON.stringify(data),initial);
+console.log('W7: exact/work/wishlist/different, shared barcode, HTTP/offline/cache and no writes OK');
+
+assert.equal((await c.resolverTienda('https://www.discogs.com/release/2')).source,'cache');
+assert.equal((await c.resolverTienda('https://www.discogs.com/release/2')).result.state,'different_edition');

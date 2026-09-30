@@ -149,9 +149,15 @@ function escanear(alLeer){
   var notaHtml = function(html, cls){ var n = s.querySelector('#snote'); if(n){ n.className = 'note ' + (cls || 'busy'); n.innerHTML = html; } };
   var cerrar = function(){
     parar = true;
+    if(observer) observer.disconnect();
+    document.removeEventListener('visibilitychange', ocultarScan);
     try{ if(lector) lector.reset(); }catch(e){}
     if(stream) stream.getTracks().forEach(function(t){ t.stop(); });
   };
+  var ocultarScan = function(){if(document.hidden){cerrar();s.remove();}};
+  document.addEventListener('visibilitychange',ocultarScan);
+  var observer = new MutationObserver(function(){if(!s.isConnected)cerrar();});
+  observer.observe(document.body,{childList:true,subtree:true});
   var encontrado = function(codigo){
     if(parar) return;
     cerrar(); s.remove();
@@ -259,8 +265,9 @@ function escanear(alLeer){
     return false;
   };
 
-  var detNativo = ('BarcodeDetector' in window)
-    ? new window.BarcodeDetector({formats:['ean_13','upc_a','ean_8','upc_e','code_128']}) : null;
+  var detNativo = null;
+  try{if('BarcodeDetector' in window)detNativo=new window.BarcodeDetector({formats:['ean_13','upc_a','ean_8','upc_e','code_128']});}catch(e){}
+  if(!detNativo){nota('Este navegador no dispone de lector de cámara. Escribe el código o usa una foto.', '');return function(){cerrar();s.remove();};}
   var inicio = Date.now(), avisado = false;
   var bucle = function(){
     if(parar) return;
@@ -286,7 +293,9 @@ function escanear(alLeer){
     });
   };
 
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){nota('La cámara no está disponible. Escribe el código.', 'err');return function(){cerrar();s.remove();};}
   navigator.mediaDevices.getUserMedia(restricciones).then(function(st){
+    if(parar || !s.isConnected){st.getTracks().forEach(function(track){track.stop();});return;}
     stream = st; video.srcObject = st;
     /* enfoque continuo si el dispositivo lo permite; si no, no pasa nada */
     try{
@@ -300,12 +309,15 @@ function escanear(alLeer){
        (que en Safari/iPhone no existe) o cuando el nativo no encuentra nada */
     return cargarZX().catch(function(){ return null; });
   }).then(function(){
+    if(parar || !s.isConnected)return;
     if(window.ZXing) lector = lectorZXRapido();
     nota('Encuadra el código dentro del recuadro');
     video.play().then(function(){ setTimeout(bucle, 400); }).catch(function(){ setTimeout(bucle, 800); });
   }).catch(function(){
+    if(stream)stream.getTracks().forEach(function(track){track.stop();});
     nota('No se pudo abrir la cámara. Escribe el código o usa una foto.', 'err');
   });
+  return function(){cerrar();s.remove();};
 }
 function altaPorCodigo(codigo){
   var t = toast('Buscando ' + codigo + '…');
@@ -456,8 +468,10 @@ function filtrados(base){
     if(fType === 'Vinilo' && d.formato !== 'Vinilo') return false;
     if(fType === 'CD' && d.formato !== 'CD') return false;
     if(fType === 'dup' && !dups[d.id]) return false;
-    if(fType === 'rev' && d.confianza !== 'baja') return false;
-    if(fType === 'inc' && !incompleto(d) && !d.faltan && d.mbid) return false;
+    if(fType === 'unidentified' && Edition.status(d).identity !== 'unidentified') return false;
+    if(fType === 'verified' && Edition.status(d).identity !== 'verified') return false;
+    if(fType === 'rev' && Edition.status(d).identity !== 'review') return false;
+    if(fType === 'inc' && !Edition.status(d).incomplete) return false;
     if(fType === 'noesc' && totalEscuchas(d) > 0) return false;
     if(fType === 'esc'){
       var a = String(new Date().getFullYear());
@@ -515,13 +529,15 @@ function tileHtml(d, dups){
   return '<div class="tile' + (vin ? ' vin' : '') + (falto ? ' amedias' : '') + '" data-id="' + d.id
     + '"><div class="art">' + coverHtml(d)
     + '<span class="badge ' + (vin ? 'vin' : 'cd') + '" data-tip="' + (vin ? 'Vinilo' : 'CD') + '">' + (vin ? I.vinBadge : I.cdBadge) + '</span>'
-    + (dups && dups[d.id] ? '<span class="pill dup">REPETIDO</span>' : (d.confianza === 'baja' ? '<span class="pill low">REVISAR</span>' : ''))
+    + (dups && dups[d.id] ? '<span class="pill dup">' + esc(dups[d.id]) + '</span>' : (d.confianza === 'baja' ? '<span class="pill low">REVISAR</span>' : ''))
     + (d.prestadoA ? '<span class="pill lend">PRESTADO</span>' : '')
     + (readOnly ? '' : '<button type="button" class="oir' + (hoy ? ' hoy' : '') + '" aria-pressed="' + hoy + '" data-oir="' + d.id + '" data-tip="'
         + (hoy ? 'Quitar escucha de hoy' : 'Marcar que lo has escuchado') + '">' + (hoy ? I.check : I.playF) + '</button>')
     + (readOnly ? '' : '<button type="button" class="magic" data-ai="' + d.id + '" data-tip="Buscar los datos que falten">' + I.spark + '</button>')
     + '</div><div class="meta"><div class="t">' + (esc(d.titulo) || 'Sin título') + '</div>'
     + '<div class="a">' + (esc(d.artista) || 'Artista desconocido') + '</div>'
+    + (d.lista === 'deseos' ? '<div class="edition-status">Deseo de ' + (d.wishScope === 'release' ? 'Release' : 'obra') + '</div>' : '')
+    + '<div class="edition-status">' + ({verified:'Verificada',review:'Revisar edición',unidentified:'Sin identificar'})[Edition.status(d).identity] + (Edition.status(d).incomplete ? ' · Incompleta' : '') + '</div>'
     + '<div class="y"><span class="txt">' + (d['año'] || '—') + (d.genero ? ' · ' + esc(d.genero) : '')
     + (totalEscuchas(d) ? ' · ▶ ' + totalEscuchas(d) : '') + '</span>'
     + (d.valoracion ? estrellasHtml(d.valoracion) : '') + '</div></div></div>';
@@ -800,7 +816,7 @@ function restaurarBiblioteca(){
     function opcion(id, valor, defecto){
       return Array.from(document.getElementById(id).options).some(function(o){ return o.value === valor; }) ? valor : defecto;
     }
-    fType = ['all','CD','Vinilo','dup','rev','inc','noesc','esc','fav'].indexOf(e.tipo) >= 0 ? e.tipo : 'all';
+    fType = ['all','CD','Vinilo','dup','rev','unidentified','verified','inc','noesc','esc','fav'].indexOf(e.tipo) >= 0 ? e.tipo : 'all';
     fGen = texto('genero'); fArt = texto('artista'); fTag = texto('etiqueta');
     fDec = texto('decada'); fPais = texto('pais'); fSello = texto('sello');
     sortBy = opcion('sortBy', e.orden, 'artist'); grupo = opcion('selGroup', e.grupo, 'none');
@@ -894,8 +910,8 @@ function paintCol(){
   var board = document.getElementById('board');
   if(!list.length){
     pararCargaIncremental();
-    board.innerHTML = '<div class="blank">' + I.music + '<h3>' + (base.length ? 'Sin resultados' : 'Tu discoteca está vacía')
-      + '</h3><p>' + (base.length ? 'Prueba con otra búsqueda o quita algún filtro.' : 'Añade un disco o importa tu CSV de Discogs.') + '</p></div>';
+    board.innerHTML = '<div class="blank">' + I.music + '<h3>' + (base.length ? 'Sin resultados' : cargaColeccion === 'empty_confirmed' ? 'Tu discoteca está vacía' : cargaColeccion === 'loading' ? 'Cargando colección…' : 'No se ha podido cargar tu colección')
+      + '</h3><p>' + (base.length ? 'Prueba con otra búsqueda o quita algún filtro.' : cargaColeccion === 'empty_confirmed' ? 'Añade un disco o importa tu CSV de Discogs.' : 'Comprueba tu conexión y el acceso a GitHub. Tu colección no se ha reemplazado.') + '</p></div>';
     pintarAZ([]);
     return;
   }
@@ -1107,6 +1123,7 @@ function pintarResumenColeccion(){
   var res = document.getElementById('resumen');
   if(!res) return;
   var base = coleccion();
+  if(!DB.discos.length && cargaColeccion !== 'empty_confirmed'){ res.textContent = cargaColeccion === 'loading' ? 'Cargando colección…' : 'Colección no disponible'; return; }
   var nv = base.filter(function(d){ return d.formato === 'Vinilo'; }).length;
   var nc = base.length - nv;
   var segs = 0;
@@ -2502,45 +2519,6 @@ function detectiveEdiciones(d){
   });
 }
 
-/* ---------- huecos ---------- */
-function verHuecos(artista){
-  var s = sheet('Discografía de ' + artista,
-    '<div class="note busy" id="hnote">Consultando la discografía completa en MusicBrainz…</div><div id="hlist"></div>');
-  huecosArtista(artista).then(function(rgs){
-    if(!rgs.length){
-      s.querySelector('#hnote').className = 'note err';
-      s.querySelector('#hnote').textContent = 'No se encontró la discografía de este artista.';
-      return;
-    }
-    var faltan = rgs.filter(function(r){ return !r.tengo; });
-    s.querySelector('#hnote').style.display = 'none';
-    s.querySelector('#hlist').innerHTML =
-      '<p style="font-size:14.5px;color:var(--txt2);margin:0 0 14px">Tienes <b style="color:var(--txt)">' + (rgs.length - faltan.length)
-      + ' de ' + rgs.length + '</b> álbumes de estudio.</p><div class="tl">'
-      + rgs.map(function(r, i){
-        return '<div class="trk"><span class="num">' + (r['año'] || '—') + '</span>'
-          + '<span class="nm" style="' + (r.tengo ? '' : 'color:var(--txt2)') + '">' + esc(r.titulo) + '</span>'
-          + (r.tengo ? '<span class="tag grn">Lo tienes</span>'
-            : (readOnly ? '' : '<button type="button" class="btn xs" data-add="' + i + '">' + I.heart + 'Deseos</button>')) + '</div>';
-      }).join('') + '</div>';
-    s.querySelectorAll('[data-add]').forEach(function(b){
-      b.onclick = function(){
-        var r = rgs[+b.dataset.add];
-        DB.discos.push(normDisc({
-          id: uid(), lista:'deseos', artista: artista, titulo: r.titulo, 'año': r['año'],
-          formato: 'Vinilo', rgid: r.id, fechaAlta: nowISO()
-        }));
-        persist();
-        b.outerHTML = '<span class="tag pur">En deseos</span>';
-        toast('«' + r.titulo + '» añadido a deseos');
-      };
-    });
-  }).catch(function(){
-    s.querySelector('#hnote').className = 'note err';
-    s.querySelector('#hnote').textContent = 'No se pudo consultar MusicBrainz.';
-  });
-}
-
 /* ---------- formulario ---------- */
 function openForm(item, listaDestino, preset){
   var ed = !!item;
@@ -2593,6 +2571,7 @@ function openForm(item, listaDestino, preset){
       + fieldRow('Dónde está', '<input id="fUb" type="text" value="' + esc(d.ubicacion) + '" placeholder="Estantería 2, balda alta…">')
       + fieldRow('Ejemplares', '<input id="fEj" type="number" min="1" max="99" value="' + (d.ejemplares || 1) + '">')
     + '</div>'
+    + '<div class="group" id="wishScopeRow"'+(d.lista==='deseos'?'':' hidden')+'>' + fieldRow('Deseo de', '<select id="fWishScope"><option value="work">Cualquier edición de la obra</option><option value="release"'+(d.wishScope==='release'?' selected':'')+'>Este Release concreto de Discogs</option></select>') + '</div>'
     + '<div class="gtit">Personal</div><div class="group">'
       + fieldRow('Etiquetas', '<input id="fEt" type="text" value="' + esc(d.etiquetas.join(', ')) + '" placeholder="firmado, primera edición…">')
     + '</div>'
@@ -2634,6 +2613,7 @@ function openForm(item, listaDestino, preset){
   $('#tc').onclick = function(){ setType('CD'); };
   function setLista(l){
     listaSel = l;
+    $('#wishScopeRow').hidden = l !== 'deseos';
     $('#lc').className = l === 'coleccion' ? 'on' : '';
     $('#ld').className = l === 'deseos' ? 'on' : '';
   }
@@ -2679,7 +2659,7 @@ function openForm(item, listaDestino, preset){
       return x.id !== (item && item.id) && (x.titulo || '').trim().toLowerCase() === t
         && (x.artista || '').trim().toLowerCase() === a && x.formato === formato;
     })[0];
-    $('#dupw').innerHTML = m ? '<div class="warnb">' + I.warn + '<span>Ya tienes <b>' + esc(m.titulo) + '</b> de ' + esc(m.artista) + ' en ' + formato + '.</span></div>' : '';
+    $('#dupw').innerHTML = m ? '<div class="warnb">' + I.warn + '<span>Ya tienes esta obra: <b>' + esc(m.titulo) + '</b> de ' + esc(m.artista) + ' en ' + formato + '. Comprueba si es otro Release o ejemplar.</span></div>' : '';
   }
   $('#fT').oninput = checkDup; $('#fA').oninput = checkDup;
 
@@ -2731,6 +2711,7 @@ function openForm(item, listaDestino, preset){
 
   if(ed) $('#del').onclick = function(){
     if(confirm('¿Eliminar "' + (d.titulo || 'este disco') + '" de la colección?')){
+      if(DB.discos.length === 1 && !autorizarVaciadoExplicito())return;
       guardarDeshacer([d], 'eliminar disco');
       DB.discos = DB.discos.filter(function(x){ return x.id !== d.id; });
       persist(); s.remove(); toast('Disco eliminado');
@@ -2740,13 +2721,14 @@ function openForm(item, listaDestino, preset){
   $('#save').onclick = function(){
     var u2 = $('#fU2').value.trim();
     var ref = idDesdeUrl(u2);
+    if(listaSel==='deseos' && $('#fWishScope').value==='release' && !(ref && ref.tipo==='discogs') && !Edition.release(d)){toast('Indica la URL del Release Discogs que deseas',true);return;}
     /* Se parte de una copia completa de la ficha tal como estaba (d ya tiene
        la forma canónica entera, la ponga openForm al abrir editando o creando)
        y solo se sobrescriben los campos que vienen del formulario. Así ningún
        dato que no se edita aquí —valoración, escuchas, foto del disco, ficha
        técnica, enlaces— puede perderse al guardar. */
     var n = normDisc(Object.assign({}, d, {
-      id: d.id || uid(), formato: formato, lista: listaSel,
+      id: d.id || uid(), formato: formato, lista: listaSel, wishScope:listaSel==='deseos'?$('#fWishScope').value:'',
       titulo: $('#fT').value.trim(), artista: $('#fA').value.trim(),
       genero: $('#fG').value, 'año': $('#fY').value.trim(), formatoDetalle: $('#fF').value.trim(),
       sello: $('#fL').value.trim(), numeroCatalogo: $('#fC').value.trim(), pais: $('#fP').value.trim().toUpperCase(),

@@ -419,10 +419,26 @@ function explorarColeccion(){
   pintar(false);
 }
 
+/* Recomendaciones voluntarias. Solo se recuerda la sugerencia solicitada. */
+function recomendarLocal(discos, modo, azar){
+  var list = discos.filter(function(d){return d.lista !== 'deseos';}).slice();
+  if(modo === 'unheard')list=list.filter(function(d){return !totalEscuchas(d);});
+  if(modo === 'old')list=list.filter(function(d){return totalEscuchas(d)>0 && diasDesdeEscucha(d)>=90;});
+  if(modo === 'favorites')list=list.filter(function(d){return d.valoracion>=4 && diasDesdeEscucha(d)>=90;});
+  if(!list.length)return null;
+  if(modo === 'old' || modo === 'favorites')list.sort(function(a,b){return diasDesdeEscucha(b)-diasDesdeEscucha(a);});
+  return list[modo==='random' ? Math.floor((azar == null ? Math.random() : azar)*list.length)%list.length : 0];
+}
+function registrarRecomendacion(id){
+  try{var h=JSON.parse(localStorage.getItem('discoteca.sugerencias.elegidas')||'[]');
+    localStorage.setItem('discoteca.sugerencias.elegidas',JSON.stringify(h.concat([{id:id,dia:hoyISO()}]).slice(-20)));
+  }catch(e){}
+}
+
 function pintarSugerencias(){
   var caja = document.getElementById('sugerencias');
   if(!caja) return;
-  if(readOnly || document.getElementById('q').value || hayFiltros()){ caja.innerHTML = ''; return; }
+  if(localStorage.getItem('discoteca.sugerencias.optIn') !== 'true' || readOnly || document.getElementById('q').value || hayFiltros()){ caja.innerHTML = ''; return; }
   var sug = sugerenciasDelDia();
   if(sug.length < 3){ caja.innerHTML = ''; return; }
   caja.innerHTML = '<div class="sughd"><h4>' + I.bombilla + 'Hoy me apetece…</h4>'

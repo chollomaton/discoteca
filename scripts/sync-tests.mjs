@@ -15,7 +15,7 @@ function sliceBetween(a,b){
 }
 
 const ctx = vm.createContext({
-  console, JSON, Date, Math, Number, String, Object, Array, RegExp,
+  document:{body:{classList:{add(){},remove(){}}}}, console, JSON, Date, Math, Number, String, Object, Array, RegExp,
   uid: ()=> 'test-id',
   nowISO: ()=> ctx.__now || '2026-09-25T12:00:00.000Z',
   DB:{discos:[],borrados:[]},
@@ -175,8 +175,8 @@ const syncBlock = sliceBetween('var colaSincro = Promise.resolve();','function s
 const sleep = (ms)=>new Promise((r)=>setTimeout(r,ms));
 function netContext(fetchImpl){
   const c=vm.createContext({
-    console, JSON, Date, Math, Number, String, Object, Array, Promise, TypeError,
-    setTimeout, clearTimeout,
+    document:{body:{classList:{add(){},remove(){}}}}, console, JSON, Date, Math, Number, String, Object, Array, Promise, TypeError,
+    setTimeout, clearTimeout, AbortController, SyntaxError,
     CFG:{owner:'u',repo:'r',branch:'main',path:'datos.json',token:'t'},
     DB:{discos:[{id:'d1',titulo:'A',artista:''}],borrados:[],actualizado:''},
     configuracionEnCurso:false, SHA:'s0', lastSync:'', readOnly:false, revisionDatos:1, syncState:'ok',
@@ -195,6 +195,10 @@ function netContext(fetchImpl){
     fusionar:(locales,borrLoc,remotos,borrRem)=>({discos:locales,borrados:borrLoc||[],aLocal:0,aRemoto:0})
   });
   vm.runInContext(sliceBetween('function validarCopia(o){','function descargarCopia'),c);
+  vm.runInContext(sliceBetween('var cargaColeccion','function guardarLocal'),c);
+  vm.runInContext(sliceBetween('function destinoConfig','function crearPuntoRecuperacion'),c);
+  c.crearPuntoRecuperacion=()=>Promise.resolve();
+  c.aceptarColeccion(c.DB,'remote'); c.remotoValidado=c.destinoConfig(c.CFG)+'|'+c.CFG.token;
   vm.runInContext(syncBlock,c);
   return c;
 }

@@ -18,7 +18,7 @@ assert.equal(ctx.sugerenciasDelDia([records[0]],1).length,1);
 for(let i=1;i<=30;i++){day='2026-10-'+String(i).padStart(2,'0');ctx.sugerenciasDelDia();}assert(JSON.parse(mem.get('discoteca.recomendaciones.v1')).length<=56);
 const broken=[...records,{...records[0],id:'broken',año:'oops',mbid:'bad',enlazado:'absent',tracklist:[{titulo:''}]}];
 const snapshot=JSON.stringify(broken),diagnostic=ctx.diagnosticoColeccion(broken);
-for(const type of ['Duplicado exacto','Posible duplicado','Portada ausente','Tracklist vacío','Año inválido','Identificador externo incoherente','Edición enlazada ausente','Pistas sin título'])assert(diagnostic.some(x=>x.tipo===type),type);
+for(const type of ['Misma obra · comprobar edición','Posible duplicado','Portada ausente','Tracklist vacío','Año inválido','Identificador externo incoherente','Edición enlazada ausente','Pistas sin título'])assert(diagnostic.some(x=>x.tipo===type),type);
 assert.equal(JSON.stringify(broken),snapshot);
 assert(ctx.diagnosticoColeccion([{...records[0],titulo:'Dark Side of the Moon'},{...records[0],id:'similar',titulo:'Dark Side of Moon'}]).some(x=>x.tipo==='Posible duplicado'),'similar titles detected at import threshold');
 const large=Array.from({length:5000},(_,i)=>({...records[i%24],id:'scale'+i}));const started=Date.now();assert(ctx.diagnosticoColeccion(large).length);assert(Date.now()-started<3000,'indexed diagnostic at 5000');
@@ -50,7 +50,7 @@ if(event.pull_request && event.pull_request.head.ref==='fase-13-producto'){
  assert.equal(hash(dataAt(event.pull_request.head.sha)),expected,'phase 13 branch leaves original bytes intact');
  assert.equal(hash(fs.readFileSync('datos.json')),hash(dataAt('HEAD^1')),'PR merge keeps current main collection');
 }else if(!process.env.GITHUB_ACTIONS){
- assert.equal(hash(fs.readFileSync('datos.json')),expected,'local phase 13 collection unchanged');
+ assert.equal(hash(fs.readFileSync('datos.json')),hash(dataAt('HEAD')),'local collection unchanged from checkout');
 }
 // Main may receive legitimate collection saves independently of product development.
 

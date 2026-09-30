@@ -671,6 +671,7 @@ function accionesLote(){
   });
   on('del', function(){
     if(!confirm('¿Eliminar ' + ds.length + ' discos?')) return;
+    if(DB.discos.every(function(d){return seleccion[d.id];}) && !autorizarVaciadoExplicito())return;
     guardarDeshacer(ds, 'eliminar ' + ds.length + ' discos');
     DB.discos = DB.discos.filter(function(d){ return !seleccion[d.id]; });
     persist(); s.remove(); modoSeleccion(false);
@@ -898,6 +899,40 @@ function inventarioUbicaciones(){
 /* ============================================================
    23. PANTALLA DE ARTISTA
    ============================================================ */
+/* ---------- huecos ---------- */
+function verHuecos(artista){
+  var s = sheet('Discografía de ' + artista,
+    '<div class="note busy" id="hnote">Consultando discografía…</div><div id="hlist"></div>');
+  huecosArtista(artista).then(function(rgs){
+    if(!rgs.length){
+      s.querySelector('#hnote').className = 'note err';
+      s.querySelector('#hnote').textContent = 'No se encontró la discografía de este artista.';
+      return;
+    }
+    var studio = rgs.filter(function(r){return r.tipo === 'studio' && !r.ignorado;});
+    var tengo = studio.filter(function(r){return r.tengo;}).length;
+    s.querySelector('#hnote').textContent = (rgs.some(function(r){return r.offline;}) ? 'Copia sin conexión · ' : '') + tengo + ' de ' + studio.length + ' álbumes de estudio';
+    s.querySelector('#hnote').className = 'note';
+    s.querySelector('#hlist').innerHTML = '<div class="tl">' + rgs.map(function(r,i){
+      return '<div class="trk"><span class="num">'+esc(r.año||'—')+'</span><span class="nm">'+esc(r.titulo)+' <small>'+({studio:'Estudio',live:'Directo',compilation:'Recopilatorio',unknown:'Tipo sin confirmar'})[r.tipo]+'</small></span>'
+        +(r.tengo?'<span class="tag grn">Lo tienes</span>':r.deseo?'<span class="tag pur">En deseos</span>':readOnly?'':'<button type="button" class="btn xs" data-add="'+i+'">Deseos de obra</button>')
+        +'<button type="button" class="btn xs" data-ignore="'+i+'">'+(r.ignorado?'Restaurar':'Ignorar')+'</button></div>';
+    }).join('')+'</div>';
+    s.querySelectorAll('[data-ignore]').forEach(function(b){b.onclick = function(){ignorarObra(artista,rgs[+b.dataset.ignore]);s.remove();verHuecos(artista);};});
+    s.querySelectorAll('[data-add]').forEach(function(b){
+      b.onclick = function(){
+        var r = rgs[+b.dataset.add];
+        desearObra(artista,r);
+        b.outerHTML = '<span class="tag pur">En deseos</span>';
+        toast('«' + r.titulo + '» añadido a deseos');
+      };
+    });
+  }).catch(function(){
+    s.querySelector('#hnote').className = 'note err';
+    s.querySelector('#hnote').textContent = 'No se pudo consultar la discografía. La colección local sigue disponible.';
+  });
+}
+
 function verArtista(nombre){
   if(!nombre) return;
   var mios = DB.discos.filter(function(d){ return plain(d.artista) === plain(nombre); });
@@ -925,10 +960,12 @@ function verArtista(nombre){
     + '<div class="rowb" style="margin-bottom:18px">'
       + '<button type="button" class="btn sm" id="aWiki">' + I.libro + 'Quién es</button>'
       + '<button type="button" class="btn sm" id="aCol">' + I.layers + 'Ver en la colección</button>'
-      + (enCol.length ? '<button type="button" class="btn sm" id="aAzar">' + I.aleatorio + 'Uno al azar</button>' : '')
+      + (enCol.length ? '<button type="button" class="btn sm" id="aAzar">' + I.aleatorio + 'Sorpréndeme</button>' : '')
     + '</div>'
     + '<div id="aWikiBody"></div>'
-    + '<div class="tl-hd"><h4>Discografía</h4><span class="n" id="aCuenta">buscando…</span></div>'
+    + '<div class="rowb"><button type="button" class="btn sm" id="aCatalogo">Discografía por obras</button>'
+    + '<button type="button" class="btn sm" data-rec="old">Hace tiempo</button><button type="button" class="btn sm" data-rec="unheard">Sin escuchas</button><button type="button" class="btn sm" data-rec="favorites">Favoritos olvidados</button></div>'
+    + '<div class="tl-hd"><h4>Tu colección</h4><span class="n" id="aCuenta">disponible sin conexión</span></div>'
     + '<div id="aDisco"><div class="grid paisgrid">' + enCol.slice().sort(function(a, b){
         return String(a['año']).localeCompare(String(b['año']));
       }).map(function(d){ return tileHtml(d, null); }).join('') + '</div></div>'
@@ -945,48 +982,17 @@ function verArtista(nombre){
     s.remove(); setView('col'); paintCol();
   };
   if(s.querySelector('#aAzar')) s.querySelector('#aAzar').onclick = function(){
-    var x = enCol[Math.floor(Math.random() * enCol.length)];
-    s.remove(); openDetail(x.id);
+    var x = recomendarLocal(enCol, 'random');
+    if(x){ registrarRecomendacion(x.id); s.remove(); openDetail(x.id); }
   };
 
-  /* discografía completa: lo que tienes en color, lo que falta en gris */
-  huecosArtista(nombre).then(function(rgs){
-    if(!document.body.contains(s) || !rgs.length) return;
-    var idxMios = {};
-    mios.forEach(function(d){ idxMios[plain(d.titulo)] = d; });
-    var tengo = rgs.filter(function(r){ return r.tengo; }).length;
-    s.querySelector('#aCuenta').textContent = 'tienes ' + tengo + ' de ' + rgs.length + ' álbumes de estudio';
-    setTimeout(function(){ portadasQueFaltan(s); }, 200);
-    s.querySelector('#aDisco').innerHTML = '<div class="grid paisgrid discog">' + rgs.map(function(r){
-      var mio = idxMios[plain(r.titulo)];
-      if(mio) return tileHtml(mio, null);
-      return '<div class="tile falta" data-falta="' + esc(r.titulo) + '" data-anio="' + esc(r['año'])
-        + '" data-rg="' + esc(r.id) + '">'
-        + '<div class="art">' + I.disc + (readOnly ? '' : '<button type="button" class="addw" data-tip="Añadir a deseos">'
-          + I.heart + '</button>') + '</div>'
-        + '<div class="meta"><div class="t">' + esc(r.titulo) + '</div>'
-        + '<div class="a">No lo tienes</div>'
-        + '<div class="y"><span class="txt">' + (r['año'] || '') + '</span></div></div></div>';
-    }).join('') + '</div>';
-    enlazarTiles(s, null);
-    var alDeseos = function(b){
-      b.onclick = function(e){
-        e.stopPropagation();
-        var t = b.closest('.falta');
-        DB.discos.push(normDisc({
-          id: uid(), lista:'deseos', artista: nombre,
-          titulo: t.dataset.falta, 'año': t.dataset.anio, formato:'Vinilo', fechaAlta: nowISO()
-        }));
-        persist();
-        b.outerHTML = '<span class="pill" style="background:rgba(175,82,222,.94);color:#fff;left:8px;top:8px">DESEOS</span>';
-        toast('«' + t.dataset.falta + '» añadido a deseos');
-      };
+  s.querySelector('#aCatalogo').onclick = function(){ verHuecos(nombre); };
+  s.querySelectorAll('[data-rec]').forEach(function(b){
+    b.onclick = function(){
+      var d = recomendarLocal(enCol,b.dataset.rec);
+      if(!d){toast('No hay discos para esta opción');return;}
+      registrarRecomendacion(d.id);s.remove();openDetail(d.id);
     };
-    s.querySelectorAll('.falta .addw').forEach(alDeseos);
-    s.querySelectorAll('.falta').forEach(function(el){ el._addw = alDeseos; });
-    montarAyudas(s);
-  }).catch(function(){
-    if(document.body.contains(s)) s.querySelector('#aCuenta').textContent = enCol.length + ' en tu colección';
   });
 }
 
@@ -2362,131 +2368,58 @@ function pantallaDiscogs(){
 /* ============================================================
    28. MODO TIENDA
    ============================================================ */
+/* W7: lectura local → caché → Discogs. Nunca escribe la colección. */
+var cacheTienda = new Map();
+async function resolverTienda(entrada){
+  var query=String(entrada||'').trim(), rid=Edition.release({discogs:query});
+  var code=Edition.code(query), local=rid?DB.discos.filter(function(d){return Edition.release(d)===rid;}):DB.discos.filter(function(d){return Edition.code(d.codigoBarras)===code;});
+  var complete=cargaColeccion==='loaded' && navigator.onLine!==false;
+  if(rid && local.length)return {candidate:local[0],result:Edition.shop(local[0],DB.discos,complete),source:'local'};
+  var cached=cacheTienda.get(query);
+  if(rid && !cached){try{var known=JSON.parse(localStorage.getItem('discoteca.tienda.release.'+rid)||'null');if(known && Edition.release(known)===rid)return {candidate:known,result:Edition.shop(known,DB.discos,cargaColeccion==='loaded' && navigator.onLine!==false),source:'cache'};}catch(e){}}
+  if(!cached){try{cached=JSON.parse(localStorage.getItem('discoteca.tienda.'+query)||'null');}catch(e){}}
+  if(cached && Array.isArray(cached.candidates))return Object.assign({},cached,{source:'cache'});
+  if(!hayDiscogs() || navigator.onLine===false)return {result:{state:'uncertain',discs:local},source:'local'};
+  try{
+    if(rid){var raw=await dgGet('releases/'+rid);if(!raw || String(raw.id)!==rid)throw new Error('Release inesperado');var candidate=Edition.fromDiscogs(raw);return {candidate:candidate,result:Edition.shop(candidate,DB.discos,cargaColeccion==='loaded' && navigator.onLine!==false),source:'discogs'};}
+    var j=await dgGet('database/search?type=release&per_page=50&barcode='+encodeURIComponent(query));
+    if(!j || !Array.isArray(j.results))throw new Error('Respuesta inesperada');
+    var out={candidates:j.results.map(Edition.fromDiscogs),result:{state:'uncertain',discs:local},source:'discogs'};
+    /* El barcode no certifica identidad, incluso con una sola coincidencia. */
+    cacheTienda.set(query,out);
+    out.candidates.forEach(function(candidate){try{localStorage.setItem('discoteca.tienda.release.'+Edition.release(candidate),JSON.stringify(candidate));}catch(e){}});
+    try{localStorage.setItem('discoteca.tienda.'+query,JSON.stringify(out));}catch(e){}
+    return out;
+  }catch(e){return {result:{state:'uncertain',discs:local},error:'No se pudo comprobar la edición',source:'local'};}
+}
 function modoTienda(){
-  var t = document.createElement('div');
-  t.className = 'tienda';
-  t.innerHTML =
-    '<div class="tnav"><button type="button" class="tclose" aria-label="Cerrar">' + I.x + '</button>'
-    + '<div class="ttit">Modo tienda</div>'
-    + '<button type="button" class="tluz" data-tip="Lista de deseos">' + I.heart + '</button></div>'
-    + '<div class="tbody" id="tBody">'
-      + '<button type="button" class="tscan" id="tScan">' + I.scan + '<span>Escanear un disco</span></button>'
-      + '<div class="tman"><input id="tCod" type="text" inputmode="numeric" placeholder="o escribe el código">'
-      + '<button type="button" class="btn pri" id="tOk">Buscar</button></div>'
-      + '<div id="tRes"></div>'
-      + '<div class="tdeseos" id="tDeseos"></div>'
-    + '</div>';
+  if(document.querySelector('.tienda'))return;
+  var t=document.createElement('div'),request=0,closed=false,stopScan=null;
+  t.className='tienda';t.setAttribute('role','dialog');t.setAttribute('aria-modal','true');t.setAttribute('aria-label','Modo tienda');
+  t.innerHTML='<div class="tnav"><button type="button" class="tclose" aria-label="Cerrar">'+I.x+'</button><div class="ttit">Modo tienda</div></div>'
+    +'<div class="tbody"><button type="button" class="tscan" id="tScan">'+I.scan+'<span>Escanear un disco</span></button>'
+    +'<div class="tman"><input id="tCod" type="text" aria-label="Código de barras o URL de Release Discogs" placeholder="Código o URL Discogs"><button type="button" class="btn pri" id="tOk">Buscar</button></div>'
+    +'<p>Comprobar no modifica tu colección. Un código puede pertenecer a varias ediciones.</p><div id="tRes" role="status" aria-live="polite"></div></div>';
   document.body.appendChild(t);
-  var cerrar = function(){ t.remove(); };
-  t.querySelector('.tclose').onclick = cerrar;
-  var pintaDeseos = function(){
-    var ds = deseos();
-    t.querySelector('#tDeseos').innerHTML = ds.length
-      ? '<div class="tdt">Buscando ' + ds.length + (ds.length === 1 ? ' disco' : ' discos') + '</div>'
-        + ds.map(function(d){
-            return '<div class="tdi"><div class="tda">' + coverHtml(d) + '</div>'
-              + '<div class="tdn"><div class="t">' + esc(d.titulo) + '</div>'
-              + '<div class="a">' + esc(d.artista) + '</div>'
-              + '<div class="e">' + [d['año'], d.formato, d.numeroCatalogo].filter(Boolean).join(' · ') + '</div></div></div>';
-          }).join('')
-      : '<div class="tdt">Tu lista de deseos está vacía</div>';
-  };
-  pintaDeseos();
-  t.querySelector('.tluz').onclick = function(){
-    t.querySelector('#tDeseos').scrollIntoView({behavior:'smooth'});
-  };
-  var responder = function(codigo){
-    var caja = t.querySelector('#tRes');
-    caja.innerHTML = '<div class="tbuscando">' + I.search + 'Buscando ' + esc(codigo) + '…</div>';
-    /* Una coincidencia en deseos NO es "ya lo tienes": son listas distintas
-       y no deben tratarse igual en ningún caso de esta función. */
-    var mioCol = DB.discos.filter(function(d){ return d.codigoBarras === codigo && d.lista !== 'deseos'; })[0];
-    var mioDeseo = !mioCol && DB.discos.filter(function(d){ return d.codigoBarras === codigo && d.lista === 'deseos'; })[0];
-    var pinta = function(d, encontrado, info, otraEdicion, esDeseo){
-      if(encontrado && d && esDeseo){
-        caja.innerHTML = '<div class="tcard otra"><div class="tico">' + I.heart + '</div>'
-          + '<div class="tt">ESTÁ EN TU LISTA DE DESEOS</div>'
-          + '<div class="tsub">' + esc(d.titulo) + ' · ' + esc(d.artista) + '</div>'
-          + '<div class="tdet">' + [d.formato, d['año']].filter(Boolean).join(' · ') + '</div>'
-          + '<button type="button" class="btn" id="tVer">Ver en deseos</button></div>';
-        var bv = caja.querySelector('#tVer');
-        if(bv) bv.onclick = function(){ cerrar(); openDetail(d.id); };
-      }else if(encontrado && d && !otraEdicion){
-        caja.innerHTML = '<div class="tcard si"><div class="tico">' + I.check + '</div>'
-          + '<div class="tt">YA LO TIENES</div>'
-          + '<div class="tsub">' + esc(d.titulo) + ' · ' + esc(d.artista) + '</div>'
-          + '<div class="tdet">' + [d.formato, d['año'], d.estado].filter(Boolean).join(' · ')
-          + (d.precioCompra ? ' · pagaste ' + d.precioCompra.toFixed(2) + ' €' : '')
-          + (d.ubicacion ? ' · ' + esc(d.ubicacion) : '') + '</div>'
-          + '<button type="button" class="btn" id="tVer">Ver la ficha</button></div>';
-        var b = caja.querySelector('#tVer');
-        if(b) b.onclick = function(){ cerrar(); openDetail(d.id); };
-      }else if(encontrado && d && otraEdicion){
-        /* mismo álbum, pero la edición que tienes no es exactamente esta:
-           se enseñan las dos una al lado de la otra, sin decir cuál comprar */
-        var fila2 = function(k, tuya, esta){
-          if(!tuya && !esta) return '';
-          var distinto = tuya && esta && String(tuya) !== String(esta);
-          return '<div class="tcompfila' + (distinto ? ' dif' : '') + '"><span class="tck">' + k + '</span>'
-            + '<span class="tcv">' + esc(tuya || '—') + '</span><span class="tcv">' + esc(esta || '—') + '</span></div>';
-        };
-        caja.innerHTML = '<div class="tcard otra"><div class="tico">' + I.layers + '</div>'
-          + '<div class="tt">TIENES ESTE ÁLBUM, OTRA EDICIÓN</div>'
-          + '<div class="tsub">' + esc(d.titulo) + ' · ' + esc(d.artista) + '</div>'
-          + '<div class="tcomp"><div class="tcompfila tchd"><span class="tck"></span><span class="tcv">La tuya</span><span class="tcv">Esta</span></div>'
-          + fila2('Formato', d.formato, info && (/cd/i.test(info.formatoDetalle || '') ? 'CD' : 'Vinilo'))
-          + fila2('Año', d['año'], info && info['año'])
-          + fila2('Sello', d.sello, info && info.sello)
-          + fila2('País', d.pais && nombrePais(d.pais), info && info.pais && nombrePais(info.pais))
-          + fila2('Catálogo', d.numeroCatalogo, info && info.numeroCatalogo)
-          + '</div>'
-          + '<button type="button" class="btn" id="tVer2">Ver tu ficha</button></div>';
-        var b2 = caja.querySelector('#tVer2');
-        if(b2) b2.onclick = function(){ cerrar(); openDetail(d.id); };
-      }else{
-        caja.innerHTML = '<div class="tcard no"><div class="tico">' + I.plus + '</div>'
-          + '<div class="tt">NO LO TIENES</div>'
-          + '<div class="tsub">' + (info ? esc(info.titulo + ' · ' + info.artista) : 'Código ' + esc(codigo)) + '</div>'
-          + '<div class="rowb" style="justify-content:center;margin-top:14px">'
-          + (readOnly ? '' : '<button type="button" class="btn" id="tDeseo">' + I.heart + 'A deseos</button>')
-          + (readOnly ? '' : '<button type="button" class="btn pri" id="tAlta">Añadir ya</button>') + '</div>'
-          + (readOnly ? '<div class="tdet" style="margin-top:10px">Modo solo lectura: configura la sincronización para poder añadir discos.</div>' : '') + '</div>';
-        var bd = caja.querySelector('#tDeseo');
-        if(bd) bd.onclick = function(){
-          var nuevo = normDisc(Object.assign({id:uid(), lista:'deseos', codigoBarras:codigo, fechaAlta:nowISO()},
-            info ? {artista:info.artista, titulo:info.titulo, 'año':info['año'], sello:info.sello,
-              numeroCatalogo:info.numeroCatalogo, formato:/cd/i.test(info.formatoDetalle || '') ? 'CD' : 'Vinilo'} : {}));
-          DB.discos.push(nuevo);
-          persist();
-          pintaDeseos();
-          toast('Añadido a deseos');
-          caja.innerHTML = '<div class="tcard si"><div class="tico">' + I.check + '</div><div class="tt">EN DESEOS</div></div>';
-        };
-        var ba = caja.querySelector('#tAlta');
-        if(ba) ba.onclick = function(){ cerrar(); altaPorCodigo(codigo); };
-      }
-    };
-    if(mioCol) return pinta(mioCol, true, null, false, false);
-    if(mioDeseo) return pinta(mioDeseo, true, null, false, true);
-    porCodigoBarras(codigo).then(function(info){
-      var igualCol = DB.discos.filter(function(d){
-        return d.lista !== 'deseos' && plain(d.artista) === plain(info.artista) && plain(d.titulo) === plain(info.titulo);
-      })[0];
-      var igualDeseo = !igualCol && DB.discos.filter(function(d){
-        return d.lista === 'deseos' && plain(d.artista) === plain(info.artista) && plain(d.titulo) === plain(info.titulo);
-      })[0];
-      if(igualCol) return pinta(igualCol, true, info, true, false);
-      if(igualDeseo) return pinta(igualDeseo, true, info, true, true);
-      pinta(null, false, info, false, false);
-    }).catch(function(){ pinta(null, false, null); });
-  };
-  t.querySelector('#tOk').onclick = function(){
-    var v = t.querySelector('#tCod').value.replace(/\D/g, '');
-    if(v.length >= 8) responder(v);
-  };
-  t.querySelector('#tCod').onkeydown = function(e){ if(e.key === 'Enter') t.querySelector('#tOk').click(); };
-  t.querySelector('#tScan').onclick = function(){
-    escanear(function(codigo){ responder(codigo); });
-  };
-  montarAyudas(t);
+  var previo=document.activeElement;
+  function close(){closed=true;request++;if(stopScan)stopScan();document.removeEventListener('keydown',key);t.remove();if(previo && previo.focus)previo.focus();}
+  function key(e){if(e.key==='Escape'){e.preventDefault();close();}if(e.key==='Tab'){var nodes=Array.from(t.querySelectorAll('button,input')).filter(function(n){return !n.disabled;});var i=nodes.indexOf(document.activeElement);if(e.shiftKey&&i<=0){e.preventDefault();nodes[nodes.length-1].focus();}else if(!e.shiftKey&&i===nodes.length-1){e.preventDefault();nodes[0].focus();}}}
+  document.addEventListener('keydown',key);t.querySelector('.tclose').onclick = close;
+  var labels={exact_release:'Tienes este Release',same_work:'Tienes esta obra; edición sin confirmar',different_edition:'Tienes otra edición de esta obra',wishlist:'Está en tus deseos',different:'Sin coincidencia en la colección cargada',uncertain:'Edición incierta: no se puede confirmar si lo tienes'};
+  async function search(value){
+    var turn=++request,caja=t.querySelector('#tRes');t.dataset.state='searching';caja.textContent='Comprobando…';
+    var response=await resolverTienda(value);
+    if(closed || turn!==request)return;
+    t.dataset.state=response.result.state;
+    caja.innerHTML='<div class="tcard"><h3>'+labels[response.result.state]+'</h3><p>'+esc(response.error||'')+'</p>'
+      +response.result.discs.map(function(d){return '<p>'+esc(d.artista+' — '+d.titulo)+'</p>';}).join('')+'</div>';
+    (response.candidates||[]).forEach(function(candidate){
+      var b=document.createElement('button');b.type='button';b.className='btn';b.textContent=[candidate.artista,candidate.titulo,candidate.pais,candidate.formato,candidate.numeroCatalogo,'Release '+Edition.release(candidate)].filter(Boolean).join(' · ');
+      b.onclick = function(){search('https://www.discogs.com/release/'+Edition.release(candidate));};caja.appendChild(b);
+    });
+  }
+  t.querySelector('#tOk').onclick = function(){var value=t.querySelector('#tCod').value.trim();if(value)search(value);};
+  t.querySelector('#tCod').onkeydown = function(e){if(e.key==='Enter')t.querySelector('#tOk').click();};
+  t.querySelector('#tScan').onclick = function(){request++;if(stopScan)stopScan();t.dataset.state='scanning';stopScan=escanear(function(code){if(!closed){t.querySelector('#tCod').value=code;search(code);}});};
+  t.dataset.state='idle';t.querySelector('#tCod').focus();
 }

@@ -1,0 +1,8 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+const src=fs.readFileSync('js/core.js','utf8'),mem=new Map();let calls=0;
+const c=vm.createContext({console,DB:{discos:[{id:'a',artista:'Band',titulo:'Studio',discogsMasterId:'10',discogsArtistId:'1',lista:'coleccion'},{id:'wish',artista:'Band',titulo:'Live',lista:'deseos',wishScope:'work'}]},plain:s=>String(s||'').toLowerCase(),limpiaNombre:s=>s,hayDiscogs:()=>true,localStorage:{getItem:k=>mem.get(k),setItem:(k,v)=>mem.set(k,v)},dgGet:async()=>{calls++;return{releases:[{id:10,type:'master',title:'Studio',format:'Album'},{id:11,type:'master',title:'Live',format:'Album, Live'},{id:12,type:'master',title:'Hits',format:'Compilation'},{id:10,type:'master',title:'Studio',format:'Album'}],pagination:{pages:1}};}});
+vm.runInContext(fs.readFileSync('js/edition.js','utf8'),c);vm.runInContext(src.slice(src.indexOf('function claveObra'),src.indexOf('/* ---------- color dominante')),c);
+let rows=await c.huecosArtista('Band');assert.equal(rows.length,3);assert.equal(rows[0].tengo,true);assert.equal(rows[1].tengo,false);assert.equal(rows[1].deseo,true);assert.equal(rows[2].tipo,'compilation');
+c.ignorarObra('Band',rows[0]);rows=await c.huecosArtista('Band');assert.equal(rows[0].ignorado,true);assert.equal(calls,1);
+for(const [k,v] of mem)if(k.includes('.discografia.'))mem.set(k,JSON.stringify({...JSON.parse(v),time:0}));c.dgGet=async()=>{throw Error('offline')};rows=await c.huecosArtista('Band');assert.equal(rows[0].offline,true);assert.equal(rows[0].tengo,true);
+console.log('W5: Master dedup, studio/live/compilation, wishes not owned, ignored and cached offline OK');

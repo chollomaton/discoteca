@@ -30,6 +30,18 @@ jobs:
           node-version: '22'
       - name: Ejecutar validaciones
         run: node scripts/validate.mjs
+      - name: F14 · protección ante fallos de carga
+        run: node scripts/f14-safe-tests.mjs
+      - name: F14 · motor de edición
+        run: node scripts/f14-edition-tests.mjs
+      - name: F14 · metadata conservadora
+        run: node scripts/f14-metadata-tests.mjs
+      - name: F14 · discografías y deseos
+        run: node scripts/f14-discography-tests.mjs
+      - name: F14 · recomendaciones voluntarias
+        run: node scripts/f14-recommendation-tests.mjs
+      - name: F14 · modo tienda
+        run: node scripts/f14-shop-tests.mjs
       - name: Probar sincronización multicliente
         run: node scripts/sync-tests.mjs
       - name: Probar importación y transferencia
@@ -106,6 +118,9 @@ jobs:
       - name: Fase 13 · integridad del shell
         if: ${{ !cancelled() }}
         run: node scripts/phase13-shell-hashes.mjs --check
+      - name: F14 · navegador, carga, cámara y races
+        if: ${{ !cancelled() }}
+        run: node scripts/f14-browser.mjs
       - name: Fase 13 · producto en escritorio, móvil y escala
         if: ${{ !cancelled() }}
         run: node scripts/phase13-browser.mjs

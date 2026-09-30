@@ -1,4 +1,4 @@
-// Referencia Fase 13 autorizada tras revisar las 5 escenas en 1440/390. Tolerancias intactas.
+// Referencia F14 W4 revisada: estados de edición y autenticación, 5 escenas en 1440/390. Tolerancias intactas.
 import {compareScreenshots} from './visual-compare.mjs';
 import {chromium} from 'playwright';
 import {createServer} from 'node:http';
@@ -6,7 +6,7 @@ import fs from 'node:fs';import path from 'node:path';import assert from 'node:a
 const root=path.resolve('.visual-check'),outputs=path.resolve('visual-results');
 fs.mkdirSync(root,{recursive:true});fs.mkdirSync(outputs,{recursive:true});
 const {execFileSync}=await import('node:child_process');
-for(const [name,ref] of [['baseline','336d036183c842be5bb6e4cc48d3906446dbb011'],['discoteca','HEAD']]){
+for(const [name,ref] of [['baseline','39eb79b609a27a1b85d9440b1ad27a76f9e3c8bb'],['discoteca','HEAD']]){
  const dest=path.join(root,name);fs.mkdirSync(dest,{recursive:true});
  const archive=execFileSync('git',['archive',ref],{maxBuffer:20*1024*1024});
  execFileSync('tar',['-x','-C',dest],{input:archive});
@@ -22,7 +22,7 @@ try{for(const width of [1440,390]){
  await context.addInitScript(doc=>{localStorage.setItem('discoteca.local.v4',JSON.stringify(doc));Math.random=()=>0.4;},doc);
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.route('https://**/*',r=>r.abort());
- await page.goto(`http://127.0.0.1:8766/${version}/`);await page.waitForFunction(()=>typeof DB!=='undefined'&&DB.discos.length===220&&document.querySelector('.tile'));
+ await page.goto(`http://127.0.0.1:8766/${version}/`);await page.waitForFunction(count=>typeof DB!=='undefined'&&DB.discos.length===count&&document.querySelector('.tile'),doc.discos.length);
  await page.addStyleTag({content:'*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}'});
  // Se usan los mismos datos locales y no se consulta ni modifica el repositorio remoto.
  for(const scene of ['coleccion','ficha','importacion','tecnica','revision']){
@@ -38,7 +38,7 @@ try{for(const width of [1440,390]){
  const png=await page.screenshot({animations:'disabled',path:path.join(outputs,`${version}-${scene}-${width}.png`)});
  if(version==='baseline')shots[scene]=png;else await compareScreenshots(page,png,shots[scene],`${scene} ${width}`);
  }
- assert.deepEqual(errors,[]);console.log(`✓ ${version} ${width}px: 220 discos, 5 pantallas sin errores`);await context.close();
+ assert.deepEqual(errors,[]);console.log(`✓ ${version} ${width}px: ${doc.discos.length} discos, 5 pantallas sin errores`);await context.close();
  }
  console.log(`✓ ${width}px: comparación visual superada (máx. 5 píxeles con delta 1/255)`);
 }}finally{await browser.close();server.close();}

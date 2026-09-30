@@ -230,6 +230,9 @@ function normDisc(d){
     notas: d.notas || d.notes || '',
     etiquetas: Array.isArray(d.etiquetas) ? d.etiquetas.filter(Boolean) : [],
     mbid: d.mbid || '', rgid: d.rgid || '', discogs: d.discogs || '',
+    discogsArtistId: d.discogsArtistId || '', discogsReleaseId: d.discogsReleaseId || '', discogsMasterId: d.discogsMasterId || '',
+    editionStatus: d.editionStatus || '', metadataSource: d.metadataSource || '',
+    wishScope: d.wishScope || (d.lista === 'deseos' ? (d.discogsReleaseId || /release\/\d+/.test(d.discogs || '') ? 'release' : 'work') : ''), anioEdicion: d.anioEdicion || '',
     codigoBarras: d.codigoBarras || '',
     confianza: d.confianza || '',
     valoracion: Number(d.valoracion) || 0,
@@ -347,7 +350,7 @@ var CAMPOS_LIGEROS = ['estadoFunda', 'fechaCompra', 'precioCompra', 'valorMercad
   'etiquetas', 'ubicacion', 'valoracion', 'escuchas', 'escuchasFechas', 'ultimaEscucha',
   'prestadoA', 'prestadoDesde', 'enlazado', 'editado', 'sinFoto', 'ejemplares',
   'revisado', 'confianza', 'color', 'appleUrl', 'fotoDiscoMbid', 'faltan',
-  'modsBase', 'modsCampos'];
+  'modsBase', 'modsCampos', 'discogsArtistId','discogsReleaseId','discogsMasterId','editionStatus','metadataSource','wishScope','anioEdicion'];
 function esDefectoReconstruible(campo, valor){
   if(campo === 'ejemplares') return !valor || valor === 1;
   if(Array.isArray(valor)) return valor.length === 0;
@@ -397,10 +400,7 @@ function discosLigeros(){ return DB.discos.map(serializarDiscLigero); }
 function coleccion(){ return DB.discos.filter(function(d){ return d.lista !== 'deseos'; }); }
 function deseos(){ return DB.discos.filter(function(d){ return d.lista === 'deseos'; }); }
 function dupSet(){
-  var m = {}, s = {};
-  coleccion().forEach(function(d){ var k = key(d); (m[k] = m[k] || []).push(d.id); });
-  Object.keys(m).forEach(function(k){ if(m[k].length > 1) m[k].forEach(function(id){ s[id] = 1; }); });
-  return s;
+  return Edition.duplicates(coleccion());
 }
 function incompleto(d){ return !d.portada || d.tracklist.length === 0 || !d.genero || !d['año'] || !d.sello; }
 function todasEtiquetas(){
@@ -618,10 +618,60 @@ function idbGet(k){
     });
   });
 }
+/* F14-SAFE: una lectura fallida nunca autoriza escrituras. */
+var cargaColeccion = 'loading', origenColeccion = '', remotoValidado = '';
+var ultimaColeccionValida = null, maxDiscosValidos = 0, vaciadoAutorizado = false;
+function validarColeccionSegura(doc){
+  var copia = validarCopia(doc);
+  if(!copia.discos.length && maxDiscosValidos > 0 && !vaciadoAutorizado) throw new Error('Colección vacía inesperada');
+  return copia;
+}
+function aceptarColeccion(doc, origen){
+  var copia = validarColeccionSegura(doc);
+  ultimaColeccionValida = JSON.parse(JSON.stringify(copia));
+  maxDiscosValidos = Math.max(maxDiscosValidos, copia.discos.length);
+  if(copia.discos.length) vaciadoAutorizado = false;
+  origenColeccion = origen;
+  cargaColeccion = copia.discos.length ? (origen === 'remote' ? 'loaded' : 'offline_cached') : 'empty_confirmed';
+  return copia;
+}
+function escrituraSegura(remota){
+  if(!origenColeccion || ['loaded','empty_confirmed','offline_cached'].indexOf(cargaColeccion) < 0) return false;
+  if(remota && (!configurado() || remotoValidado !== destinoConfig(CFG) + '|' + CFG.token)) return false;
+  try{ validarColeccionSegura(DB); return true; }catch(e){ return false; }
+}
+function autorizarVaciadoExplicito(){
+  if(readOnly || !escrituraSegura(true))return false;
+  try{
+    var backup=JSON.parse(JSON.stringify(validarCopia(DB)));backup.motivo='Antes del vaciado confirmado';backup.creado=nowISO();
+    localStorage.setItem('discoteca.antesDeVaciar',JSON.stringify(backup));
+    localStorage.setItem('discoteca.recuperacion',JSON.stringify(backup));
+    vaciadoAutorizado=true;return true;
+  }catch(e){toast('No se pudo guardar el backup; vaciado cancelado',true);return false;}
+}
+function falloCarga(e){
+  remotoValidado = '';
+  readOnly = true;
+  document.body.classList.add('ro');
+  cargaColeccion = e.message === 'token' ? 'auth_required' :
+    (e instanceof SyntaxError || /copia|fichas|vacía|respuesta/i.test(e.message) ? 'corrupt' : 'load_error');
+  if(e instanceof TypeError && ultimaColeccionValida) cargaColeccion = 'offline_cached';
+  marcar('err', e.message === 'token' ? 'No se ha podido autenticar el acceso a tu colección' : 'No se ha podido cargar tu colección');
+  renderAll();
+}
+function fetchColeccion(url, opciones){
+  var controller = new AbortController();
+  var timer = setTimeout(function(){ controller.abort(); }, 15000);
+  return fetch(url, Object.assign({}, opciones, {signal:controller.signal})).then(function(r){
+    if(!r.ok){clearTimeout(timer);return r;}
+    return {ok:r.ok,status:r.status,json:function(){return r.json().finally(function(){clearTimeout(timer);});},text:function(){return r.text().finally(function(){clearTimeout(timer);});}};
+  }, function(e){ clearTimeout(timer); throw e; });
+}
 function guardarLocal(){
+  if(!escrituraSegura(false)) return Promise.reject(new Error('Guardado bloqueado: colección no validada'));
   var payload = { actualizado: DB.actualizado, discos: DB.discos, borrados: DB.borrados, sha: SHA, lastSync: lastSync };
-  return idbSet(K_DATOS, payload).catch(function(){
-    try{ localStorage.setItem(LS_KEY, JSON.stringify(payload)); }catch(e){ toast('No se pueden guardar los cambios en este dispositivo. Exporta una copia antes de cerrar.', true); throw e; }
+  return idbSet('lastKnownGood', JSON.parse(JSON.stringify(payload))).then(function(){ return idbSet(K_DATOS, payload); }).then(function(){ aceptarColeccion(payload, origenColeccion); }).catch(function(){
+    try{ localStorage.setItem('discoteca.lastKnownGood', JSON.stringify(payload)); localStorage.setItem(LS_KEY, JSON.stringify(payload)); aceptarColeccion(payload, origenColeccion); }catch(e){ toast('No se pueden guardar los cambios en este dispositivo. Exporta una copia antes de cerrar.', true); throw e; }
   });
 }
 /* Las claves solo persisten en IndexedDB con consentimiento; nunca en el respaldo. */
@@ -659,8 +709,9 @@ function destinoConfig(cfg){ return [cfg.owner, cfg.repo, cfg.branch, cfg.path].
 function crearPuntoRecuperacion(motivo){
   var copia = {version:4, actualizado:DB.actualizado, discos:JSON.parse(JSON.stringify(DB.discos)),
     borrados:JSON.parse(JSON.stringify(DB.borrados || [])), motivo:motivo, creado:nowISO()};
-  return idbSet('recuperacion', copia).catch(function(){
-    localStorage.setItem('discoteca.recuperacion', JSON.stringify(copia));
+  var clave = motivo === 'Antes de sincronizar' ? 'recuperacion.sync' : 'recuperacion';
+  return idbSet(clave, copia).catch(function(){
+    localStorage.setItem('discoteca.' + clave, JSON.stringify(copia));
   });
 }
 function leerPuntoRecuperacion(){
@@ -732,7 +783,7 @@ function indexarFirmas(){
    ha quedado algo fuera y hace falta otro (ver push() más abajo). */
 var revisionDatos = 0;
 function persist(silencioso){
-  if(readOnly) return;
+  if(readOnly || !escrituraSegura(false)) return;
   var n = sellarCambios();
   if(n){ DB.actualizado = nowISO(); revisionDatos++; }
   guardarLocal().catch(function(){ marcar('err', 'Almacenamiento local lleno: exporta una copia'); });
@@ -945,27 +996,34 @@ function pull(silencioso){
    ahí produciría un interbloqueo, porque esa misma tarea es la que la cola
    está esperando a que termine-. */
 function pullReal(silencioso){
+  remotoValidado = '';
+  if(!configurado()){ cargaColeccion = 'auth_required'; marcar('err', 'Conecta GitHub para cargar tu colección'); return Promise.resolve(false); }
   marcar('busy');
-  return fetch(ghUrl() + '?ref=' + encodeURIComponent(CFG.branch) + '&t=' + Date.now(), {headers: ghHeaders(), cache:'no-store'})
+  return fetchColeccion(ghUrl() + '?ref=' + encodeURIComponent(CFG.branch) + '&t=' + Date.now(), {headers: ghHeaders(), cache:'no-store'})
     .then(function(r){
-      if(r.status === 404) return null;
+      if(r.status === 404) throw new Error('http404');
       if(r.status === 401 || r.status === 403) throw new Error('token');
       if(!r.ok) throw new Error('http' + r.status);
       return r.json();
     })
     .then(function(j){
       ultimoPull = Date.now();
-      if(!j){ SHA = ''; marcar('pend', 'Aún no subido'); return true; }
+      if(!j || typeof j.sha !== 'string' || !j.sha) throw new Error('Respuesta inesperada');
       var texto = j.content ? b64dec(j.content) : null;
       var seguir = function(txt){
-        var remoto = validarCopia(JSON.parse(txt));
+        var remoto = validarColeccionSegura(JSON.parse(txt));
         SHA = j.sha;
         var res = fusionar(DB.discos, DB.borrados, remoto.discos || [], remoto.borrados || []);
+        validarColeccionSegura({discos:res.discos, borrados:res.borrados});
+        return (origenColeccion ? crearPuntoRecuperacion('Antes de sincronizar') : Promise.resolve()).then(function(){
         DB.discos = res.discos.map(normDisc);
         DB.borrados = res.borrados;
         indexarFirmas();
         lastSync = nowISO();
-        guardarLocal();
+        aceptarColeccion(DB, 'remote');
+        readOnly = false; document.body.classList.remove('ro');
+        remotoValidado = destinoConfig(CFG) + '|' + CFG.token;
+        return guardarLocal().then(function(){
         if(res.aRemoto > 0){
           /* La fusión ha producido datos que GitHub todavía no tiene (p.ej.
              escuchasFechas combinadas de dos dispositivos): eso es un cambio
@@ -983,24 +1041,19 @@ function pullReal(silencioso){
           renderAll();
         }
         return true;
+        });
+        });
       };
       if(texto !== null) return seguir(texto);
-      return fetch(ghUrl() + '?ref=' + encodeURIComponent(CFG.branch), {
+      return fetchColeccion(ghUrl() + '?ref=' + encodeURIComponent(CFG.branch), {
         headers:Object.assign({}, ghHeaders(), {Accept:'application/vnd.github.raw+json'}), cache:'no-store'
       }).then(function(r2){ if(!r2.ok) throw new Error('http' + r2.status); return r2.text(); }).then(seguir);
     })
     .catch(function(e){
-      /* un fallo de red de verdad (sin conexión) llega aquí como TypeError,
-         distinto de los errores que la propia app lanza a propósito;
-         navigator.onLine no se usa para bloquear el intento porque en
-         Safari, sobre todo en la app instalada, puede decir que no hay
-         red aunque sí la haya */
-      if(e instanceof TypeError){ marcar('off'); return false; }
-      marcar('err', String(e.message) === 'token' ? 'Token no válido' : '');
+      falloCarga(e);
       return false;
     });
 }
-
 /* ---------- subida ---------- */
 /* pushInterno() hace la petición PUT y, si hace falta, el reintento tras
    un 409/422; push() es la puerta de entrada con exclusión mutua: si ya
@@ -1020,6 +1073,7 @@ var revisionEnviada = -1;
    sincronización anterior. */
 var MAX_REINTENTOS_PUSH = 3;
 function pushInterno(intento){
+  if(!escrituraSegura(true)) return Promise.resolve(false);
   intento = intento || 0;
   marcar('busy');
   revisionEnviada = revisionDatos;
@@ -1064,8 +1118,7 @@ function pushInterno(intento){
       });
     })
     .catch(function(e){
-      if(e instanceof TypeError){ marcar('off'); return false; }
-      marcar('err', String(e.message) === 'token' ? 'Token no válido' : '');
+      falloCarga(e);
       return false;
     });
 }
@@ -1131,33 +1184,24 @@ function boot(){
         guardarCfg().catch(function(){ toast('No se pudieron guardar los ajustes; conserva tus claves en el gestor de contraseñas', true); });
       }
       /* Sin token no se puede escribir en el repositorio: la app se abre en modo consulta */
-      readOnly = !configurado();
+      readOnly = true;
       document.body.classList.toggle('ro', readOnly);
-      if(loc && Array.isArray(loc.discos)){
-        DB.discos = loc.discos.map(normDisc);
-        DB.borrados = loc.borrados || [];
-        DB.actualizado = loc.actualizado || '';
-        SHA = loc.sha || '';
-        lastSync = loc.lastSync || '';
-        indexarFirmas();
-        marcar(configurado() ? 'ok' : 'local');
-        montarEventos();
-        renderAll();
-        if(configurado()) pull(true);
-        return;
-      }
-      return Promise.resolve({discos:[], borrados:[]})
-        .then(function(doc){
-          DB.discos = (doc.discos || []).map(normDisc);
-          DB.borrados = doc.borrados || [];
-          DB.actualizado = doc.actualizado || nowISO();
+      return idbGet('lastKnownGood').catch(function(){ return null; }).then(function(lkg){
+        if(!lkg){ try{ lkg = JSON.parse(localStorage.getItem('discoteca.lastKnownGood')); }catch(e){} }
+        var valida = null;
+        try{ if(lkg){ validarCopia(lkg); maxDiscosValidos = lkg.discos.length; } }catch(e){ lkg = null; }
+        try{ if(loc) valida = aceptarColeccion(loc, 'cache'); }catch(e){ cargaColeccion = 'corrupt'; }
+        if(!valida && lkg){ try{ valida = aceptarColeccion(lkg, 'lastKnownGood'); }catch(e){} }
+        if(valida){
+          DB.discos = valida.discos.map(normDisc); DB.borrados = valida.borrados;
+          DB.actualizado = valida.actualizado; SHA = loc && loc.sha || ''; lastSync = loc && loc.lastSync || '';
           indexarFirmas();
-          guardarLocal();
-          marcar(configurado() ? 'ok' : 'local');
-          montarEventos();
-          renderAll();
-          if(configurado()) pull(true);
-        });
+        }
+        if(!configurado()) cargaColeccion = 'auth_required';
+        marcar(configurado() ? 'off' : 'err', configurado() ? 'Comprobando colección…' : 'Conecta GitHub para cargar tu colección');
+        montarEventos(); renderAll();
+        if(configurado()) return pull(true);
+      });
     })
     .catch(function(){
       montarEventos();
@@ -1523,7 +1567,9 @@ function mbArtistaId(nombre){
   if(!k) return Promise.resolve('');
   if(artistMbid[k] !== undefined) return Promise.resolve(artistMbid[k]);
   return mbGet('artist?query=' + encodeURIComponent('artist:"' + lucene(nombre) + '"') + '&limit=3').then(function(j){
-    var a = (j.artists || [])[0];
+    var exactos = (j.artists || []).filter(function(a){ return plain(a.name) === plain(nombre); });
+    if(exactos.length !== 1) throw new Error('Artista ambiguo');
+    var a = exactos[0];
     artistMbid[k] = a ? a.id : '';
     if(a) artistNat[k] = !!(a.country === 'ES' || (a.area && /spain|españa/i.test(a.area.name || '')));
     return artistMbid[k];
@@ -1652,14 +1698,7 @@ function fotoDelSoporte(relId, rgId){
 /* Todas las imágenes de la edición en Discogs, para elegir a mano */
 function imagenesDiscogs(d){
   if(!hayDiscogs()) return Promise.reject(new Error('sin token'));
-  var m = String(d.discogs || '').match(/release\/(\d+)/);
-  var busca = m ? dgGet('releases/' + m[1])
-    : dgGet('database/search?type=release&per_page=3&q='
-        + encodeURIComponent((d.artista || '') + ' ' + (d.titulo || ''))).then(function(j){
-        var r = (j.results || [])[0];
-        if(!r) throw new Error('no');
-        return dgGet('releases/' + r.id);
-      });
+  var busca = resolverDiscogs(d);
   return busca.then(function(r){
     var im = (r.images || []).map(function(x){ return {uri: aHttps(x.uri), mini: aHttps(x.uri150), tipo:x.type}; });
     if(!im.length) throw new Error('sin imágenes');
@@ -1826,28 +1865,38 @@ function conservarFavoritas(nuevas, viejas){
 function aplicar(d, r, force){
   if(!r) return false;
   var cambios = false;
-  if(r.portada && !protegido(d, 'portada') && (force || !d.portada)){ d.portada = r.portada; d.color = ''; cambios = true; }
-  if(r.tracklist && r.tracklist.length && !protegido(d, 'tracklist') && (force || d.tracklist.length === 0)){
+  var identidadDiscogs = !!(d.discogsReleaseId || /release\/\d+/.test(d.discogs || ''));
+  var complemento = identidadDiscogs && r.metadataSource !== 'discogs';
+  if(r.portada && r.portada !== d.portada && !protegido(d, 'portada') && (force || !d.portada)){ d.portada = r.portada; d.color = ''; cambios = true; }
+  if(!complemento && r.tracklist && r.tracklist.length && JSON.stringify(normTracks(r.tracklist)) !== JSON.stringify(d.tracklist) && !protegido(d, 'tracklist') && (force || d.tracklist.length === 0)){
     d.tracklist = conservarFavoritas(normTracks(r.tracklist), d.tracklist); cambios = true;
   }
   ['año','sello','numeroCatalogo','pais','formatoDetalle','genero','mbid','rgid','codigoBarras','appleUrl'].forEach(function(f){
-    if(protegido(d, f)) return;
-    if(r[f] && (force || !d[f])){ d[f] = r[f]; cambios = true; }
+    if(protegido(d, f) || complemento && ['sello','numeroCatalogo','pais','formatoDetalle','codigoBarras','mbid'].indexOf(f)>=0) return;
+    if(r[f] && r[f] !== d[f] && (force || !d[f])){ d[f] = r[f]; cambios = true; }
   });
-  if(r.notas && !d.notas){ d.notas = r.notas; cambios = true; }
+  if(r.notas && !d.notas && !protegido(d, 'notas')){ d.notas = r.notas; cambios = true; }
   if(cambios){ d.confianza = r.confianza === 'baja' ? 'baja' : ''; refrescarFaltan(d); }
   return cambios;
 }
-function enrich(id, force){
+function enrich(id, force, agrupado){
   var d = DB.discos.filter(function(x){ return x.id === id; })[0];
   if(!d || (!d.titulo && !d.artista)) return Promise.resolve(false);
-  if(d.mbid && !force) return porMbid(d, d.mbid, false);
-  var faltan = { sello: !d.sello, catalogo: !d.numeroCatalogo, pais: !d.pais, formato: !d.formatoDetalle, 'año': !d['año'] };
-  return fetchInfo(d.titulo, d.artista, d.formato, faltan).then(function(r){
-    var c = aplicar(d, r, force);
-    if(c) persist();
-    return c;
-  }).catch(function(){ return false; });
+  var antes = JSON.stringify(d);
+  var trabajo = hayDiscogs() ? resolverDiscogs(d).then(function(raw){
+    var r = dgNormaliza(raw); aplicar(d, r, false);
+    d.discogsArtistId = raw.artists && raw.artists[0] ? String(raw.artists[0].id || '') : '';
+    d.discogsReleaseId = String(raw.id); d.discogsMasterId = String(raw.master_id || '');
+    d.discogs = raw.uri || 'https://www.discogs.com/release/' + raw.id;
+    d.editionStatus = 'verified'; d.metadataSource = 'discogs';
+  }).catch(function(){ d.editionStatus = 'review'; }) : Promise.resolve();
+  return trabajo.then(function(){
+    return fetchInfo(d.titulo, d.artista, d.formato, {}).then(function(r){
+      /* Complemento bibliográfico: nunca asigna una edición física por similitud. */
+      var complemento = {}; ['portada','genero','año','appleUrl'].forEach(function(k){ complemento[k] = r[k]; });
+      aplicar(d, complemento, false);
+    }).catch(function(){});
+  }).then(function(){ var cambio = JSON.stringify(d) !== antes; if(cambio && !agrupado) persist(); return cambio; });
 }
 
 /* ---------- edición concreta por identificador ---------- */
@@ -1904,9 +1953,14 @@ function porUrl(d, url, formato){
       return porMbid(d, rel[0].id, true);
     });
   }
-  d.discogs = ref.url;
-  return fetchInfo(d.titulo, d.artista, d.formato, {sello:true, catalogo:true, pais:true, formato:true, 'año':true})
-    .then(function(r){ aplicar(d, r, true); persist(); return true; });
+  return dgGet('releases/' + ref.id).then(function(raw){
+    var comparison = Edition.compare(d, Edition.fromDiscogs(raw));
+    if(comparison.conflicts.length) throw new Error('Edición contradictoria: revisa país, catálogo y formato');
+    aplicar(d, dgNormaliza(raw), false);
+    d.discogs = ref.url; d.discogsArtistId = raw.artists && raw.artists[0] ? String(raw.artists[0].id || '') : '';
+    d.discogsReleaseId = String(raw.id); d.discogsMasterId = String(raw.master_id || '');
+    d.editionStatus = 'verified'; d.metadataSource = 'discogs'; persist(); return true;
+  });
 }
 
 /* ---------- candidatos de edición ---------- */
@@ -2372,11 +2426,28 @@ function dgGet(path){
   return jget('https://api.discogs.com/' + path + (path.indexOf('?') >= 0 ? '&' : '?')
     + 'token=' + encodeURIComponent(CFG.discogs), 'dg', 1100);
 }
+function resolverDiscogs(d){
+  if(!hayDiscogs()) return Promise.reject(new Error('Conecta Discogs'));
+  var rid = Edition.release(d);
+  var busca = rid ? dgGet('releases/' + rid) : dgGet('database/search?type=release&per_page=50&q=' + encodeURIComponent((d.artista || '') + ' ' + (d.titulo || '')) + (d.numeroCatalogo ? '&catno=' + encodeURIComponent(d.numeroCatalogo) : '')).then(function(j){
+    var resolution = Edition.resolve(d, (j.results || []).map(Edition.fromDiscogs));
+    if(resolution.status !== 'clear') throw new Error('Revisar edición: ' + resolution.status);
+    return dgGet('releases/' + Edition.release(resolution.candidate));
+  });
+  return busca.then(function(raw){
+    if(!raw || !raw.id || !raw.title) throw new Error('Respuesta Discogs inválida');
+    var c = Edition.compare(d, Edition.fromDiscogs(raw));
+    if(c.conflicts.length) throw new Error('Edición contradictoria');
+    return raw;
+  });
+}
 function dgPorBarcode(codigo){
-  return dgGet('database/search?barcode=' + encodeURIComponent(codigo) + '&type=release&per_page=5').then(function(j){
-    var r = (j.results || [])[0];
-    if(!r) throw new Error('no encontrado');
-    return dgGet('releases/' + r.id);
+  return dgGet('database/search?barcode=' + encodeURIComponent(codigo) + '&type=release&per_page=50').then(function(j){
+    var results = j.results || [];
+    /* Incluso un único resultado por barcode requiere verificar la edición. */
+    var resolution = Edition.resolve({codigoBarras:codigo}, results.map(Edition.fromDiscogs));
+    if(resolution.status !== 'clear') throw new Error('Código compartido o edición incierta: elige la edición');
+    return dgGet('releases/' + Edition.release(resolution.candidate));
   }).then(dgNormaliza);
 }
 function dgPorId(id){ return dgGet('releases/' + id).then(dgNormaliza); }
@@ -2394,19 +2465,12 @@ function precioCaducado(d){
   return (Date.now() - new Date(f).getTime()) > TTL_PRECIO_H * 3600000;
 }
 function idDeRelease(d){
-  var m = String(d.discogs || '').match(/release\/(\d+)/);
-  return m ? m[1] : '';
+  return Edition.release(d);
 }
 function cargarPrecios(d){
   if(!hayDiscogs()) return Promise.reject(new Error('sin token'));
   var rid = idDeRelease(d);
-  var conId = rid ? Promise.resolve(rid) : dgGet('database/search?type=release&per_page=1&q='
-      + encodeURIComponent((d.artista || '') + ' ' + (d.titulo || '')))
-    .then(function(j){
-      var r = (j.results || [])[0];
-      if(!r) throw new Error('sin edición');
-      return String(r.id);
-    });
+  var conId = resolverDiscogs(d).then(function(r){ return String(r.id); });
   return conId.then(function(id){
     return dgGet('marketplace/price_suggestions/' + id).then(function(precios){
       var niveles = {
@@ -2449,6 +2513,7 @@ function dgNormaliza(r){
   var artista = (r.artists || []).map(function(a){ return limpiaNombre(a.name); }).join(', ');
   var estilos = (r.styles || []).concat(r.genres || []).join(' ');
   return {
+    metadataSource:'discogs', discogsReleaseId:String(r.id || ''), discogsMasterId:String(r.master_id || ''),
     id:'', rgId:'', titulo: r.title || '', artista: artista,
     'año': String(r.year || (r.released || '').slice(0, 4) || ''),
     anioOriginal:'', sello: limpiaSello(lab.name || ''), numeroCatalogo: lab.catno || '',
@@ -2463,14 +2528,7 @@ function dgNormaliza(r){
 
 /* ---------- código de barras ---------- */
 function porCodigoBarras(codigo){
-  return mbGet('release?query=barcode:' + encodeURIComponent(codigo) + '&limit=5').then(function(j){
-    var r = (j.releases || [])[0];
-    if(!r) throw new Error('mb');
-    return mbDetalle(r.id);
-  }).catch(function(){
-    if(!hayDiscogs()) throw new Error('no encontrado');
-    return dgPorBarcode(codigo);
-  });
+  return dgPorBarcode(codigo);
 }
 
 /* ---------- huecos en la discografía ---------- */
@@ -2479,7 +2537,7 @@ function porCodigoBarras(codigo){
    se quedaba con una lista incompleta; se pide página a página -una detrás
    de otra, respetando el mismo hueco entre peticiones de mbGet- solo
    mientras el propio MusicBrainz diga que quedan más por recibir. */
-function huecosArtista(nombre){
+function huecosMusicBrainz(nombre){
   var LIMITE = 100, TOPE_PAGINAS = 10; /* tope defensivo: 1000 discos de un mismo artista */
   return mbArtistaId(nombre).then(function(id){
     if(!id) throw new Error('artista');
@@ -2499,19 +2557,76 @@ function huecosArtista(nombre){
     return pedirPagina(0);
   }).then(function(todos){
     var mios = {};
-    DB.discos.filter(function(d){ return (d.artista || '').trim().toLowerCase() === nombre.trim().toLowerCase(); })
+    DB.discos.filter(function(d){ return d.lista !== 'deseos' && (d.artista || '').trim().toLowerCase() === nombre.trim().toLowerCase(); })
       .forEach(function(d){ mios[plain(d.titulo)] = 1; });
     var rgs = todos.filter(function(g){
-      return g['primary-type'] === 'Album' && (!g['secondary-types'] || !g['secondary-types'].length);
+      return g['primary-type'] === 'Album';
     });
     rgs.sort(function(a, b){ return String(a['first-release-date'] || '9999').localeCompare(String(b['first-release-date'] || '9999')); });
     return rgs.map(function(g){
       return {
+        tipo: (g['secondary-types'] || []).indexOf('Live')>=0 ? 'live' : (g['secondary-types'] || []).indexOf('Compilation')>=0 ? 'compilation' : !(g['secondary-types'] || []).length ? 'studio' : 'unknown',
         id: g.id, titulo: g.title, 'año': String(g['first-release-date'] || '').slice(0, 4),
         tengo: !!mios[plain(g.title)]
       };
     });
   });
+}
+
+/* W5: caché de catálogo, separada de la colección y de sus escrituras. */
+function claveObra(r){ return r.masterId ? 'dg:' + r.masterId : r.id ? 'mb:' + r.id : 'title:' + plain(r.titulo); }
+function ignoradosDiscografia(nombre){
+  try{ return JSON.parse(localStorage.getItem('discoteca.ignorados.' + plain(nombre)) || '[]'); }catch(e){ return []; }
+}
+function ignorarObra(nombre, r){
+  var ids = ignoradosDiscografia(nombre), key = claveObra(r), i = ids.indexOf(key);
+  if(i < 0) ids.push(key); else ids.splice(i,1);
+  localStorage.setItem('discoteca.ignorados.' + plain(nombre), JSON.stringify(ids));
+}
+function huecosArtista(nombre){
+  var cacheKey = 'discoteca.discografia.' + plain(nombre), cached = null;
+  try{ cached = JSON.parse(localStorage.getItem(cacheKey) || 'null'); }catch(e){}
+  var decorar = function(rows, offline){
+    var local = DB.discos.filter(function(d){return plain(d.artista) === plain(nombre);}), ignore = ignoradosDiscografia(nombre);
+    return rows.map(function(r){
+      var matches = local.filter(function(d){return r.masterId && Edition.master(d) === String(r.masterId) || r.id && d.rgid === r.id || plain(d.titulo) === plain(r.titulo);});
+      return Object.assign({},r,{tengo:matches.some(function(d){return d.lista !== 'deseos';}),deseo:matches.some(function(d){return d.lista === 'deseos';}),ignorado:ignore.indexOf(claveObra(r))>=0,offline:!!offline});
+    });
+  };
+  if(cached && Array.isArray(cached.rows) && Date.now()-cached.time < 86400000) return Promise.resolve(decorar(cached.rows,false));
+  var consulta = !hayDiscogs() ? huecosMusicBrainz(nombre) : Promise.resolve().then(function(){
+    var ids = Array.from(new Set(DB.discos.filter(function(d){return plain(d.artista)===plain(nombre) && d.discogsArtistId;}).map(function(d){return d.discogsArtistId;})));
+    if(ids.length===1)return ids[0];
+    return dgGet('database/search?type=artist&per_page=50&q='+encodeURIComponent(nombre)).then(function(j){
+      var exact = (j.results||[]).filter(function(a){return plain(limpiaNombre(a.title))===plain(nombre);});
+      if(exact.length!==1)throw new Error('Artista ambiguo; identifica una edición de tu colección');return exact[0].id;
+    });
+  }).then(function(id){
+    var rows=[],seen=new Set();
+    function page(n){return dgGet('artists/'+id+'/releases?sort=year&sort_order=asc&per_page=100&page='+n).then(function(j){
+      if(!Array.isArray(j.releases))throw new Error('Respuesta inesperada');
+      j.releases.forEach(function(r){if(r.type!=='master' || r.role && r.role!=='Main' || seen.has(r.id))return;seen.add(r.id);
+        var format=String(r.format||'');var tipo=/compilation|compilatorio/i.test(format)?'compilation':/live|directo/i.test(format)?'live':/album/i.test(format)?'studio':'unknown';
+        rows.push({id:'',masterId:String(r.id),titulo:r.title,año:String(r.year||''),tipo:tipo});});
+      if(j.pagination && n<j.pagination.pages && n<10)return page(n+1);return rows;
+    });}return page(1);
+  });
+  return consulta.then(function(rows){
+    if(!hayDiscogs() || !rows.some(function(r){return r.tipo==='unknown';}))return rows;
+    return huecosMusicBrainz(nombre).then(function(groups){return rows.map(function(r){
+      var matches=groups.filter(function(g){return plain(g.titulo)===plain(r.titulo);});
+      return r.tipo==='unknown' && matches.length===1 ? Object.assign({},r,{tipo:matches[0].tipo,id:matches[0].id}) : r;
+    });}).catch(function(){return rows;});
+  }).then(function(rows){
+    rows=rows.map(function(r){return Object.assign({tipo:'studio'},r);});
+    try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),rows:rows}));}catch(e){}
+    return decorar(rows,false);
+  }).catch(function(e){if(cached && Array.isArray(cached.rows))return decorar(cached.rows,true);throw e;});
+}
+function desearObra(nombre,r){
+  if(readOnly || !escrituraSegura(false))return false;
+  if(DB.discos.some(function(d){return d.lista==='deseos' && plain(d.artista)===plain(nombre) && (r.masterId && Edition.master(d)===String(r.masterId) || r.id && d.rgid===r.id || plain(d.titulo)===plain(r.titulo));}))return false;
+  DB.discos.push(normDisc({id:uid(),lista:'deseos',artista:nombre,titulo:r.titulo,año:r.año,rgid:r.id||'',discogsMasterId:r.masterId||'',wishScope:'work',fechaAlta:nowISO()}));persist();return true;
 }
 
 /* ---------- color dominante de la carátula ---------- */
@@ -2601,11 +2716,12 @@ async function bulkRun(lista){
     if(cancelBulk) break;
     bulk.actual = (list[i].artista ? list[i].artista + ' — ' : '') + list[i].titulo;
     paintBanner();
-    var ok = await enrich(list[i].id, false);
+    var ok = await enrich(list[i].id, false, true);
     if(ok) bulk.ok++;
     bulk.done++;
     paintBanner();
   }
+  persist(true);
   var res = bulk;
   bulk = null;
   renderAll();

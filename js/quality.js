@@ -29,7 +29,7 @@ function diagnosticoColeccion(discos){
       (d.discogs && !/^https:\/\/(www\.)?discogs\.com\/(?:[a-z]{2}\/)?(?:release|master)\/\d+/i.test(d.discogs))) aviso(d.id, 'Identificador externo incoherente');
     if(d.enlazado && !ids.has(d.enlazado)) aviso(d.id, 'Edición enlazada ausente');
   });
-  [[exactos,'Duplicado exacto'],[catalogos,'Catálogo coincidente'],[nucleos,'Posible duplicado']].forEach(function(par){
+  [[exactos,'Misma obra · comprobar edición'],[catalogos,'Catálogo coincidente'],[nucleos,'Posible duplicado']].forEach(function(par){
     par[0].forEach(function(grupoIds){ if(grupoIds.length > 1) grupoIds.forEach(function(id){ aviso(id, par[1]); }); });
   });
   porArtista.forEach(function(titulos){
