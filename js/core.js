@@ -2612,15 +2612,12 @@ function huecosArtista(nombre){
     });}return page(1);
   });
   return consulta.then(function(rows){
-<<<<<<< HEAD
     if(!hayDiscogs() || !rows.some(function(r){return r.tipo==='unknown';}))return rows;
     return huecosMusicBrainz(nombre).then(function(groups){return rows.map(function(r){
       var matches=groups.filter(function(g){return plain(g.titulo)===plain(r.titulo);});
       return r.tipo==='unknown' && matches.length===1 ? Object.assign({},r,{tipo:matches[0].tipo,id:matches[0].id}) : r;
     });}).catch(function(){return rows;});
   }).then(function(rows){
-=======
->>>>>>> origin/feat/f14
     rows=rows.map(function(r){return Object.assign({tipo:'studio'},r);});
     try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),rows:rows}));}catch(e){}
     return decorar(rows,false);
