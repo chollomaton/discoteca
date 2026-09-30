@@ -709,8 +709,9 @@ function destinoConfig(cfg){ return [cfg.owner, cfg.repo, cfg.branch, cfg.path].
 function crearPuntoRecuperacion(motivo){
   var copia = {version:4, actualizado:DB.actualizado, discos:JSON.parse(JSON.stringify(DB.discos)),
     borrados:JSON.parse(JSON.stringify(DB.borrados || [])), motivo:motivo, creado:nowISO()};
-  return idbSet('recuperacion', copia).catch(function(){
-    localStorage.setItem('discoteca.recuperacion', JSON.stringify(copia));
+  var clave = motivo === 'Antes de sincronizar' ? 'recuperacion.sync' : 'recuperacion';
+  return idbSet(clave, copia).catch(function(){
+    localStorage.setItem('discoteca.' + clave, JSON.stringify(copia));
   });
 }
 function leerPuntoRecuperacion(){
@@ -2559,11 +2560,12 @@ function huecosMusicBrainz(nombre){
     DB.discos.filter(function(d){ return d.lista !== 'deseos' && (d.artista || '').trim().toLowerCase() === nombre.trim().toLowerCase(); })
       .forEach(function(d){ mios[plain(d.titulo)] = 1; });
     var rgs = todos.filter(function(g){
-      return g['primary-type'] === 'Album' && (!g['secondary-types'] || !g['secondary-types'].length);
+      return g['primary-type'] === 'Album';
     });
     rgs.sort(function(a, b){ return String(a['first-release-date'] || '9999').localeCompare(String(b['first-release-date'] || '9999')); });
     return rgs.map(function(g){
       return {
+        tipo: (g['secondary-types'] || []).indexOf('Live')>=0 ? 'live' : (g['secondary-types'] || []).indexOf('Compilation')>=0 ? 'compilation' : !(g['secondary-types'] || []).length ? 'studio' : 'unknown',
         id: g.id, titulo: g.title, 'año': String(g['first-release-date'] || '').slice(0, 4),
         tengo: !!mios[plain(g.title)]
       };
@@ -2610,6 +2612,15 @@ function huecosArtista(nombre){
     });}return page(1);
   });
   return consulta.then(function(rows){
+<<<<<<< HEAD
+    if(!hayDiscogs() || !rows.some(function(r){return r.tipo==='unknown';}))return rows;
+    return huecosMusicBrainz(nombre).then(function(groups){return rows.map(function(r){
+      var matches=groups.filter(function(g){return plain(g.titulo)===plain(r.titulo);});
+      return r.tipo==='unknown' && matches.length===1 ? Object.assign({},r,{tipo:matches[0].tipo,id:matches[0].id}) : r;
+    });}).catch(function(){return rows;});
+  }).then(function(rows){
+=======
+>>>>>>> origin/feat/f14
     rows=rows.map(function(r){return Object.assign({tipo:'studio'},r);});
     try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),rows:rows}));}catch(e){}
     return decorar(rows,false);

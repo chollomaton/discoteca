@@ -2604,6 +2604,7 @@ function openForm(item, listaDestino, preset){
       + fieldRow('Dónde está', '<input id="fUb" type="text" value="' + esc(d.ubicacion) + '" placeholder="Estantería 2, balda alta…">')
       + fieldRow('Ejemplares', '<input id="fEj" type="number" min="1" max="99" value="' + (d.ejemplares || 1) + '">')
     + '</div>'
+    + '<div class="group" id="wishScopeRow"'+(d.lista==='deseos'?'':' hidden')+'>' + fieldRow('Deseo de', '<select id="fWishScope"><option value="work">Cualquier edición de la obra</option><option value="release"'+(d.wishScope==='release'?' selected':'')+'>Este Release concreto de Discogs</option></select>') + '</div>'
     + '<div class="gtit">Personal</div><div class="group">'
       + fieldRow('Etiquetas', '<input id="fEt" type="text" value="' + esc(d.etiquetas.join(', ')) + '" placeholder="firmado, primera edición…">')
     + '</div>'
@@ -2645,6 +2646,7 @@ function openForm(item, listaDestino, preset){
   $('#tc').onclick = function(){ setType('CD'); };
   function setLista(l){
     listaSel = l;
+    $('#wishScopeRow').hidden = l !== 'deseos';
     $('#lc').className = l === 'coleccion' ? 'on' : '';
     $('#ld').className = l === 'deseos' ? 'on' : '';
   }
@@ -2752,13 +2754,14 @@ function openForm(item, listaDestino, preset){
   $('#save').onclick = function(){
     var u2 = $('#fU2').value.trim();
     var ref = idDesdeUrl(u2);
+    if(listaSel==='deseos' && $('#fWishScope').value==='release' && !(ref && ref.tipo==='discogs') && !Edition.release(d)){toast('Indica la URL del Release Discogs que deseas',true);return;}
     /* Se parte de una copia completa de la ficha tal como estaba (d ya tiene
        la forma canónica entera, la ponga openForm al abrir editando o creando)
        y solo se sobrescriben los campos que vienen del formulario. Así ningún
        dato que no se edita aquí —valoración, escuchas, foto del disco, ficha
        técnica, enlaces— puede perderse al guardar. */
     var n = normDisc(Object.assign({}, d, {
-      id: d.id || uid(), formato: formato, lista: listaSel,
+      id: d.id || uid(), formato: formato, lista: listaSel, wishScope:listaSel==='deseos'?$('#fWishScope').value:'',
       titulo: $('#fT').value.trim(), artista: $('#fA').value.trim(),
       genero: $('#fG').value, 'año': $('#fY').value.trim(), formatoDetalle: $('#fF').value.trim(),
       sello: $('#fL').value.trim(), numeroCatalogo: $('#fC').value.trim(), pais: $('#fP').value.trim().toUpperCase(),
