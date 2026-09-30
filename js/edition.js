@@ -7,7 +7,7 @@ var Edition = (function(){
   function master(d){ return id(d.discogsMasterId || d.master_id); }
   function country(v){ var t=text(v); return ({japan:'jp',japon:'jp',europe:'eu',europa:'eu',usa:'us','united states':'us',spain:'es',espana:'es','united kingdom':'uk',gb:'uk'})[t] || t; }
   function format(v){ var t=text(v); return /\bcd\b/.test(t) ? 'cd' : /vinyl|vinilo|\blp\b/.test(t) ? 'vinyl' : t; }
-  function normalize(d){ return {release:release(d),master:master(d),artist:text(d.artista),artistId:String(d.discogsArtistId || d.artistMbid || ''),title:text(d.titulo),catalog:code(d.numeroCatalogo),barcode:code(d.codigoBarras),country:country(d.pais),format:format(d.formato),year:String(d.anioEdicion || '')}; }
+  function normalize(d){ return {release:release(d),master:master(d),artist:text(d.artista),artistId:String(d.discogsArtistId || ''),title:text(d.titulo),catalog:code(d.numeroCatalogo),barcode:code(d.codigoBarras),country:country(d.pais),format:format(d.formato),year:String(d.anioEdicion || '')}; }
   function compare(a,b){
     var x=normalize(a),y=normalize(b),conflicts=[],evidence=[],score=0;
     ['artistId','catalog','country','format','year'].forEach(function(k){ if(x[k] && y[k] && x[k]!==y[k]) conflicts.push(k); });
@@ -38,7 +38,7 @@ var Edition = (function(){
   }
   function fromDiscogs(r){
     var split=String(r.title||'').split(' - '),fmt=(r.formats||[])[0]||{},lab=(r.labels||[])[0]||{};
-    return {discogsReleaseId:id(r.id),discogsMasterId:id(r.master_id),discogs:r.uri||'https://www.discogs.com/release/'+r.id,
+    return {discogsArtistId:r.artists && r.artists[0] ? id(r.artists[0].id) : '',discogsReleaseId:id(r.id),discogsMasterId:id(r.master_id),discogs:r.uri||'https://www.discogs.com/release/'+r.id,
       artista:r.artists ? r.artists.map(function(a){return a.name.replace(/ \(\d+\)$/,'');}).join(', ') : split.length>1?split.shift():'',
       titulo:r.artists?r.title:split.join(' - '),numeroCatalogo:r.catno||lab.catno||'',pais:r.country||'',
       formato:fmt.name || (r.format||[]).join(' '),codigoBarras:(r.barcode||[])[0]||((r.identifiers||[]).filter(function(i){return i.type==='Barcode';})[0]||{}).value||'',anioEdicion:r.year||''};

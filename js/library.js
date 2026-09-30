@@ -293,6 +293,7 @@ function escanear(alLeer){
     });
   };
 
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){nota('La cámara no está disponible. Escribe el código.', 'err');return function(){cerrar();s.remove();};}
   navigator.mediaDevices.getUserMedia(restricciones).then(function(st){
     if(parar || !s.isConnected){st.getTracks().forEach(function(track){track.stop();});return;}
     stream = st; video.srcObject = st;

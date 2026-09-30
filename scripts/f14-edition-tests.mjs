@@ -13,3 +13,5 @@ const before=JSON.stringify([eu,jp]);const ix=E.indexes([eu,jp,{...eu,id:'copy'}
 console.log('W1: exact Release, Master, copies, shared barcode, conflicting catalog, JP/EU and homonyms OK');
 
 assert.equal(E.status({...eu,editionStatus:'verified',tracklist:[]}).identity,'verified');assert.equal(E.status({...eu,editionStatus:'verified',tracklist:[]}).incomplete,true);assert.equal(E.duplicates([{...eu,id:'a'},{...eu,id:'b'}]).a,'Mismo Release · varios ejemplares');
+
+assert.equal(E.fromDiscogs({id:1,title:'Album',artists:[{id:5,name:'Band'}]}).discogsArtistId,'5');

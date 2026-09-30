@@ -8,3 +8,6 @@ assert.equal((await c.resolverTienda('12345678')).result.state,'uncertain');asse
 c.navigator.onLine=true;for(const code of [404,429,500]){c.dgGet=async()=>{throw Error('http'+code)};assert.equal((await c.resolverTienda('87654321')).result.state,'uncertain');}
 c.dgGet=async()=>({results:[{id:1,title:'Band - Album',barcode:['12345678']},{id:2,title:'Band - Album',barcode:['12345678']}]});let r=await c.resolverTienda('12345678');assert.equal(r.result.state,'uncertain');assert.equal(r.candidates.length,2);c.navigator.onLine=false;assert.equal((await c.resolverTienda('12345678')).source,'cache');assert.equal(JSON.stringify(data),initial);
 console.log('W7: exact/work/wishlist/different, shared barcode, HTTP/offline/cache and no writes OK');
+
+assert.equal((await c.resolverTienda('https://www.discogs.com/release/2')).source,'cache');
+assert.equal((await c.resolverTienda('https://www.discogs.com/release/2')).result.state,'different_edition');

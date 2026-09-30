@@ -2376,16 +2376,18 @@ async function resolverTienda(entrada){
   var complete=cargaColeccion==='loaded' && navigator.onLine!==false;
   if(rid && local.length)return {candidate:local[0],result:Edition.shop(local[0],DB.discos,complete),source:'local'};
   var cached=cacheTienda.get(query);
+  if(rid && !cached){try{var known=JSON.parse(localStorage.getItem('discoteca.tienda.release.'+rid)||'null');if(known && Edition.release(known)===rid)return {candidate:known,result:Edition.shop(known,DB.discos,cargaColeccion==='loaded' && navigator.onLine!==false),source:'cache'};}catch(e){}}
   if(!cached){try{cached=JSON.parse(localStorage.getItem('discoteca.tienda.'+query)||'null');}catch(e){}}
   if(cached && Array.isArray(cached.candidates))return Object.assign({},cached,{source:'cache'});
   if(!hayDiscogs() || navigator.onLine===false)return {result:{state:'uncertain',discs:local},source:'local'};
   try{
-    if(rid){var raw=await dgGet('releases/'+rid);var candidate=Edition.fromDiscogs(raw);return {candidate:candidate,result:Edition.shop(candidate,DB.discos,complete),source:'discogs'};}
+    if(rid){var raw=await dgGet('releases/'+rid);if(!raw || String(raw.id)!==rid)throw new Error('Release inesperado');var candidate=Edition.fromDiscogs(raw);return {candidate:candidate,result:Edition.shop(candidate,DB.discos,cargaColeccion==='loaded' && navigator.onLine!==false),source:'discogs'};}
     var j=await dgGet('database/search?type=release&per_page=50&barcode='+encodeURIComponent(query));
     if(!j || !Array.isArray(j.results))throw new Error('Respuesta inesperada');
     var out={candidates:j.results.map(Edition.fromDiscogs),result:{state:'uncertain',discs:local},source:'discogs'};
     /* El barcode no certifica identidad, incluso con una sola coincidencia. */
     cacheTienda.set(query,out);
+    out.candidates.forEach(function(candidate){try{localStorage.setItem('discoteca.tienda.release.'+Edition.release(candidate),JSON.stringify(candidate));}catch(e){}});
     try{localStorage.setItem('discoteca.tienda.'+query,JSON.stringify(out));}catch(e){}
     return out;
   }catch(e){return {result:{state:'uncertain',discs:local},error:'No se pudo comprobar la edición',source:'local'};}
