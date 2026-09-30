@@ -96,6 +96,16 @@ jobs:
         run: |
           npm install --no-save --package-lock=false playwright@1.58.2
           npx playwright install --with-deps chromium
+      - name: Confirmar fallo de recarga en el código anterior
+        run: |
+          if CREDENTIAL_BASELINE=b53a14cbebcf44f28b6613c96a0726fe4c755393 node scripts/credential-browser-tests.mjs > /tmp/credential-baseline.log 2>&1; then
+            cat /tmp/credential-baseline.log
+            exit 1
+          fi
+          cat /tmp/credential-baseline.log
+          grep -q 'guardar desde UI → boot tras reload normal: token' /tmp/credential-baseline.log
+      - name: Regresión real de credenciales en navegador
+        run: node scripts/credential-browser-tests.mjs
       - name: Verificar límites de comparación visual
         run: node scripts/visual-compare-tests.mjs
       - name: Fase 13 · capturas para revisión visual

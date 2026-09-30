@@ -694,7 +694,7 @@ function ocultarSecretos(texto){
 var SS_CFG_UPDATE = 'discoteca.cfg.app-update';
 function combinarCfg(base, extra){
   var copia = Object.assign({}, base, extra);
-  CLAVES_CFG.forEach(function(k){
+  CLAVES_CFG.concat(['owner','repo','branch','path']).forEach(function(k){
     if(!extra || !extra[k]) copia[k] = base && base[k] || '';
   });
   return copia;
@@ -707,19 +707,30 @@ function restaurarCfg(cfg){
     sessionStorage.removeItem(SS_CFG_UPDATE);
     if(raw && new URL(location.href).searchParams.has('app-update')) temporal = JSON.parse(raw);
   }catch(e){}
+  if(local && local.clavesBorradas) cfg = configSinClaves(cfg);
   var copia = combinarCfg(cfg, local);
-  if(copia.recordarClaves === false) copia = configSinClaves(copia);
+  copia.recordarClaves = true;
   return combinarCfg(copia, temporal);
 }
 function prepararCfgActualizacion(){
   try{ sessionStorage.setItem(SS_CFG_UPDATE, JSON.stringify(CFG)); }catch(e){}
 }
-function guardarCfg(){
-  var publica = configSinClaves(CFG);
-  var persistida = CFG.recordarClaves ? Object.assign({}, CFG) : publica;
-  try{ sessionStorage.removeItem(SS_CFG_UPDATE); }catch(e){}
-  try{ localStorage.setItem(LS_CFG, JSON.stringify(persistida)); }catch(e){}
-  return idbSet(K_CFG, persistida);
+function guardarCfg(borrar){
+  var actual = Object.assign({}, CFG);
+  return idbGet(K_CFG).catch(function(){ return null; }).then(function(anterior){
+    var local = null;
+    try{ local = JSON.parse(localStorage.getItem(LS_CFG)); }catch(e){}
+    var persistida = borrar ? configSinClaves(actual) : combinarCfg(combinarCfg(local && local.clavesBorradas ? configSinClaves(anterior) : anterior, local), actual);
+    persistida.clavesBorradas = borrar === true || !!(local && local.clavesBorradas && !CLAVES_CFG.some(function(k){ return actual[k]; }));
+    persistida.recordarClaves = true;
+    CFG = Object.assign({}, persistida);
+    var localOk = false;
+    try{ sessionStorage.removeItem(SS_CFG_UPDATE); }catch(e){}
+    try{ localStorage.setItem(LS_CFG, JSON.stringify(persistida)); localOk = true; }catch(e){}
+    return idbSet(K_CFG, persistida).catch(function(){
+      if(!localOk) throw new Error('No se pudo guardar la configuración en este dispositivo');
+    });
+  });
 }
 function validarConfig(cfg){
   if(!/^[a-zA-Z0-9-]+$/.test(cfg.owner) || !/^[a-zA-Z0-9_.-]+$/.test(cfg.repo))
@@ -1358,8 +1369,7 @@ function pantallaSync(){
     + '<div class="group"><div class="grow"><label>Clave de AudD</label>'
     + '<input id="sAudd" type="password" autocapitalize="none" autocorrect="off" spellcheck="false" value="" autocomplete="off" placeholder="opcional"></div>'
     + '<button class="btn sm" type="button" id="pAudd">Probar</button></div><div id="rAudd" class="note" style="display:none;margin:-6px 0 14px"></div>'
-    + '<label><input id="sRecordar" type="checkbox"' + (CFG.recordarClaves ? ' checked' : '') + '> Recordar claves en este dispositivo</label>'
-    + '<div class="note">Si no lo marcas, las claves duran hasta cerrar o recargar la app. Si lo marcas, se guardan sin cifrar en este navegador. Usa un token limitado al repositorio privado de datos.</div>'
+    + '<div class="note">Las claves se guardan en este dispositivo y se conservan al cerrar o actualizar la app. Desconectar las elimina. Se guardan sin cifrar en este navegador; usa un token limitado al repositorio privado de datos.</div>'
     + '<div id="snote"></div>';
   var pie = (configurado()
       ? '<button type="button" class="btn destr" id="sOff">Desconectar</button>'
@@ -1375,7 +1385,7 @@ function pantallaSync(){
       token: $('#sToken').value.trim(), discogs: $('#sDisc').value.trim(),
       anthropic: $('#sAntropic').value.trim(), lastfm: $('#sLastfm').value.trim(),
       ticketmaster: $('#sTM').value.trim(), audd: $('#sAudd').value.trim(),
-      recordarClaves: $('#sRecordar').checked, subirADiscogs: $('#sSubir') ? $('#sSubir').checked : false, auto: true
+      recordarClaves: true, subirADiscogs: $('#sSubir') ? $('#sSubir').checked : false, auto: true
     };
   };
   /* Diagnóstico por etapas: primero repositorio, luego rama y solo al final
@@ -1448,7 +1458,7 @@ function pantallaSync(){
     }).then(function(){
       if(pullPromiseActual || pushPromiseActual) throw new Error('Espera a que termine la sincronización');
       var anterior = CFG;
-      CFG = Object.assign({}, CFG, cfg);
+      CFG = combinarCfg(CFG, cfg);
       return guardarCfg().catch(function(e){ CFG = anterior; throw new Error('No se han podido guardar los ajustes'); });
     }).then(function(){
       configuracionEnCurso = false;
@@ -1475,7 +1485,7 @@ function pantallaSync(){
     CFG = configSinClaves(CFG);
     CFG.recordarClaves = false;
     SHA = '';
-    guardarCfg().catch(function(){ toast('No se pudieron borrar las claves guardadas. Revócalas en su proveedor.', true); });
+    guardarCfg(true).catch(function(){ toast('No se pudieron borrar las claves guardadas. Revócalas en su proveedor.', true); });
     readOnly = true;
     document.body.classList.add('ro');
     marcar('local');

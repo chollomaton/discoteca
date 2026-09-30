@@ -8,7 +8,7 @@ const must=(re,msg)=>assert.match(src,re,msg);
 must(/var CLAVES_CFG\s*=\s*\['token',\s*'discogs',\s*'anthropic',\s*'lastfm',\s*'ticketmaster',\s*'audd'\]/,'inventario de secretos');
 must(/function configSinClaves\(cfg\)/,'configuración pública sin secretos');
 must(/localStorage\.setItem\(LS_CFG,\s*JSON\.stringify\(persistida\)\)/,'localStorage recibe configuración según consentimiento');
-must(/CFG\.recordarClaves\s*\?\s*Object\.assign\(\{\},\s*CFG\)\s*:\s*publica/,'persistencia de claves requiere consentimiento');
+must(/persistida.recordarClaves = true/,'persistencia local independiente del control antiguo');
 
 // Sanitización de errores/logs para no filtrar credenciales.
 must(/function ocultarSecretos\(texto\)/,'sanitizador presente');
@@ -25,7 +25,7 @@ must(/function ghHeaders\(\)/,'cabeceras GitHub centralizadas');
 must(/e instanceof TypeError && ultimaColeccionValida\) cargaColeccion = 'offline_cached'/,'fallo de red marca offline');
 must(/r\.status === 401 \|\| r\.status === 403/,'autorización tratada explícitamente');
 
-console.log('✓ secretos aislados de localStorage y exportaciones');
+console.log('✓ secretos persistentes locales y fuera de exportaciones');
 console.log('✓ errores sanitizados contra fuga de credenciales');
 console.log('✓ destino GitHub validado antes de sincronizar');
 console.log('✓ red offline diferenciada de errores de autenticación');

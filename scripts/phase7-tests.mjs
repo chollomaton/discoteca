@@ -22,12 +22,12 @@ vm.runInContext(block('function fechaMasReciente','/* ---------- descarga ------
 vm.runInContext(block('function fusionarCopiaRecuperacion','function importBackup'),ctx);
 vm.runInContext(block('function apuntarFallo','window.addEventListener'),ctx);
 await ctx.guardarCfg();
-assert.equal(records.get('config').token,''); assert.equal(JSON.parse(storage.get('config-local')).discogs,'');
+assert.equal(records.get('config').token,'example-secret-value'); assert.equal(JSON.parse(storage.get('config-local')).discogs,'discogs-secret');
 ctx.CFG.recordarClaves=true; await ctx.guardarCfg();
 assert.equal(records.get('config').token,'example-secret-value'); assert.equal(JSON.parse(storage.get('config-local')).token,'example-secret-value');
-ctx.CFG.recordarClaves=false; await ctx.guardarCfg(); assert.equal(records.get('config').token,'');
-idbFails=true; await assert.rejects(ctx.guardarCfg()); idbFails=false;
-console.log('✓ claves de sesión, consentimiento, limpieza y fallo de almacenamiento');
+ctx.CFG.recordarClaves=false; await ctx.guardarCfg(); assert.equal(records.get('config').token,'example-secret-value');
+idbFails=true; await ctx.guardarCfg(); localFails=true; await assert.rejects(ctx.guardarCfg()); idbFails=false; localFails=false;
+console.log('✓ claves persistentes, fallback y fallo de ambos almacenes');
 ctx.apuntarFallo('test','Bearer example-secret-value https://api.test/?api_key=other-secret','?token=discogs-secret');
 const logs=storage.get('fallos');
 for(const secret of ['example-secret-value','discogs-secret','other-secret']) assert(!logs.includes(secret));

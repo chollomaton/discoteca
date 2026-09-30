@@ -9,17 +9,17 @@ const local=new Map(), session=new Map();
 const storage=m=>({getItem:k=>m.get(k)||null,setItem:(k,v)=>m.set(k,v),removeItem:k=>m.delete(k)});
 let record=null, fail=false;
 const fresh=(update=false)=>{
- const c=vm.createContext({CFG:{},localStorage:storage(local),sessionStorage:storage(session),LS_CFG:'cfg',K_CFG:'cfg',URL,location:{href:'https://example.test/index.html'+(update?'?app-update=1':'')},idbSet:async(k,v)=>{if(fail)throw Error('IDB unavailable');record=JSON.parse(JSON.stringify(v));}});
+ const c=vm.createContext({CFG:{},localStorage:storage(local),sessionStorage:storage(session),LS_CFG:'cfg',K_CFG:'cfg',URL,location:{href:'https://example.test/index.html'+(update?'?app-update=1':'')},idbGet:async()=>{if(fail)throw Error('IDB unavailable');return record;},idbSet:async(k,v)=>{if(fail)throw Error('IDB unavailable');record=JSON.parse(JSON.stringify(v));}});
  vm.runInContext(source,c);return c;
 };
 let c=fresh();
 const secrets=Object.fromEntries(c.CLAVES_CFG.map(k=>[k,'test-only-'+k]));
 const check=cfg=>{for(const k of c.CLAVES_CFG)assert.equal(cfg[k],secrets[k]);};
-c.CFG={...secrets,recordarClaves:true};await c.guardarCfg();
+c.CFG={...secrets,recordarClaves:false};await c.guardarCfg();
 c=fresh();check(c.restaurarCfg(record));check(c.restaurarCfg(null));
 check(c.restaurarCfg({...record,token:'',discogs:'',ticketmaster:''}));
 local.set('cfg',JSON.stringify({...record,token:'',discogs:'',ticketmaster:''}));check(c.restaurarCfg(record));
-c.CFG={...secrets,recordarClaves:true};fail=true;await assert.rejects(c.guardarCfg());check(fresh().restaurarCfg(null));fail=false;
+c.CFG={...secrets,recordarClaves:true};fail=true;await c.guardarCfg();check(fresh().restaurarCfg(null));fail=false;
 console.log('✓ recordar=true, reload, IDB fallback y valores vacíos');
 for(const remember of [true,false]){
  c=fresh();c.CFG={...secrets,recordarClaves:remember};await c.guardarCfg();
@@ -29,15 +29,15 @@ for(const remember of [true,false]){
  vm.runInContext(bootstrap.slice(start,bootstrap.indexOf('}, 120);',start)+8),c);
  assert(navigated.includes('app-update='));
  c=fresh(true);check(c.restaurarCfg(record));assert.equal(session.size,0);
- if(!remember){c=fresh();for(const k of c.CLAVES_CFG)assert.equal(c.restaurarCfg(record)[k],'');}
+ c=fresh();check(c.restaurarCfg(record));
 }
-console.log('✓ app-update one-shot; recordar=false no persiste en reload normal');
+console.log('✓ app-update one-shot; recordar=false también persiste en reload normal');
 c.CFG={...secrets,recordarClaves:true};await c.guardarCfg();c.prepararCfgActualizacion();
 // Execute the credential-clearing portion of the real disconnect handler.
 c.SHA='';c.toast=()=>{};
 const off=core.indexOf('    CFG = configSinClaves(CFG);',core.indexOf("if($('#sOff'))"));
 vm.runInContext(core.slice(off,core.indexOf('    readOnly = true;',off)),c);
-await Promise.resolve();
+await new Promise(r=>setTimeout(r,0));
 for(const k of c.CLAVES_CFG){assert.equal(record[k],'');assert.equal(JSON.parse(local.get('cfg'))[k],'');}
 assert.equal(session.size,0);
 assert.deepEqual(fs.readFileSync('datos.json'),execFileSync('git',['show','HEAD:datos.json'],{maxBuffer:20*1024*1024}));
