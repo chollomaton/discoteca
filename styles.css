@@ -1678,3 +1678,12 @@ label.trk{cursor:pointer}
 .calidad-aviso{display:block;text-align:left;white-space:normal;overflow-wrap:anywhere;margin:8px 0;width:100%}
 
 .edition-status{font-size:11px;color:var(--txt2);line-height:1.5;margin-top:4px}.pill.dup{max-width:90%;white-space:normal}
+
+/* F14: controles adicionales mantienen las superficies y colores existentes. */
+.arthd ~ .rowb{flex-wrap:wrap;gap:8px}
+.tienda .tman input{min-width:0}
+.tienda #tRes>.btn{display:block;width:100%;white-space:normal;text-align:left;margin:8px 0;overflow-wrap:anywhere}
+.tienda .tcard h3{font-size:1.15rem;line-height:1.4}
+.tienda .tbody>p{color:var(--txt2);line-height:1.5}
+.tienda button:focus-visible,.tienda input:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.tienda *, .edition-status{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

@@ -149,9 +149,15 @@ function escanear(alLeer){
   var notaHtml = function(html, cls){ var n = s.querySelector('#snote'); if(n){ n.className = 'note ' + (cls || 'busy'); n.innerHTML = html; } };
   var cerrar = function(){
     parar = true;
+    if(observer) observer.disconnect();
+    document.removeEventListener('visibilitychange', ocultarScan);
     try{ if(lector) lector.reset(); }catch(e){}
     if(stream) stream.getTracks().forEach(function(t){ t.stop(); });
   };
+  var ocultarScan = function(){if(document.hidden){cerrar();s.remove();}};
+  document.addEventListener('visibilitychange',ocultarScan);
+  var observer = new MutationObserver(function(){if(!s.isConnected)cerrar();});
+  observer.observe(document.body,{childList:true,subtree:true});
   var encontrado = function(codigo){
     if(parar) return;
     cerrar(); s.remove();
@@ -259,8 +265,9 @@ function escanear(alLeer){
     return false;
   };
 
-  var detNativo = ('BarcodeDetector' in window)
-    ? new window.BarcodeDetector({formats:['ean_13','upc_a','ean_8','upc_e','code_128']}) : null;
+  var detNativo = null;
+  try{if('BarcodeDetector' in window)detNativo=new window.BarcodeDetector({formats:['ean_13','upc_a','ean_8','upc_e','code_128']});}catch(e){}
+  if(!detNativo){nota('Este navegador no dispone de lector de cámara. Escribe el código o usa una foto.', '');return function(){cerrar();s.remove();};}
   var inicio = Date.now(), avisado = false;
   var bucle = function(){
     if(parar) return;
@@ -287,6 +294,7 @@ function escanear(alLeer){
   };
 
   navigator.mediaDevices.getUserMedia(restricciones).then(function(st){
+    if(parar || !s.isConnected){st.getTracks().forEach(function(track){track.stop();});return;}
     stream = st; video.srcObject = st;
     /* enfoque continuo si el dispositivo lo permite; si no, no pasa nada */
     try{
@@ -300,12 +308,15 @@ function escanear(alLeer){
        (que en Safari/iPhone no existe) o cuando el nativo no encuentra nada */
     return cargarZX().catch(function(){ return null; });
   }).then(function(){
+    if(parar || !s.isConnected)return;
     if(window.ZXing) lector = lectorZXRapido();
     nota('Encuadra el código dentro del recuadro');
     video.play().then(function(){ setTimeout(bucle, 400); }).catch(function(){ setTimeout(bucle, 800); });
   }).catch(function(){
+    if(stream)stream.getTracks().forEach(function(track){track.stop();});
     nota('No se pudo abrir la cámara. Escribe el código o usa una foto.', 'err');
   });
+  return function(){cerrar();s.remove();};
 }
 function altaPorCodigo(codigo){
   var t = toast('Buscando ' + codigo + '…');
@@ -524,6 +535,7 @@ function tileHtml(d, dups){
     + (readOnly ? '' : '<button type="button" class="magic" data-ai="' + d.id + '" data-tip="Buscar los datos que falten">' + I.spark + '</button>')
     + '</div><div class="meta"><div class="t">' + (esc(d.titulo) || 'Sin título') + '</div>'
     + '<div class="a">' + (esc(d.artista) || 'Artista desconocido') + '</div>'
+    + (d.lista === 'deseos' ? '<div class="edition-status">Deseo de ' + (d.wishScope === 'release' ? 'Release' : 'obra') + '</div>' : '')
     + '<div class="edition-status">' + ({verified:'Verificada',review:'Revisar edición',unidentified:'Sin identificar'})[Edition.status(d).identity] + (Edition.status(d).incomplete ? ' · Incompleta' : '') + '</div>'
     + '<div class="y"><span class="txt">' + (d['año'] || '—') + (d.genero ? ' · ' + esc(d.genero) : '')
     + (totalEscuchas(d) ? ' · ▶ ' + totalEscuchas(d) : '') + '</span>'
@@ -2509,39 +2521,34 @@ function detectiveEdiciones(d){
 /* ---------- huecos ---------- */
 function verHuecos(artista){
   var s = sheet('Discografía de ' + artista,
-    '<div class="note busy" id="hnote">Consultando la discografía completa en MusicBrainz…</div><div id="hlist"></div>');
+    '<div class="note busy" id="hnote">Consultando discografía…</div><div id="hlist"></div>');
   huecosArtista(artista).then(function(rgs){
     if(!rgs.length){
       s.querySelector('#hnote').className = 'note err';
       s.querySelector('#hnote').textContent = 'No se encontró la discografía de este artista.';
       return;
     }
-    var faltan = rgs.filter(function(r){ return !r.tengo; });
-    s.querySelector('#hnote').style.display = 'none';
-    s.querySelector('#hlist').innerHTML =
-      '<p style="font-size:14.5px;color:var(--txt2);margin:0 0 14px">Tienes <b style="color:var(--txt)">' + (rgs.length - faltan.length)
-      + ' de ' + rgs.length + '</b> álbumes de estudio.</p><div class="tl">'
-      + rgs.map(function(r, i){
-        return '<div class="trk"><span class="num">' + (r['año'] || '—') + '</span>'
-          + '<span class="nm" style="' + (r.tengo ? '' : 'color:var(--txt2)') + '">' + esc(r.titulo) + '</span>'
-          + (r.tengo ? '<span class="tag grn">Lo tienes</span>'
-            : (readOnly ? '' : '<button type="button" class="btn xs" data-add="' + i + '">' + I.heart + 'Deseos</button>')) + '</div>';
-      }).join('') + '</div>';
+    var studio = rgs.filter(function(r){return r.tipo === 'studio' && !r.ignorado;});
+    var tengo = studio.filter(function(r){return r.tengo;}).length;
+    s.querySelector('#hnote').textContent = (rgs.some(function(r){return r.offline;}) ? 'Copia sin conexión · ' : '') + tengo + ' de ' + studio.length + ' álbumes de estudio';
+    s.querySelector('#hnote').className = 'note';
+    s.querySelector('#hlist').innerHTML = '<div class="tl">' + rgs.map(function(r,i){
+      return '<div class="trk"><span class="num">'+esc(r.año||'—')+'</span><span class="nm">'+esc(r.titulo)+' <small>'+({studio:'Estudio',live:'Directo',compilation:'Recopilatorio',unknown:'Tipo sin confirmar'})[r.tipo]+'</small></span>'
+        +(r.tengo?'<span class="tag grn">Lo tienes</span>':r.deseo?'<span class="tag pur">En deseos</span>':readOnly?'':'<button type="button" class="btn xs" data-add="'+i+'">Deseos de obra</button>')
+        +'<button type="button" class="btn xs" data-ignore="'+i+'">'+(r.ignorado?'Restaurar':'Ignorar')+'</button></div>';
+    }).join('')+'</div>';
+    s.querySelectorAll('[data-ignore]').forEach(function(b){b.onclick = function(){ignorarObra(artista,rgs[+b.dataset.ignore]);s.remove();verHuecos(artista);};});
     s.querySelectorAll('[data-add]').forEach(function(b){
       b.onclick = function(){
         var r = rgs[+b.dataset.add];
-        DB.discos.push(normDisc({
-          id: uid(), lista:'deseos', artista: artista, titulo: r.titulo, 'año': r['año'],
-          formato: 'Vinilo', rgid: r.id, fechaAlta: nowISO()
-        }));
-        persist();
+        desearObra(artista,r);
         b.outerHTML = '<span class="tag pur">En deseos</span>';
         toast('«' + r.titulo + '» añadido a deseos');
       };
     });
   }).catch(function(){
     s.querySelector('#hnote').className = 'note err';
-    s.querySelector('#hnote').textContent = 'No se pudo consultar MusicBrainz.';
+    s.querySelector('#hnote').textContent = 'No se pudo consultar la discografía. La colección local sigue disponible.';
   });
 }
 
@@ -2735,6 +2742,7 @@ function openForm(item, listaDestino, preset){
 
   if(ed) $('#del').onclick = function(){
     if(confirm('¿Eliminar "' + (d.titulo || 'este disco') + '" de la colección?')){
+      if(DB.discos.length === 1 && !autorizarVaciadoExplicito())return;
       guardarDeshacer([d], 'eliminar disco');
       DB.discos = DB.discos.filter(function(x){ return x.id !== d.id; });
       persist(); s.remove(); toast('Disco eliminado');

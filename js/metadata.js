@@ -611,7 +611,7 @@ async function revisarDisco(d, res){
       if(!d.tracklist.length && mb.tracklist.length && !Edition.release(d) && !protegido(d, 'tracklist')){
         d.tracklist = normTracks(mb.tracklist);
         res.tracks++;
-      }else if(!protegido(d, 'tracklist') && mb.tracklist.length === d.tracklist.length
+      }else if(!Edition.release(d) && !protegido(d, 'tracklist') && mb.tracklist.length === d.tracklist.length
           && !d.tracklist.some(function(t){ return t.disco > 1 || t.pos; })){
         /* mismo número de cortes: añadimos la unidad sin tocar los títulos */
         var hayVarias = mb.tracklist.some(function(t){ return (t.disco || 1) > 1; });

@@ -32,7 +32,7 @@ function montarEventos(){
   byId('btnPal').onclick = abrirPaleta;
   byId('btnDice').onclick = discoAlAzar;
   byId('btnSel').onclick = function(){ modoSeleccion(!selMulti); };
-  byId('btnScan').onclick = function(){ escanear(); };
+  byId('btnScan').onclick = modoTienda;
   byId('fabTienda').onclick = modoTienda;
   byId('logo').onclick = function(){ setView('col'); };
   byId('syncBadge').onclick = function(){ configurado() ? sincronizarAhora() : pantallaSync(); };
@@ -133,7 +133,7 @@ function montarEventos(){
     else if(e.key === '2'){ setView('wish'); }
     else if(e.key === '3'){ setView('stats'); }
     else if(e.key === '4'){ setView('db'); }
-    else if(e.key === 't'){ e.preventDefault(); modoTienda(); }
+    else if(e.key.toLowerCase() === 't'){ e.preventDefault(); modoTienda(); }
   });
   document.body.addEventListener('dragover', function(e){ e.preventDefault(); });
   document.body.addEventListener('drop', function(e){

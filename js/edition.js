@@ -54,5 +54,16 @@ var Edition = (function(){
     ix.release.forEach(function(group){if(group.length>1)group.forEach(function(d){out[d.id]='Mismo Release · varios ejemplares';});});
     (discs||[]).forEach(function(d){if(d.ejemplares>1)out[d.id]='Varios ejemplares';});return out;
   }
-  return {status:status,duplicates:duplicates,text:text,code:code,release:release,master:master,normalize:normalize,compare:compare,resolve:resolve,indexes:indexes,fromDiscogs:fromDiscogs};
+  function shop(candidate,discs,complete){
+    var matches=(discs||[]).map(function(d){return {disc:d,c:compare(candidate,d)};});
+    var owned=matches.filter(function(x){return x.disc.lista!=='deseos';});
+    var exact=owned.filter(function(x){return x.c.exact && !x.c.conflicts.length;});
+    if(exact.length)return {state:'exact_release',discs:exact.map(function(x){return x.disc;})};
+    var work=owned.filter(function(x){return x.c.sameWork;});
+    if(work.length)return {state:work.some(function(x){return x.c.relation==='different_edition';})?'different_edition':'same_work',discs:work.map(function(x){return x.disc;})};
+    var wish=matches.filter(function(x){return x.disc.lista==='deseos' && (x.disc.wishScope==='release'?x.c.exact:x.c.sameWork);});
+    if(wish.length)return {state:'wishlist',discs:wish.map(function(x){return x.disc;})};
+    return {state:complete && release(candidate)?'different':'uncertain',discs:[]};
+  }
+  return {shop:shop,status:status,duplicates:duplicates,text:text,code:code,release:release,master:master,normalize:normalize,compare:compare,resolve:resolve,indexes:indexes,fromDiscogs:fromDiscogs};
 })();
