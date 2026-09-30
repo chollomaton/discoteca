@@ -96,6 +96,8 @@ jobs:
         run: |
           npm install --no-save --package-lock=false playwright@1.58.2
           npx playwright install --with-deps chromium
+      - name: Regresión real de credenciales en navegador
+        run: node scripts/credential-browser-tests.mjs
       - name: Verificar límites de comparación visual
         run: node scripts/visual-compare-tests.mjs
       - name: Fase 13 · capturas para revisión visual

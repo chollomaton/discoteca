@@ -51,7 +51,7 @@ function paintDb(){
     + seccion(I.key, 'Privacidad y mantenimiento')
     + '<div class="card"><div class="fila"><div><div class="ft">' + (CFG.repoPrivado ? 'Repositorio de datos privado' : 'Privacidad de los datos sin verificar') + '</div>'
     + '<div class="fs">Comprueba la visibilidad con Probar en Token y repositorio. Un repositorio público permite leer la colección. Las copias locales también contienen datos personales.</div></div></div>'
-    + '<div class="fila"><div><div class="ft">' + (CFG.recordarClaves ? 'Claves recordadas en este dispositivo' : 'Claves solo durante esta sesión') + '</div>'
+    + '<div class="fila"><div><div class="ft">' + 'Claves guardadas en este dispositivo' + '</div>'
     + '<div class="fs">Desconectar borra las claves guardadas aquí. Revoca el token en GitHub si pierdes el dispositivo.</div></div></div></div>'
     + '<div class="dbact">' + accion(I.save, 'Proteger almacenamiento local', 'Solicita al navegador que conserve los datos sin conexión. No sustituye una copia descargada.', 'almacen', '', 'Proteger') + '</div>'
 
