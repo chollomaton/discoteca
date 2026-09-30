@@ -2518,40 +2518,6 @@ function detectiveEdiciones(d){
   });
 }
 
-/* ---------- huecos ---------- */
-function verHuecos(artista){
-  var s = sheet('Discografía de ' + artista,
-    '<div class="note busy" id="hnote">Consultando discografía…</div><div id="hlist"></div>');
-  huecosArtista(artista).then(function(rgs){
-    if(!rgs.length){
-      s.querySelector('#hnote').className = 'note err';
-      s.querySelector('#hnote').textContent = 'No se encontró la discografía de este artista.';
-      return;
-    }
-    var studio = rgs.filter(function(r){return r.tipo === 'studio' && !r.ignorado;});
-    var tengo = studio.filter(function(r){return r.tengo;}).length;
-    s.querySelector('#hnote').textContent = (rgs.some(function(r){return r.offline;}) ? 'Copia sin conexión · ' : '') + tengo + ' de ' + studio.length + ' álbumes de estudio';
-    s.querySelector('#hnote').className = 'note';
-    s.querySelector('#hlist').innerHTML = '<div class="tl">' + rgs.map(function(r,i){
-      return '<div class="trk"><span class="num">'+esc(r.año||'—')+'</span><span class="nm">'+esc(r.titulo)+' <small>'+({studio:'Estudio',live:'Directo',compilation:'Recopilatorio',unknown:'Tipo sin confirmar'})[r.tipo]+'</small></span>'
-        +(r.tengo?'<span class="tag grn">Lo tienes</span>':r.deseo?'<span class="tag pur">En deseos</span>':readOnly?'':'<button type="button" class="btn xs" data-add="'+i+'">Deseos de obra</button>')
-        +'<button type="button" class="btn xs" data-ignore="'+i+'">'+(r.ignorado?'Restaurar':'Ignorar')+'</button></div>';
-    }).join('')+'</div>';
-    s.querySelectorAll('[data-ignore]').forEach(function(b){b.onclick = function(){ignorarObra(artista,rgs[+b.dataset.ignore]);s.remove();verHuecos(artista);};});
-    s.querySelectorAll('[data-add]').forEach(function(b){
-      b.onclick = function(){
-        var r = rgs[+b.dataset.add];
-        desearObra(artista,r);
-        b.outerHTML = '<span class="tag pur">En deseos</span>';
-        toast('«' + r.titulo + '» añadido a deseos');
-      };
-    });
-  }).catch(function(){
-    s.querySelector('#hnote').className = 'note err';
-    s.querySelector('#hnote').textContent = 'No se pudo consultar la discografía. La colección local sigue disponible.';
-  });
-}
-
 /* ---------- formulario ---------- */
 function openForm(item, listaDestino, preset){
   var ed = !!item;

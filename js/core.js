@@ -1875,7 +1875,7 @@ function aplicar(d, r, force){
     if(protegido(d, f) || complemento && ['sello','numeroCatalogo','pais','formatoDetalle','codigoBarras','mbid'].indexOf(f)>=0) return;
     if(r[f] && r[f] !== d[f] && (force || !d[f])){ d[f] = r[f]; cambios = true; }
   });
-  if(r.notas && !d.notas){ d.notas = r.notas; cambios = true; }
+  if(r.notas && !d.notas && !protegido(d, 'notas')){ d.notas = r.notas; cambios = true; }
   if(cambios){ d.confianza = r.confianza === 'baja' ? 'baja' : ''; refrescarFaltan(d); }
   return cambios;
 }
